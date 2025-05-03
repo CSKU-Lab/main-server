@@ -1,6 +1,7 @@
 # Environment variables
 .env
-docker/.env
+.env.*
+!.env.example
 
 # Air tmp files
 tmp/
