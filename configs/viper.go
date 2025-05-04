@@ -39,5 +39,13 @@ func NewConfig() *Config {
 		log.Fatal("❌ JWT_SECRET must be set")
 	}
 
+	if config.GoogleClientID == "" {
+		log.Fatal("❌ GOOGLE_CLIENT_ID must be set")
+	}
+
+	if config.GoogleClientSecret == "" {
+		log.Fatal("❌ GOOGLE_CLIENT_SECRET must be set")
+	}
+
 	return &config
 }
