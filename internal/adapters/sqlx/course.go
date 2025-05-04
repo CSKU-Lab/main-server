@@ -22,7 +22,7 @@ func NewSqlxCourseRepository(db *sqlx.DB) repositories.CourseRepository {
 }
 
 func (r *sqlxCourseRepository) Create(ctx context.Context, ID string, c *requests.Course, userID string) (*models.Course, error) {
-	query := `INSERT INTO courses (id, name, code, created_by) VALUES ($1, $2, $3) RETURNING *`
+	query := `INSERT INTO courses (id, name, code, created_by) VALUES ($1, $2, $3, $4) RETURNING *`
 	row := r.db.QueryRowxContext(ctx, query, ID, c.Name, c.Code, userID)
 
 	var course models.Course
