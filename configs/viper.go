@@ -19,6 +19,7 @@ type Config struct {
 func NewConfig() *Config {
 	var config Config
 
+	viper.AutomaticEnv()
 	viper.SetConfigName(".env")
 	viper.SetConfigType("env")
 	viper.AddConfigPath(".")
