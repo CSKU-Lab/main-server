@@ -3,9 +3,11 @@ package services
 import (
 	"context"
 
+	"github.com/SornchaiTheDev/cs-lab-backend/domain/cserrors"
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/models"
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/repositories"
 	"github.com/SornchaiTheDev/cs-lab-backend/internal/requests"
+	"github.com/google/uuid"
 )
 
 type SemesterService interface {
@@ -28,7 +30,12 @@ func NewSemesterService(repo repositories.SemesterRepository) *semesterService {
 }
 
 func (s *semesterService) Create(ctx context.Context, sem *requests.Semester) (*models.Semester, error) {
-	return s.repo.Create(ctx, sem)
+	id, err := uuid.NewV7()
+	if err != nil {
+		return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Cannot generate user ID")
+	}
+
+	return s.repo.Create(ctx, id.String(), sem)
 }
 
 func (s *semesterService) GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string) ([]models.Semester, error) {

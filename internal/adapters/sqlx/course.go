@@ -21,9 +21,9 @@ func NewSqlxCourseRepository(db *sqlx.DB) repositories.CourseRepository {
 	return &sqlxCourseRepository{db: db}
 }
 
-func (r *sqlxCourseRepository) Create(ctx context.Context, c *requests.Course, userID string) (*models.Course, error) {
-	query := `INSERT INTO courses (name, code, created_by) VALUES ($1, $2, $3) RETURNING *`
-	row := r.db.QueryRowxContext(ctx, query, c.Name, c.Code, userID)
+func (r *sqlxCourseRepository) Create(ctx context.Context, ID string, c *requests.Course, userID string) (*models.Course, error) {
+	query := `INSERT INTO courses (id, name, code, created_by) VALUES ($1, $2, $3) RETURNING *`
+	row := r.db.QueryRowxContext(ctx, query, ID, c.Name, c.Code, userID)
 
 	var course models.Course
 	err := row.StructScan(&course)

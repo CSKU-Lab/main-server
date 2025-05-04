@@ -8,7 +8,7 @@ import (
 )
 
 type CourseRepository interface {
-	Create(ctx context.Context, c *requests.Course, userID string) (*models.Course, error)
+	Create(ctx context.Context, ID string, c *requests.Course, userID string) (*models.Course, error)
 	GetByID(ctx context.Context, ID string) (*models.Course, error)
 	GetPagination(ctx context.Context, page int, pageSize int, search string, sortBy string, sortOrder string) ([]models.Course, error)
 	Count(ctx context.Context, search string) (int, error)

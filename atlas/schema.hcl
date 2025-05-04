@@ -11,7 +11,6 @@ table "users" {
   schema = schema.public
   column "id" {
     type = uuid
-    default = sql("gen_random_uuid()")
   }
   column "email" {
     type = text
@@ -100,7 +99,6 @@ table "courses" {
   schema = schema.public
   column "id" {
     type = uuid
-    default = sql("gen_random_uuid()")
   }
   column "code" {
     type = varchar(8)
@@ -145,7 +143,6 @@ table "sections" {
   schema = schema.public
   column "id" {
     type = uuid
-    default = sql("gen_random_uuid()")
   }
   column "name" {
     type = text
@@ -251,7 +248,6 @@ table "semesters" {
   schema = schema.public
   column "id" {
     type = uuid
-    default = sql("gen_random_uuid()")
   }
   column "name" {
     type = varchar(255)
@@ -297,7 +293,6 @@ table "auth_logs" {
   schema = schema.public
   column "id" {
     type = uuid
-    default = sql("gen_random_uuid()")
   }
   column "user_id" {
     type = uuid

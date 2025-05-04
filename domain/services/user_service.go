@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/SornchaiTheDev/cs-lab-backend/domain/cserrors"
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/models"
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/repositories"
 	"github.com/SornchaiTheDev/cs-lab-backend/internal/requests"
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -64,7 +66,12 @@ func (s *userService) Count(ctx context.Context, search string) (int, error) {
 }
 
 func (s *userService) Create(ctx context.Context, user *requests.User) (*models.User, error) {
-	return s.userRepository.Create(ctx, user)
+	id, err := uuid.NewV7()
+	if err != nil {
+		return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Cannot generate user ID")
+	}
+
+	return s.userRepository.Create(ctx, id.String(), user)
 }
 
 func (s *userService) SetPassword(ctx context.Context, username string, password string) error {

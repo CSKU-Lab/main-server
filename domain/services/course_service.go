@@ -3,9 +3,11 @@ package services
 import (
 	"context"
 
+	"github.com/SornchaiTheDev/cs-lab-backend/domain/cserrors"
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/models"
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/repositories"
 	"github.com/SornchaiTheDev/cs-lab-backend/internal/requests"
+	"github.com/google/uuid"
 )
 
 type CourseService interface {
@@ -28,7 +30,12 @@ func NewCourseService(repo repositories.CourseRepository) CourseService {
 }
 
 func (s *courseService) Create(ctx context.Context, c *requests.Course, userID string) (*models.Course, error) {
-	return s.repo.Create(ctx, c, userID)
+	id, err := uuid.NewV7()
+	if err != nil {
+		return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Cannot generate user ID")
+	}
+
+	return s.repo.Create(ctx, id.String(), c, userID)
 }
 
 func (s *courseService) GetByID(ctx context.Context, ID string) (*models.Course, error) {

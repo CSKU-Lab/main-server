@@ -24,14 +24,15 @@ func NewSqlxSemesterRepository(db *sqlx.DB) repositories.SemesterRepository {
 	}
 }
 
-func (r *sqlxSemesterRepository) Create(ctx context.Context, sem *requests.Semester) (*models.Semester, error) {
+func (r *sqlxSemesterRepository) Create(ctx context.Context, ID string, sem *requests.Semester) (*models.Semester, error) {
 	query := `INSERT INTO semesters (
+		id,
 		name,
 		type,
 		started_date
-	) VALUES ($1,$2,$3)
+	) VALUES ($1,$2,$3,$4)
 	RETURNING *`
-	row := r.db.QueryRowxContext(ctx, query, sem.Name, sem.Type, sem.StartedDate)
+	row := r.db.QueryRowxContext(ctx, query, ID, sem.Name, sem.Type, sem.StartedDate)
 
 	var semester models.Semester
 	err := row.StructScan(&semester)

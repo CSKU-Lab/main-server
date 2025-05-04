@@ -194,18 +194,19 @@ func (r *sqlxUserRepository) Count(ctx context.Context, search string) (int, err
 	return count, nil
 }
 
-func (r *sqlxUserRepository) Create(ctx context.Context, user *requests.User) (*models.User, error) {
+func (r *sqlxUserRepository) Create(ctx context.Context, ID string, user *requests.User) (*models.User, error) {
 	createString := `
 		INSERT INTO users (
+			id,
 			username,
 			display_name,
 			email,
 			roles
-		) VALUES ($1,$2,$3,string_to_array($4,',')::role[])
+		) VALUES ($1,$2,$3,$4,string_to_array($5,',')::role[])
 		RETURNING *
 	`
 
-	User := r.db.QueryRowxContext(ctx, createString, user.Username, user.DisplayName, user.Email, strings.Join(user.Roles, ","))
+	User := r.db.QueryRowxContext(ctx, createString, ID, user.Username, user.DisplayName, user.Email, strings.Join(user.Roles, ","))
 
 	var createdUser PostgresUser
 
