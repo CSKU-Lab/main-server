@@ -14,6 +14,9 @@ type Config struct {
 	GoogleClientSecret string `mapstructure:"GOOGLE_CLIENT_SECRET"`
 	JWTSecret          string `mapstructure:"JWT_SECRET"`
 	JWTRefreshSecret   string `mapstructure:"JWT_REFRESH_SECRET"`
+	COOKIE_DOMAIN      string `mapstructure:"COOKIE_DOMAIN"`
+	DEV_MODE           bool   `mapstructure:"DEV_MODE"`
+	FRONTEND_URL       string `mapstructure:"FRONTEND_URL"`
 }
 
 func NewConfig() *Config {
@@ -26,6 +29,7 @@ func NewConfig() *Config {
 
 	// Default values
 	viper.SetDefault("PORT", "8080")
+	viper.SetDefault("DEV_MODE", false)
 
 	if err := viper.ReadInConfig(); err != nil {
 		log.Fatal("❌ Error reading config file")
