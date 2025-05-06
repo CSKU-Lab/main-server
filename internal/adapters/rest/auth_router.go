@@ -2,6 +2,8 @@ package rest
 
 import (
 	"context"
+	"log"
+	"time"
 
 	"github.com/SornchaiTheDev/cs-lab-backend/configs"
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/cserrors"
@@ -73,7 +75,7 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 			HTTPOnly: true,
 			SameSite: fiber.CookieSameSiteLaxMode,
 			Domain:   appConfig.COOKIE_DOMAIN,
-			Secure:   appConfig.DEV_MODE == false,
+			Secure:   false,
 		})
 
 		c.Cookie(&fiber.Cookie{
@@ -83,7 +85,7 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 			HTTPOnly: true,
 			SameSite: fiber.CookieSameSiteLaxMode,
 			Domain:   appConfig.COOKIE_DOMAIN,
-			Secure:   appConfig.DEV_MODE == false,
+			Secure:   false,
 		})
 
 		if appConfig.DEV_MODE {
@@ -137,23 +139,35 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 		})
 	})
 
-	authRouter.Post("/refresh-token", middlewares.ProtectedRouteMiddleware(appConfig.JWTSecret), middlewares.ValidateMiddleware(&requests.RefreshToken{}), func(c *fiber.Ctx) error {
-		request := c.Locals("request").(*requests.RefreshToken)
+	authRouter.Post("/refresh-token", middlewares.ProtectedRouteMiddleware(appConfig.JWTSecret), func(c *fiber.Ctx) error {
+		accessToken := c.Cookies("access_token")
+		refreshToken := c.Cookies("refresh_token")
 		user := c.Locals("user").(*models.User)
 
-		refreshToken, err := refreshTokenService.Get(c.Context(), user.ID)
+		// verify refresh token if valid and not expired
+		err := auth.VerifyToken(refreshToken, appConfig.JWTRefreshSecret)
+		if err != nil {
+			return cserrors.New(cserrors.UNAUTHORIZED, "Unauthorized")
+		}
+
+		claims, err := auth.GetClaims(accessToken, appConfig.JWTSecret)
+		if err != nil {
+			return cserrors.New(cserrors.UNAUTHORIZED, "Unauthorized")
+		}
+
+		if claims.ExpiresAt.Sub(time.Now()).Minutes() > 5 {
+			return c.JSON(fiber.Map{
+				"message": "token is stil valid",
+			})
+		}
+
+		dbRefreshToken, err := refreshTokenService.Get(c.Context(), user.ID)
 		if err != nil {
 			return cserrors.New(cserrors.UNAUTHORIZED, "Unauthorized")
 		}
 
 		// check for replay attack
-		if refreshToken != request.RefreshToken {
-			return cserrors.New(cserrors.UNAUTHORIZED, "Unauthorized")
-		}
-
-		// verify refresh token if valid and not expired
-		err = auth.VerifyAccessToken(request.RefreshToken, appConfig.JWTRefreshSecret)
-		if err != nil {
+		if dbRefreshToken != refreshToken {
 			return cserrors.New(cserrors.UNAUTHORIZED, "Unauthorized")
 		}
 
@@ -172,10 +186,36 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 			return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Something went wrong")
 		}
 
+		c.Cookie(&fiber.Cookie{
+			Name:     "access_token",
+			Value:    newAccessToken,
+			Expires:  auth.ACCESS_TOKEN_EXPIRED_TIME,
+			HTTPOnly: true,
+			SameSite: fiber.CookieSameSiteLaxMode,
+			Domain:   appConfig.COOKIE_DOMAIN,
+			Secure:   false,
+		})
+
+		c.Cookie(&fiber.Cookie{
+			Name:     "refresh_token",
+			Value:    newRefreshToken,
+			Expires:  auth.REFRESH_TOKEN_EXPIRED_TIME,
+			HTTPOnly: true,
+			SameSite: fiber.CookieSameSiteLaxMode,
+			Domain:   appConfig.COOKIE_DOMAIN,
+			Secure:   false,
+		})
+
+		if appConfig.DEV_MODE {
+			return c.JSON(fiber.Map{
+				"message":       "OK",
+				"access_token":  newAccessToken,
+				"refresh_token": newRefreshToken,
+			})
+		}
+
 		return c.JSON(fiber.Map{
-			"message":       "OK",
-			"access_token":  newAccessToken,
-			"refresh_token": newRefreshToken,
+			"message": "success",
 		})
 	})
 

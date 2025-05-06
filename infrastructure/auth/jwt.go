@@ -13,9 +13,9 @@ type JWTService interface {
 }
 
 type JWTClaims struct {
-	DisplayName  string        `json:"displayName"`
-	ProfileImage *string       `json:"profileImage"`
-	Roles        []interface{} `json:"roles"`
+	DisplayName  string  `json:"displayName"`
+	ProfileImage *string `json:"profileImage"`
+	Roles        []any   `json:"roles"`
 	jwt.RegisteredClaims
 }
 
@@ -45,8 +45,8 @@ func SignRefreshToken(userID string, secret string) (string, error) {
 
 }
 
-func VerifyAccessToken(tokenString string, secret string) error {
-	_, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+func VerifyToken(tokenString string, secret string) error {
+	_, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
 		}
@@ -58,4 +58,23 @@ func VerifyAccessToken(tokenString string, secret string) error {
 	}
 
 	return nil
+}
+
+func GetClaims(tokenString string, secret string) (*JWTClaims, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &JWTClaims{}, func(token *jwt.Token) (any, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+		}
+
+		return []byte(secret), nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if claims, ok := token.Claims.(*JWTClaims); ok && token.Valid {
+		return claims, nil
+	}
+
+	return nil, fmt.Errorf("invalid token")
 }
