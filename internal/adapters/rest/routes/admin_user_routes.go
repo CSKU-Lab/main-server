@@ -87,7 +87,6 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 		user, err := userService.Create(c.Context(), &requests.User{
 			Username:    userRequest.Username,
 			DisplayName: userRequest.DisplayName,
-			Email:       userRequest.Email,
 			Roles:       userRequest.Roles,
 		})
 		if err != nil {
