@@ -2,6 +2,7 @@ package auth
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/models"
 	"github.com/golang-jwt/jwt/v5"
@@ -27,7 +28,7 @@ func SignAccessToken(user *models.User, secret string) (string, error) {
 		"profileImage": user.ProfileImage,
 		"roles":        user.Roles,
 		"iss":          "cs-lab-backend",
-		"exp":          ACCESS_TOKEN_EXPIRED_TIME.Unix(),
+		"exp":          time.Now().Add(time.Hour * 1).Unix(),
 	})
 
 	return token.SignedString([]byte(secret))
@@ -38,7 +39,7 @@ func SignRefreshToken(userID string, secret string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"sub": userID,
 		"iss": "cs-lab-backend",
-		"exp": REFRESH_TOKEN_EXPIRED_TIME.Unix(),
+		"exp": time.Now().Add(time.Hour * 24 * 5).Unix(),
 	})
 
 	return token.SignedString([]byte(secret))

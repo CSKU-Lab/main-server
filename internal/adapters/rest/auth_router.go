@@ -2,7 +2,6 @@ package rest
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"github.com/SornchaiTheDev/cs-lab-backend/configs"
@@ -49,7 +48,7 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 
 		user, err := userService.GetByEmail(c.Context(), userInfo.Email)
 		if err != nil {
-			return cserrors.New(cserrors.UNAUTHORIZED, "Unauthorized")
+			return c.Redirect(appConfig.FRONTEND_URL + "/auth/sign-in?error=UNAUTHORIZED")
 		}
 
 		newAccessToken, err := auth.SignAccessToken(user, appConfig.JWTSecret)
@@ -71,7 +70,7 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 		c.Cookie(&fiber.Cookie{
 			Name:     "access_token",
 			Value:    newAccessToken,
-			Expires:  auth.ACCESS_TOKEN_EXPIRED_TIME,
+			Expires:  time.Now().Add(time.Hour * 1),
 			HTTPOnly: true,
 			SameSite: fiber.CookieSameSiteLaxMode,
 			Domain:   appConfig.COOKIE_DOMAIN,
@@ -81,7 +80,7 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 		c.Cookie(&fiber.Cookie{
 			Name:     "refresh_token",
 			Value:    newRefreshToken,
-			Expires:  auth.REFRESH_TOKEN_EXPIRED_TIME,
+			Expires:  time.Now().Add(time.Hour * 24 * 5),
 			HTTPOnly: true,
 			SameSite: fiber.CookieSameSiteLaxMode,
 			Domain:   appConfig.COOKIE_DOMAIN,
@@ -189,7 +188,7 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 		c.Cookie(&fiber.Cookie{
 			Name:     "access_token",
 			Value:    newAccessToken,
-			Expires:  auth.ACCESS_TOKEN_EXPIRED_TIME,
+			Expires:  time.Now().Add(time.Hour * 1),
 			HTTPOnly: true,
 			SameSite: fiber.CookieSameSiteLaxMode,
 			Domain:   appConfig.COOKIE_DOMAIN,
@@ -199,7 +198,7 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 		c.Cookie(&fiber.Cookie{
 			Name:     "refresh_token",
 			Value:    newRefreshToken,
-			Expires:  auth.REFRESH_TOKEN_EXPIRED_TIME,
+			Expires:  time.Now().Add(time.Hour * 24 * 5),
 			HTTPOnly: true,
 			SameSite: fiber.CookieSameSiteLaxMode,
 			Domain:   appConfig.COOKIE_DOMAIN,
