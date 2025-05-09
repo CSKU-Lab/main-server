@@ -29,8 +29,10 @@ func main() {
 	courseRepo := sqlx.NewSqlxCourseRepository(db)
 	courseService := services.NewCourseService(courseRepo)
 
+	errHandlerMiddleware := middlewares.NewErrorHandlerMiddleware(config)
+
 	app := fiber.New(fiber.Config{
-		ErrorHandler: middlewares.ErrorHandler,
+		ErrorHandler: errHandlerMiddleware.ErrorHandler,
 	})
 
 	api := app.Group("/api/v1")

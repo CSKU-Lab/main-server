@@ -34,7 +34,7 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 	authRouter.Get("/sign-in/google/callback", func(c *fiber.Ctx) error {
 		state := c.Query("state")
 		if !googleAuth.VerifyState(state) {
-			return cserrors.New(cserrors.BAD_REQUEST, "Invalid State")
+			return cserrors.NewRedirect(cserrors.REDIRECT_SOMETHING_WENT_WRONG)
 		}
 
 		ctx := context.Background()
