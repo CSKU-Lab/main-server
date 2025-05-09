@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/cserrors"
@@ -265,7 +264,6 @@ type updateUser struct {
 
 func (r *sqlxUserRepository) Update(ctx context.Context, ID string, user *requests.UpdateUser) (*models.User, error) {
 	updateFields := getUpdateFields(user)
-	log.Println("updateFields", updateFields)
 
 	query := fmt.Sprintf(`
 	UPDATE users
