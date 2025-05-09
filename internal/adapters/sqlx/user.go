@@ -32,11 +32,8 @@ func (r *sqlxUserRepository) GetByEmail(ctx context.Context, email string) (*mod
 	var user PostgresUser
 	err := r.db.GetContext(ctx, &user, "SELECT * FROM users WHERE email = $1 AND is_deleted = false", email)
 	if err != nil {
-		var e *pq.Error
-		if errors.As(err, &e) {
-			if e.Code == "22P02" {
-				return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "User not found")
-			}
+		if err == sql.ErrNoRows {
+			return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "User not found")
 		}
 		return nil, err
 	}
@@ -61,11 +58,8 @@ func (r *sqlxUserRepository) GetByUsername(ctx context.Context, username string)
 	var user PostgresUser
 	err := r.db.GetContext(ctx, &user, "SELECT * FROM users WHERE username = $1 AND is_deleted = false", username)
 	if err != nil {
-		var e *pq.Error
-		if errors.As(err, &e) {
-			if e.Code == "22P02" {
-				return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "User not found")
-			}
+		if err == sql.ErrNoRows {
+			return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "User not found")
 		}
 		return nil, err
 	}
@@ -90,11 +84,8 @@ func (r *sqlxUserRepository) GetByID(ctx context.Context, ID string) (*models.Us
 	var user PostgresUser
 	err := r.db.Get(&user, "SELECT * FROM users WHERE id = $1 AND is_deleted = false", ID)
 	if err != nil {
-		var e *pq.Error
-		if errors.As(err, &e) {
-			if e.Code == "22P02" {
-				return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "User not found")
-			}
+		if err == sql.ErrNoRows {
+			return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "User not found")
 		}
 		return nil, err
 	}
