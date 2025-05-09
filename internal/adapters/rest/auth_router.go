@@ -131,11 +131,35 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 			return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Something went wrong")
 		}
 
-		return c.JSON(fiber.Map{
-			"message":       "OK",
-			"access_token":  newAccessToken,
-			"refresh_token": newRefreshToken,
+		c.Cookie(&fiber.Cookie{
+			Name:     "access_token",
+			Value:    newAccessToken,
+			Expires:  time.Now().Add(time.Hour * 1),
+			HTTPOnly: true,
+			SameSite: fiber.CookieSameSiteLaxMode,
+			Domain:   appConfig.COOKIE_DOMAIN,
+			Secure:   false,
 		})
+
+		c.Cookie(&fiber.Cookie{
+			Name:     "refresh_token",
+			Value:    newRefreshToken,
+			Expires:  time.Now().Add(time.Hour * 24 * 5),
+			HTTPOnly: true,
+			SameSite: fiber.CookieSameSiteLaxMode,
+			Domain:   appConfig.COOKIE_DOMAIN,
+			Secure:   false,
+		})
+
+		if appConfig.DEV_MODE {
+			return c.JSON(fiber.Map{
+				"message":       "OK",
+				"access_token":  newAccessToken,
+				"refresh_token": newRefreshToken,
+			})
+		}
+
+		return c.Redirect(appConfig.FRONTEND_URL)
 	})
 
 	authRouter.Post("/refresh-token", middlewares.ProtectedRouteMiddleware(appConfig.JWTSecret), func(c *fiber.Ctx) error {
