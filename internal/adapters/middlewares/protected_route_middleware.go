@@ -14,7 +14,7 @@ func ProtectedRouteMiddleware(secret string) func(*fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
 		accessToken := c.Cookies("access_token")
 
-		token, err := jwt.ParseWithClaims(accessToken, &auth.JWTClaims{}, func(t *jwt.Token) (interface{}, error) {
+		token, err := jwt.ParseWithClaims(accessToken, &auth.JWTClaims{}, func(t *jwt.Token) (any, error) {
 			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("Unexpected signing method: %v", t.Header["alg"])
 			}
@@ -34,6 +34,7 @@ func ProtectedRouteMiddleware(secret string) func(*fiber.Ctx) error {
 
 			c.Locals("user", &models.User{
 				ID:           claims.Subject,
+				Username:     claims.Username,
 				DisplayName:  claims.DisplayName,
 				ProfileImage: claims.ProfileImage,
 				Roles:        roles,

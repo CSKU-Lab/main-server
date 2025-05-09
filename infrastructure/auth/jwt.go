@@ -14,6 +14,7 @@ type JWTService interface {
 }
 
 type JWTClaims struct {
+	Username     string  `json:"username"`
 	DisplayName  string  `json:"displayName"`
 	ProfileImage *string `json:"profileImage"`
 	Roles        []any   `json:"roles"`
