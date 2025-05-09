@@ -14,6 +14,7 @@ table "users" {
   }
   column "email" {
     type = text
+    null = true
   }
   column "username" {
     type = varchar(255)
