@@ -45,6 +45,7 @@ func (r *sqlxUserRepository) GetByEmail(ctx context.Context, email string) (*mod
 		DisplayName:  user.DisplayName,
 		ProfileImage: user.ProfileImage,
 		Roles:        user.Roles,
+		Type:         user.Type,
 		RecordStatus: models.RecordStatus{
 			IsDeleted: user.IsDeleted,
 			CreatedAt: user.CreatedAt,
@@ -71,6 +72,7 @@ func (r *sqlxUserRepository) GetByUsername(ctx context.Context, username string)
 		DisplayName:  user.DisplayName,
 		ProfileImage: user.ProfileImage,
 		Roles:        user.Roles,
+		Type:         user.Type,
 		RecordStatus: models.RecordStatus{
 			IsDeleted: user.IsDeleted,
 			CreatedAt: user.CreatedAt,
