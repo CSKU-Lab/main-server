@@ -1,5 +1,6 @@
 services:
   app:
+    container_name: main-server-app
     build:
       context: ../
       dockerfile: ./docker/Dockerfile.dev
@@ -15,8 +16,8 @@ services:
     ports:
       - "8080:8080"
   db:
+    container_name: main-server-db
     image: postgres:latest # Use the desired PostgreSQL version
-    container_name: db
     restart: always
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
