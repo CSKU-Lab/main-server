@@ -309,6 +309,7 @@ func (r *sqlxUserRepository) Update(ctx context.Context, ID string, user *reques
 		DisplayName:  updatedUser.DisplayName,
 		ProfileImage: updatedUser.ProfileImage,
 		Roles:        updatedUser.Roles,
+		Type:         updatedUser.Type,
 		RecordStatus: models.RecordStatus{
 			IsDeleted: updatedUser.IsDeleted,
 			CreatedAt: updatedUser.CreatedAt,
