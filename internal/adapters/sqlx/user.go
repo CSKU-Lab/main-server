@@ -107,6 +107,7 @@ func (r *sqlxUserRepository) GetByID(ctx context.Context, ID string) (*models.Us
 		DisplayName:  user.DisplayName,
 		ProfileImage: user.ProfileImage,
 		Roles:        user.Roles,
+		Type:         user.Type,
 		RecordStatus: models.RecordStatus{
 			IsDeleted: user.IsDeleted,
 			CreatedAt: user.CreatedAt,
