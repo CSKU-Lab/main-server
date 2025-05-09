@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/cserrors"
@@ -19,9 +20,9 @@ type UserService interface {
 	GetPasswordByID(ctx context.Context, ID string) (string, error)
 	GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string) ([]models.User, error)
 	Count(ctx context.Context, search string) (int, error)
-	Create(ctx context.Context, user *requests.User) (*models.User, error)
+	Create(ctx context.Context, userType models.UserType, user *requests.CreateUser) (*models.User, error)
 	SetPassword(ctx context.Context, username string, password string) error
-	Update(ctx context.Context, ID string, user *requests.User) (*models.User, error)
+	Update(ctx context.Context, ID string, user *requests.UpdateUser) (*models.User, error)
 	Delete(ctx context.Context, ID string) error
 }
 
@@ -65,13 +66,13 @@ func (s *userService) Count(ctx context.Context, search string) (int, error) {
 	return s.userRepository.Count(ctx, search)
 }
 
-func (s *userService) Create(ctx context.Context, user *requests.User) (*models.User, error) {
+func (s *userService) Create(ctx context.Context, userType models.UserType, user *requests.CreateUser) (*models.User, error) {
 	id, err := uuid.NewV7()
 	if err != nil {
 		return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Cannot generate user ID")
 	}
 
-	return s.userRepository.Create(ctx, id.String(), user)
+	return s.userRepository.Create(ctx, userType, id.String(), user)
 }
 
 func (s *userService) SetPassword(ctx context.Context, username string, password string) error {
@@ -83,7 +84,18 @@ func (s *userService) SetPassword(ctx context.Context, username string, password
 	return s.userRepository.SetPassword(ctx, username, string(hashedPassword))
 }
 
-func (s *userService) Update(ctx context.Context, ID string, user *requests.User) (*models.User, error) {
+func (s *userService) Update(ctx context.Context, ID string, user *requests.UpdateUser) (*models.User, error) {
+	dbUser, err := s.userRepository.GetByID(ctx, ID)
+	if err != nil {
+		return nil, err
+	}
+
+	if dbUser.Type == string(models.UserTypeCredential) {
+		if user.Email != nil {
+			return nil, errors.New("credential user cannot update email")
+		}
+	}
+
 	updatedUser, err := s.userRepository.Update(ctx, ID, user)
 	if err != nil {
 		return nil, err

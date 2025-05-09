@@ -37,25 +37,33 @@ func getAllStructFields(s any) []string {
 		field := typ.Field(i)
 		value := val.Field(i)
 
-		if value.IsValid() && !value.IsZero() {
-			key := field.Tag.Get("db")
-			if field.Type.Kind() == reflect.Slice {
-				r := regexp.MustCompile("(.*)(s|sh|ch|x|z|es|ies)$")
-
-				arrTyp := key
-				if r.MatchString(key) {
-					arrTyp = r.FindStringSubmatch(key)[1]
-				}
-
-				keys = append(keys, fmt.Sprintf("%s = string_to_array(:%s, ',')::%s[]", key, key, arrTyp))
-				continue
-			}
-			keys = append(keys, fmt.Sprintf("%s = :%s", key, key))
-		}
-
 		if field.Anonymous {
-			keys = append(keys, getAllStructFields(value.Field(i).Interface())...)
+			keys = append(keys, getAllStructFields(value.Interface())...)
 		}
+
+		if !value.IsValid() || value.IsZero() {
+			continue
+		}
+
+		key := field.Tag.Get("db")
+
+		if key == "" {
+			continue
+		}
+
+		if field.Type.Kind() == reflect.Slice {
+			r := regexp.MustCompile("(.*)(s|sh|ch|x|z|es|ies)$")
+
+			arrTyp := key
+			if r.MatchString(key) {
+				arrTyp = r.FindStringSubmatch(key)[1]
+			}
+
+			keys = append(keys, fmt.Sprintf("%s = string_to_array(:%s, ',')::%s[]", key, key, arrTyp))
+			continue
+		}
+		keys = append(keys, fmt.Sprintf("%s = :%s", key, key))
+
 	}
 
 	return keys

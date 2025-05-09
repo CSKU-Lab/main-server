@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/cserrors"
+	"github.com/SornchaiTheDev/cs-lab-backend/domain/models"
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/services"
 	"github.com/SornchaiTheDev/cs-lab-backend/internal/requests"
 	"github.com/gofiber/fiber/v2"
@@ -57,14 +58,14 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 	})
 
 	adminUserRouter.Post("/oauth", func(c *fiber.Ctx) error {
-		var userRequest requests.User
+		var userRequest requests.CreateUser
 
 		err := c.BodyParser(&userRequest)
 		if err != nil {
 			return cserrors.New(cserrors.BAD_REQUEST, "Error parsing request")
 		}
 
-		user, err := userService.Create(c.Context(), &userRequest)
+		user, err := userService.Create(c.Context(), models.UserTypeOauth, &userRequest)
 		if err != nil {
 			var e *cserrors.Error
 			if errors.As(err, &e) {
@@ -77,17 +78,19 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 	})
 
 	adminUserRouter.Post("/credential", func(c *fiber.Ctx) error {
-		var userRequest requests.CredentialUser
+		var userRequest requests.CreateCredentialUser
 
 		err := c.BodyParser(&userRequest)
 		if err != nil {
 			return cserrors.New(cserrors.BAD_REQUEST, "Error parsing request")
 		}
 
-		user, err := userService.Create(c.Context(), &requests.User{
-			Username:    userRequest.Username,
-			DisplayName: userRequest.DisplayName,
-			Roles:       userRequest.Roles,
+		user, err := userService.Create(c.Context(), models.UserTypeCredential, &requests.CreateUser{
+			BaseUser: requests.BaseUser{
+				Username:    userRequest.Username,
+				DisplayName: userRequest.DisplayName,
+				Roles:       userRequest.Roles,
+			},
 		})
 		if err != nil {
 			var e *cserrors.Error
@@ -120,8 +123,9 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 		return c.JSON(user)
 	})
 
+	// TODO: Add validation for user type
 	adminUserRouter.Patch("/:userID", func(c *fiber.Ctx) error {
-		var updateUser requests.User
+		var updateUser requests.UpdateUser
 		err := c.BodyParser(&updateUser)
 		if err != nil {
 			return cserrors.New(cserrors.BAD_REQUEST, "Invalid request body")

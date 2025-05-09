@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/cserrors"
@@ -162,6 +163,7 @@ func (r *sqlxUserRepository) GetPagination(ctx context.Context, page int, limit 
 			DisplayName:  user.DisplayName,
 			ProfileImage: user.ProfileImage,
 			Roles:        user.Roles,
+			Type:         user.Type,
 			RecordStatus: models.RecordStatus{
 				IsDeleted: user.IsDeleted,
 				CreatedAt: user.CreatedAt,
@@ -194,19 +196,20 @@ func (r *sqlxUserRepository) Count(ctx context.Context, search string) (int, err
 	return count, nil
 }
 
-func (r *sqlxUserRepository) Create(ctx context.Context, ID string, user *requests.User) (*models.User, error) {
+func (r *sqlxUserRepository) Create(ctx context.Context, userType models.UserType, ID string, user *requests.CreateUser) (*models.User, error) {
 	createString := `
 		INSERT INTO users (
 			id,
 			username,
 			display_name,
 			email,
-			roles
-		) VALUES ($1,$2,$3,$4,string_to_array($5,',')::role[])
+			roles,
+			type
+		) VALUES ($1,$2,$3,$4,string_to_array($5,',')::role[],$6)
 		RETURNING *
 	`
 
-	User := r.db.QueryRowxContext(ctx, createString, ID, user.Username, user.DisplayName, user.Email, strings.Join(user.Roles, ","))
+	User := r.db.QueryRowxContext(ctx, createString, ID, user.Username, user.DisplayName, user.Email, strings.Join(user.Roles, ","), userType)
 
 	var createdUser PostgresUser
 
@@ -228,6 +231,7 @@ func (r *sqlxUserRepository) Create(ctx context.Context, ID string, user *reques
 		DisplayName:  createdUser.DisplayName,
 		ProfileImage: createdUser.ProfileImage,
 		Roles:        createdUser.Roles,
+		Type:         createdUser.Type,
 		RecordStatus: models.RecordStatus{
 			IsDeleted: createdUser.IsDeleted,
 			CreatedAt: createdUser.CreatedAt,
@@ -254,12 +258,13 @@ func (r *sqlxUserRepository) SetPassword(ctx context.Context, username string, p
 }
 
 type updateUser struct {
-	requests.User
+	requests.UpdateUser
 	ID string `db:"id"`
 }
 
-func (r *sqlxUserRepository) Update(ctx context.Context, ID string, user *requests.User) (*models.User, error) {
+func (r *sqlxUserRepository) Update(ctx context.Context, ID string, user *requests.UpdateUser) (*models.User, error) {
 	updateFields := getUpdateFields(user)
+	log.Println("updateFields", updateFields)
 
 	query := fmt.Sprintf(`
 	UPDATE users
@@ -270,11 +275,13 @@ func (r *sqlxUserRepository) Update(ctx context.Context, ID string, user *reques
 
 	row, err := r.db.NamedQueryContext(ctx, query, &updateUser{
 		ID: ID,
-		User: requests.User{
-			Username:    user.Username,
-			DisplayName: user.DisplayName,
-			Email:       user.Email,
-			Roles:       user.Roles,
+		UpdateUser: requests.UpdateUser{
+			BaseUser: requests.BaseUser{
+				Username:    user.Username,
+				DisplayName: user.DisplayName,
+				Roles:       user.Roles,
+			},
+			Email: user.Email,
 		},
 	})
 	if err != nil {

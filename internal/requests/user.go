@@ -1,15 +1,23 @@
 package requests
 
-type User struct {
+type BaseUser struct {
 	Username    string   `json:"username" db:"username"`
-	Email       *string  `json:"email" db:"email"`
 	DisplayName string   `json:"display_name" db:"display_name"`
 	Roles       []string `json:"roles" db:"roles"`
 }
 
-type CredentialUser struct {
-	Username    string   `json:"username" db:"username"`
-	DisplayName string   `json:"display_name" db:"display_name"`
-	Roles       []string `json:"roles" db:"roles"`
-	Password    string   `json:"password"`
+type CreateUser struct {
+	BaseUser
+	Email string `json:"email" db:"email"`
+}
+
+type CreateCredentialUser struct {
+	BaseUser
+	Password string `json:"password" db:"password"`
+}
+
+type UpdateUser struct {
+	BaseUser
+	Email    *string `json:"email" db:"email"`
+	Password *string `json:"password" db:"password"`
 }

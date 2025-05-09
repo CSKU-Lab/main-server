@@ -7,6 +7,11 @@ enum "role" {
   values = [ "student" , "instructor" , "admin" ]
 }
 
+enum "user_type" {
+  schema = schema.public
+  values = [ "oauth", "credential" ]
+}
+
 table "users" {
   schema = schema.public
   column "id" {
@@ -15,6 +20,9 @@ table "users" {
   column "email" {
     type = text
     null = true
+  }
+  column "type" {
+    type = enum.user_type
   }
   column "username" {
     type = varchar(255)
