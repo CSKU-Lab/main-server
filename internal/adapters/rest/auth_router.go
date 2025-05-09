@@ -25,7 +25,10 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 	authRouter.Get("/sign-in/google", func(c *fiber.Ctx) error {
 		url, err := googleAuth.GenerateAuthURL()
 		if err != nil {
-			return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Error generating auth url")
+			if appConfig.DEV_MODE {
+				return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Error generating auth url")
+			}
+			return cserrors.NewRedirect(cserrors.REDIRECT_SOMETHING_WENT_WRONG)
 		}
 
 		return c.Redirect(url)
@@ -34,6 +37,9 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 	authRouter.Get("/sign-in/google/callback", func(c *fiber.Ctx) error {
 		state := c.Query("state")
 		if !googleAuth.VerifyState(state) {
+			if appConfig.DEV_MODE {
+				return cserrors.New(cserrors.BAD_REQUEST, "Invalid State")
+			}
 			return cserrors.NewRedirect(cserrors.REDIRECT_SOMETHING_WENT_WRONG)
 		}
 
@@ -43,28 +49,42 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 
 		userInfo, err := googleAuth.GetUserInfo(ctx, code)
 		if err != nil {
-			return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Error getting user info")
+			if appConfig.DEV_MODE {
+				return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Error getting user info")
+			}
+			return cserrors.NewRedirect(cserrors.REDIRECT_SOMETHING_WENT_WRONG)
 		}
 
 		user, err := userService.GetByEmail(c.Context(), userInfo.Email)
 		if err != nil {
+			if appConfig.DEV_MODE {
+				return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Error getting user")
+			}
 			return c.Redirect(appConfig.FRONTEND_URL + "/auth/sign-in?error=UNAUTHORIZED")
 		}
 
 		newAccessToken, err := auth.SignAccessToken(user, appConfig.JWTSecret)
 		if err != nil {
-			return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Something went wrong")
+			if appConfig.DEV_MODE {
+				return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Something went wrong")
+			}
+			return cserrors.NewRedirect(cserrors.REDIRECT_SOMETHING_WENT_WRONG)
 		}
 
 		newRefreshToken, err := auth.SignRefreshToken(user.ID, appConfig.JWTRefreshSecret)
 		if err != nil {
-			return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Something went wrong")
+			if appConfig.DEV_MODE {
+				return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Something went wrong")
+			}
+			return cserrors.NewRedirect(cserrors.REDIRECT_SOMETHING_WENT_WRONG)
 		}
 
 		err = refreshTokenService.Set(c.Context(), user.ID, newRefreshToken)
 		if err != nil {
-
-			return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Something went wrong")
+			if appConfig.DEV_MODE {
+				return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Something went wrong")
+			}
+			return cserrors.NewRedirect(cserrors.REDIRECT_SOMETHING_WENT_WRONG)
 		}
 
 		c.Cookie(&fiber.Cookie{
