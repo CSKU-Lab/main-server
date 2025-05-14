@@ -6,11 +6,11 @@ import (
 	"slices"
 )
 
-func sanitizeSortOrder(sortOrder string) string {
+func sanitizeSortOrder(sortOrder string) (string, error) {
 	if sortOrder != "asc" && sortOrder != "desc" {
-		return "desc"
+		return "", errors.New("Invalid sort order")
 	}
-	return sortOrder
+	return sortOrder, nil
 }
 
 func sanitizeSortBy(sortBy string, s any) (string, error) {

@@ -22,7 +22,7 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 
 	adminUserRouter.Get("/", func(c *fiber.Ctx) error {
 		pageQuery := c.Query("page", "1")
-		pageSizeQuery := c.Query("pageSize", "10")
+		pageSizeQuery := c.Query("page_size", "10")
 		search := c.Query("search", "")
 		sortBy := c.Query("sort_by", "created_at")
 		sortOrder := c.Query("sort_order", "desc")
@@ -39,7 +39,7 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 
 		users, err := userService.GetPagination(c.Context(), page, pageSize, search, sortBy, sortOrder)
 		if err != nil {
-			return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Error getting users")
+			return err
 		}
 
 		count, err := userService.Count(c.Context(), search)

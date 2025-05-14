@@ -39,12 +39,15 @@ func (s *semesterService) Create(ctx context.Context, sem *requests.Semester) (*
 }
 
 func (s *semesterService) GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string) ([]models.Semester, error) {
-	sanitizedSortBy, err := sanitizeSortBy(sortBy, &models.User{})
+	sanitizedSortBy, err := sanitizeSortBy(sortBy, &models.Semester{})
 	if err != nil {
-		return nil, err
+		return nil, cserrors.New(cserrors.BAD_REQUEST, "Invalid sort by field")
 	}
 
-	sanitizedSortOrder := sanitizeSortOrder(sortOrder)
+	sanitizedSortOrder, err := sanitizeSortOrder(sortOrder)
+	if err != nil {
+		return nil, cserrors.New(cserrors.BAD_REQUEST, "Invalid sort order")
+	}
 
 	return s.repo.GetPagination(ctx, page, limit, search, sanitizedSortBy, sanitizedSortOrder)
 
