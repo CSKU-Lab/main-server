@@ -235,7 +235,7 @@ func (r *sqlxUserRepository) Create(ctx context.Context, userType models.UserTyp
 	}, nil
 }
 
-func (r *sqlxUserRepository) SetPassword(ctx context.Context, username string, password string) error {
+func (r *sqlxUserRepository) SetPassword(ctx context.Context, ID string, password string) error {
 	query := `
 	INSERT INTO user_passwords (user_id,password)
 	VALUES ($1,$2)
@@ -243,7 +243,7 @@ func (r *sqlxUserRepository) SetPassword(ctx context.Context, username string, p
 	SET password = $2
 	`
 
-	_, err := r.db.ExecContext(ctx, query, username, password)
+	_, err := r.db.ExecContext(ctx, query, ID, password)
 	if err != nil {
 		return err
 	}
@@ -253,14 +253,25 @@ func (r *sqlxUserRepository) SetPassword(ctx context.Context, username string, p
 
 type updateUser struct {
 	ID          string
-	Username    string         `json:"username" db:"username"`
-	DisplayName string         `json:"display_name" db:"display_name"`
-	Roles       pq.StringArray `json:"roles" db:"roles"`
-	Email       *string        `json:"email" db:"email"`
+	Username    string         `db:"username"`
+	DisplayName string         `db:"display_name"`
+	Roles       pq.StringArray `db:"roles"`
+	Email       *string        `db:"email"`
 }
 
 func (r *sqlxUserRepository) Update(ctx context.Context, ID string, user *requests.UpdateUser) (*models.User, error) {
-	updateFields := getUpdateFields(user)
+	fields := &updateUser{
+		ID:          ID,
+		Username:    user.Username,
+		DisplayName: user.DisplayName,
+		Roles:       pq.StringArray(user.Roles),
+		Email:       user.Email,
+	}
+
+	updateFields := getUpdateFields(fields)
+	if len(updateFields) == 0 {
+		return nil, nil
+	}
 
 	query := fmt.Sprintf(`
 	UPDATE users
@@ -269,13 +280,7 @@ func (r *sqlxUserRepository) Update(ctx context.Context, ID string, user *reques
 	RETURNING *
 	`, updateFields)
 
-	query, args, err := sqlx.Named(query, &updateUser{
-		ID:          ID,
-		Username:    user.Username,
-		DisplayName: user.DisplayName,
-		Roles:       pq.StringArray(user.Roles),
-		Email:       user.Email,
-	})
+	query, args, err := sqlx.Named(query, fields)
 	if err != nil {
 		return nil, err
 	}

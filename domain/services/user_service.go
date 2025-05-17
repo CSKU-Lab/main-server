@@ -21,7 +21,7 @@ type UserService interface {
 	GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string) ([]models.User, error)
 	Count(ctx context.Context, search string) (int, error)
 	Create(ctx context.Context, userType models.UserType, user *requests.CreateUser) (*models.User, error)
-	SetPassword(ctx context.Context, username string, password string) error
+	SetPassword(ctx context.Context, ID string, password string) error
 	Update(ctx context.Context, ID string, user *requests.UpdateUser) (*models.User, error)
 	Delete(ctx context.Context, ID string) error
 	DeleteMany(ctx context.Context, IDs []string) error
@@ -79,13 +79,13 @@ func (s *userService) Create(ctx context.Context, userType models.UserType, user
 	return s.userRepository.Create(ctx, userType, id.String(), user)
 }
 
-func (s *userService) SetPassword(ctx context.Context, username string, password string) error {
+func (s *userService) SetPassword(ctx context.Context, ID string, password string) error {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), 10)
 	if err != nil {
 		return fmt.Errorf("Cannot generate password")
 	}
 
-	return s.userRepository.SetPassword(ctx, username, string(hashedPassword))
+	return s.userRepository.SetPassword(ctx, ID, string(hashedPassword))
 }
 
 func (s *userService) Update(ctx context.Context, ID string, user *requests.UpdateUser) (*models.User, error) {
@@ -103,6 +103,23 @@ func (s *userService) Update(ctx context.Context, ID string, user *requests.Upda
 	updatedUser, err := s.userRepository.Update(ctx, ID, user)
 	if err != nil {
 		return nil, err
+	}
+
+	if dbUser.Type == string(models.UserTypeOauth) {
+		if user.Password != nil {
+			return nil, errors.New("oauth user cannot update password")
+		}
+	}
+
+	if user.Password != nil {
+		err := s.SetPassword(ctx, ID, *user.Password)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if updatedUser == nil {
+		return dbUser, nil
 	}
 
 	return updatedUser, nil
