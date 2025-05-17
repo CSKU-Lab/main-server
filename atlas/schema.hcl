@@ -63,7 +63,7 @@ table "users" {
   }
   index "unique_active_email" {
     columns = [ column.email ]
-    where = "is_deleted = false"
+    where = "is_deleted = false AND email IS NOT NULL"
     unique = true
   }
 }
