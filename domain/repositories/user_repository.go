@@ -18,4 +18,5 @@ type UserRepository interface {
 	SetPassword(ctx context.Context, username string, password string) error
 	Update(ctx context.Context, ID string, user *requests.UpdateUser) (*models.User, error)
 	Delete(ctx context.Context, ID string) error
+	DeleteMany(ctx context.Context, IDs []string) error
 }

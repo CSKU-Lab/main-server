@@ -2,6 +2,7 @@ package routes
 
 import (
 	"errors"
+	"log"
 	"math"
 	"strconv"
 
@@ -91,6 +92,7 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 				DisplayName: userRequest.DisplayName,
 				Roles:       userRequest.Roles,
 			},
+			Email: nil,
 		})
 		if err != nil {
 			var e *cserrors.Error
@@ -147,6 +149,23 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 		err := userService.Delete(c.Context(), c.Params("userID"))
 		if err != nil {
 			return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Error deleting user")
+		}
+
+		return c.SendStatus(fiber.StatusNoContent)
+	})
+
+	adminUserRouter.Post("/deleteMany", func(c *fiber.Ctx) error {
+		var deleteManyUser requests.DeleteManyUser
+
+		err := c.BodyParser(&deleteManyUser)
+		if err != nil {
+			return cserrors.New(cserrors.BAD_REQUEST, "Error parsing request")
+		}
+
+		err = userService.DeleteMany(c.Context(), deleteManyUser.IDs)
+		if err != nil {
+			log.Println(err)
+			return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Error deleting users")
 		}
 
 		return c.SendStatus(fiber.StatusNoContent)

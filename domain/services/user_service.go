@@ -24,6 +24,7 @@ type UserService interface {
 	SetPassword(ctx context.Context, username string, password string) error
 	Update(ctx context.Context, ID string, user *requests.UpdateUser) (*models.User, error)
 	Delete(ctx context.Context, ID string) error
+	DeleteMany(ctx context.Context, IDs []string) error
 }
 
 type userService struct {
@@ -109,4 +110,12 @@ func (s *userService) Update(ctx context.Context, ID string, user *requests.Upda
 
 func (s *userService) Delete(ctx context.Context, ID string) error {
 	return s.userRepository.Delete(ctx, ID)
+}
+
+func (s *userService) DeleteMany(ctx context.Context, IDs []string) error {
+	if len(IDs) == 0 {
+		return nil
+	}
+
+	return s.userRepository.DeleteMany(ctx, IDs)
 }

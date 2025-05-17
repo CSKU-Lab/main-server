@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/cserrors"
@@ -251,8 +252,11 @@ func (r *sqlxUserRepository) SetPassword(ctx context.Context, username string, p
 }
 
 type updateUser struct {
-	requests.UpdateUser
-	ID string `db:"id"`
+	ID          string
+	Username    string         `json:"username" db:"username"`
+	DisplayName string         `json:"display_name" db:"display_name"`
+	Roles       pq.StringArray `json:"roles" db:"roles"`
+	Email       *string        `json:"email" db:"email"`
 }
 
 func (r *sqlxUserRepository) Update(ctx context.Context, ID string, user *requests.UpdateUser) (*models.User, error) {
@@ -260,23 +264,27 @@ func (r *sqlxUserRepository) Update(ctx context.Context, ID string, user *reques
 
 	query := fmt.Sprintf(`
 	UPDATE users
-	SET %s , updated_at = NOW()
+	SET %s, updated_at = NOW()
 	WHERE id = :id
 	RETURNING *
 	`, updateFields)
 
-	row, err := r.db.NamedQueryContext(ctx, query, &updateUser{
-		ID: ID,
-		UpdateUser: requests.UpdateUser{
-			BaseUser: requests.BaseUser{
-				Username:    user.Username,
-				DisplayName: user.DisplayName,
-				Roles:       user.Roles,
-			},
-			Email: user.Email,
-		},
+	query, args, err := sqlx.Named(query, &updateUser{
+		ID:          ID,
+		Username:    user.Username,
+		DisplayName: user.DisplayName,
+		Roles:       pq.StringArray(user.Roles),
+		Email:       user.Email,
 	})
 	if err != nil {
+		return nil, err
+	}
+
+	query = r.db.Rebind(query)
+
+	row, err := r.db.QueryxContext(ctx, query, args...)
+	if err != nil {
+		log.Println(err)
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) {
 			if pqErr.Code == "22P02" {
@@ -313,6 +321,22 @@ func (r *sqlxUserRepository) Update(ctx context.Context, ID string, user *reques
 
 func (r *sqlxUserRepository) Delete(ctx context.Context, ID string) error {
 	_, err := r.db.ExecContext(ctx, "UPDATE users SET is_deleted = true, deleted_at = NOW() WHERE id = $1", ID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *sqlxUserRepository) DeleteMany(ctx context.Context, IDs []string) error {
+	query, args, err := sqlx.In("UPDATE users SET is_deleted = true, deleted_at = NOW() WHERE id IN (?)", IDs)
+	if err != nil {
+		return err
+	}
+
+	query = r.db.Rebind(query)
+
+	_, err = r.db.ExecContext(ctx, query, args...)
 	if err != nil {
 		return err
 	}

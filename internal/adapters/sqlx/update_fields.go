@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"reflect"
-	"regexp"
 	"strings"
 )
 
@@ -51,19 +50,7 @@ func getAllStructFields(s any) []string {
 			continue
 		}
 
-		if field.Type.Kind() == reflect.Slice {
-			r := regexp.MustCompile("(.*)(s|sh|ch|x|z|es|ies)$")
-
-			arrTyp := key
-			if r.MatchString(key) {
-				arrTyp = r.FindStringSubmatch(key)[1]
-			}
-
-			keys = append(keys, fmt.Sprintf("%s = string_to_array(:%s, ',')::%s[]", key, key, arrTyp))
-			continue
-		}
 		keys = append(keys, fmt.Sprintf("%s = :%s", key, key))
-
 	}
 
 	return keys
