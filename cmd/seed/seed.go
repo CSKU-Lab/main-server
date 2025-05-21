@@ -26,7 +26,10 @@ func main() {
 			DisplayName: "Sornchai Somsakul",
 			Roles:       []string{"admin"},
 		},
-		Email: "sornchaithedev@gmail.com",
+		Email: func() *string {
+			email := "sornchaithedev@gmail.com"
+			return &email
+		}(),
 	})
 	if err != nil {
 		fmt.Println("❌ Error creating user:", err)
