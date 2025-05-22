@@ -26,7 +26,7 @@ func ProtectedRouteMiddleware(secret string) func(*fiber.Ctx) error {
 			return cserrors.New(cserrors.UNAUTHORIZED, "Unauthorized")
 		}
 
-		if claims, ok := token.Claims.(*auth.JWTClaims); ok {
+		if claims, ok := token.Claims.(*auth.JWTClaims); ok && token.Valid {
 			roles := make([]string, len(claims.Roles))
 			for i, v := range claims.Roles {
 				roles[i] = v.(string)
