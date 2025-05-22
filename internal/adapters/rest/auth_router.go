@@ -10,6 +10,7 @@ import (
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/services"
 	"github.com/SornchaiTheDev/cs-lab-backend/infrastructure/auth"
 	"github.com/SornchaiTheDev/cs-lab-backend/internal/adapters/middlewares"
+	"github.com/SornchaiTheDev/cs-lab-backend/internal/converter"
 	"github.com/SornchaiTheDev/cs-lab-backend/internal/requests"
 	"github.com/gofiber/fiber/v2"
 	"golang.org/x/crypto/bcrypt"
@@ -182,26 +183,45 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 		return c.Redirect(appConfig.FRONTEND_URL)
 	})
 
-	authRouter.Post("/refresh-token", middlewares.ProtectedRouteMiddleware(appConfig.JWTSecret), func(c *fiber.Ctx) error {
+	authRouter.Post("/refresh-token", func(c *fiber.Ctx) error {
 		accessToken := c.Cookies("access_token")
 		refreshToken := c.Cookies("refresh_token")
-		user := c.Locals("user").(*models.User)
 
-		// verify refresh token if valid and not expired
-		err := auth.VerifyToken(refreshToken, appConfig.JWTRefreshSecret)
-		if err != nil {
-			return cserrors.New(cserrors.UNAUTHORIZED, "Unauthorized")
-		}
+		var user *models.User
+		if !auth.IsExpired(accessToken, appConfig.JWTSecret) {
+			claims, err := auth.GetClaims(accessToken, appConfig.JWTSecret)
+			if err != nil {
+				return cserrors.New(cserrors.UNAUTHORIZED, "Unauthorized")
+			}
 
-		claims, err := auth.GetClaims(accessToken, appConfig.JWTSecret)
-		if err != nil {
-			return cserrors.New(cserrors.UNAUTHORIZED, "Unauthorized")
-		}
+			roles, err := converter.ToStringSlice(claims.Roles)
+			if err != nil {
+				return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Something went wrong")
+			}
 
-		if claims.ExpiresAt.Sub(time.Now()).Minutes() > 5 {
-			return c.JSON(fiber.Map{
-				"message": "token is stil valid",
-			})
+			user = &models.User{
+				ID:           claims.Subject,
+				Username:     claims.Username,
+				DisplayName:  claims.DisplayName,
+				ProfileImage: claims.ProfileImage,
+				Roles:        roles,
+			}
+
+			if claims.ExpiresAt.Sub(time.Now()).Minutes() > 5 {
+				return c.JSON(fiber.Map{
+					"message": "token is stil valid",
+				})
+			}
+		} else {
+			claims, err := auth.GetClaims(refreshToken, appConfig.JWTRefreshSecret)
+			if err != nil {
+				return cserrors.New(cserrors.UNAUTHORIZED, "Unauthorized")
+			}
+
+			user, err = userService.GetByID(c.Context(), claims.Subject)
+			if err != nil {
+				return cserrors.New(cserrors.UNAUTHORIZED, "Unauthorized")
+			}
 		}
 
 		dbRefreshToken, err := refreshTokenService.Get(c.Context(), user.ID)
