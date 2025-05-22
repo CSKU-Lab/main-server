@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -79,4 +80,17 @@ func GetClaims(tokenString string, secret string) (*JWTClaims, error) {
 	}
 
 	return nil, fmt.Errorf("invalid token")
+}
+
+func IsExpired(token, secret string) bool {
+	_, err := jwt.Parse(token, func(t *jwt.Token) (any, error) {
+		return []byte(secret), nil
+	})
+	if err != nil {
+		if errors.Is(err, jwt.ErrTokenExpired) {
+			return true
+		}
+	}
+
+	return false
 }
