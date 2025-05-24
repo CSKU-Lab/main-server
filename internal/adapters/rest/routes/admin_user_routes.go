@@ -110,7 +110,7 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 		return c.Status(fiber.StatusCreated).JSON(user)
 	})
 
-	adminUserRouter.Post("/batch", func(c *fiber.Ctx) error {
+	adminUserRouter.Post("/import", func(c *fiber.Ctx) error {
 		var createManyUsers requests.CreateManyUsers
 
 		err := c.BodyParser(&createManyUsers)
