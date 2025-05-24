@@ -110,6 +110,26 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 		return c.Status(fiber.StatusCreated).JSON(user)
 	})
 
+	adminUserRouter.Post("/batch", func(c *fiber.Ctx) error {
+		var createManyUsers requests.CreateManyUsers
+
+		err := c.BodyParser(&createManyUsers)
+		if err != nil {
+			return cserrors.New(cserrors.BAD_REQUEST, "Error parsing request")
+		}
+
+		users, err := userService.CreateMany(c.Context(), &createManyUsers)
+		if err != nil {
+			var e *cserrors.Error
+			if errors.As(err, &e) {
+				return e
+			}
+			return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Error creating users")
+		}
+
+		return c.Status(fiber.StatusCreated).JSON(users)
+	})
+
 	router.Get("/users/:userID", func(c *fiber.Ctx) error {
 		userID := c.Params("userID")
 

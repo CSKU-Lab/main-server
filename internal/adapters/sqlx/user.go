@@ -14,6 +14,7 @@ import (
 	"github.com/SornchaiTheDev/cs-lab-backend/internal/requests"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type sqlxUserRepository struct {
@@ -233,6 +234,90 @@ func (r *sqlxUserRepository) Create(ctx context.Context, userType models.UserTyp
 			DeletedAt: createdUser.DeletedAt,
 		},
 	}, nil
+}
+
+func (r *sqlxUserRepository) CreateMany(ctx context.Context, users []requests.CreateMultiTypeUser) ([]models.User, error) {
+	tx, err := r.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Cannot begin transaction")
+	}
+
+	var insertedUsers []models.User
+	for _, user := range users {
+		pgUser := map[string]any{
+			"id":           user.ID,
+			"username":     user.Username,
+			"display_name": user.DisplayName,
+			"email":        user.Email,
+			"roles":        pq.StringArray(user.Roles),
+			"type":         user.Type,
+		}
+
+		query, args, err := sqlx.Named(`INSERT INTO users (
+			id,
+			username,
+			display_name,
+			email,
+			roles,
+			type
+			) VALUES (:id,:username,:display_name,:email,:roles,:type)
+			RETURNING *`, pgUser)
+		if err != nil {
+			return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "sqlx.Named")
+		}
+
+		query = tx.Rebind(query)
+		insertedUser := tx.QueryRowx(query, args...)
+
+		var dbUser PostgresUser
+		err = insertedUser.StructScan(&dbUser)
+		if err != nil {
+			return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, err.Error())
+		}
+
+		if user.Type == string(models.UserTypeCredential) && user.Password != nil {
+			// TODO: make reuseable function for password hashing
+			hashedPassword, err := bcrypt.GenerateFromPassword([]byte(*user.Password), 10)
+			if err != nil {
+				return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Cannot generate password")
+			}
+
+			_, err = tx.ExecContext(ctx, "INSERT INTO user_passwords (user_id, password) VALUES ($1, $2) ON CONFLICT (user_id) DO UPDATE SET password = $2", dbUser.ID, string(hashedPassword))
+			if err != nil {
+				if rollbackErr := tx.Rollback(); rollbackErr != nil {
+					log.Printf("Failed to rollback transaction: %v", rollbackErr)
+					return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Cannot rollback transaction")
+				}
+				return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Cannot set password")
+			}
+		}
+
+		insertedUsers = append(insertedUsers, models.User{
+			ID:           dbUser.ID,
+			Email:        dbUser.Email,
+			Username:     dbUser.Username,
+			DisplayName:  dbUser.DisplayName,
+			ProfileImage: dbUser.ProfileImage,
+			Roles:        user.Roles,
+			Type:         user.Type,
+			RecordStatus: models.RecordStatus{
+				IsDeleted: false,
+				CreatedAt: dbUser.CreatedAt,
+				UpdatedAt: dbUser.UpdatedAt,
+				DeletedAt: dbUser.DeletedAt,
+			},
+		})
+	}
+
+	if err := tx.Commit(); err != nil {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			log.Printf("Failed to rollback transaction: %v", rollbackErr)
+			return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Cannot rollback transaction")
+		}
+		return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Cannot commit transaction")
+	}
+
+	return insertedUsers, nil
 }
 
 func (r *sqlxUserRepository) SetPassword(ctx context.Context, ID string, password string) error {

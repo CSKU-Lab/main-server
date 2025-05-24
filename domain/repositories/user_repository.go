@@ -15,6 +15,7 @@ type UserRepository interface {
 	GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string) ([]models.User, error)
 	Count(ctx context.Context, search string) (int, error)
 	Create(ctx context.Context, userType models.UserType, ID string, user *requests.CreateUser) (*models.User, error)
+	CreateMany(ctx context.Context, users []requests.CreateMultiTypeUser) ([]models.User, error)
 	SetPassword(ctx context.Context, username string, password string) error
 	Update(ctx context.Context, ID string, user *requests.UpdateUser) (*models.User, error)
 	Delete(ctx context.Context, ID string) error

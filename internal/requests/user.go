@@ -25,3 +25,15 @@ type UpdateUser struct {
 type DeleteManyUser struct {
 	IDs []string `json:"ids" db:"ids"`
 }
+
+type CreateMultiTypeUser struct {
+	BaseUser
+	ID       string  `json:"id" db:"id"`
+	Type     string  `json:"type" db:"type"`
+	Email    *string `json:"email,omitempty" db:"email"`
+	Password *string `json:"password,omitempty" db:"password"`
+}
+
+type CreateManyUsers struct {
+	Users []CreateMultiTypeUser `json:"users" db:"users"`
+}

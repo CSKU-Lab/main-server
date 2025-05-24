@@ -21,6 +21,7 @@ type UserService interface {
 	GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string) ([]models.User, error)
 	Count(ctx context.Context, search string) (int, error)
 	Create(ctx context.Context, userType models.UserType, user *requests.CreateUser) (*models.User, error)
+	CreateMany(ctx context.Context, users *requests.CreateManyUsers) ([]models.User, error)
 	SetPassword(ctx context.Context, ID string, password string) error
 	Update(ctx context.Context, ID string, user *requests.UpdateUser) (*models.User, error)
 	Delete(ctx context.Context, ID string) error
@@ -79,7 +80,28 @@ func (s *userService) Create(ctx context.Context, userType models.UserType, user
 	return s.userRepository.Create(ctx, userType, id.String(), user)
 }
 
+func (s *userService) CreateMany(ctx context.Context, users *requests.CreateManyUsers) ([]models.User, error) {
+	if len(users.Users) == 0 {
+		return nil, cserrors.New(cserrors.BAD_REQUEST, "No users to create")
+	}
+
+	usersWithIds := make([]requests.CreateMultiTypeUser, 0, 10)
+	for _, user := range users.Users {
+		if user.ID == "" {
+			id, err := uuid.NewV7()
+			if err != nil {
+				return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Cannot generate user ID")
+			}
+			user.ID = id.String()
+		}
+		usersWithIds = append(usersWithIds, user)
+	}
+
+	return s.userRepository.CreateMany(ctx, usersWithIds)
+}
+
 func (s *userService) SetPassword(ctx context.Context, ID string, password string) error {
+	// TODO: make reuseable function for password hashing
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), 10)
 	if err != nil {
 		return fmt.Errorf("Cannot generate password")
