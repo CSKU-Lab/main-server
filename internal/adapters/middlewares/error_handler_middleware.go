@@ -33,6 +33,13 @@ func (e *errorHandlerMiddleware) ErrorHandler(c *fiber.Ctx, err error) error {
 		return c.Redirect(fmt.Sprintf("%s/auth/sign-in?error=%s", e.appConfig.FRONTEND_URL, redirectErr.Code()), fiber.StatusTemporaryRedirect)
 	}
 
+	if errors.Is(err, fiber.ErrMethodNotAllowed) {
+		return c.Status(fiber.StatusMethodNotAllowed).JSON(fiber.Map{
+			"code":  "METHOD_NOT_ALLOWED",
+			"error": "Method Not Allowed",
+		})
+	}
+
 	return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 		"code":  "INTERNAL_SERVER_ERROR",
 		"error": "Internal Server Error",
