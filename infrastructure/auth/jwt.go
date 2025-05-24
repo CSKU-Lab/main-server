@@ -57,6 +57,9 @@ func VerifyToken(tokenString string, secret string) error {
 		return []byte(secret), nil
 	})
 	if err != nil {
+		if errors.Is(err, jwt.ErrTokenExpired) {
+			return nil
+		}
 		return err
 	}
 
