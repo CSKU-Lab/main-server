@@ -2,7 +2,6 @@ package rest
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"github.com/SornchaiTheDev/cs-lab-backend/configs"
@@ -188,14 +187,13 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 		accessToken := c.Cookies("access_token")
 		refreshToken := c.Cookies("refresh_token")
 
-		err := auth.VerifyToken(accessToken, appConfig.JWTSecret)
-		if err != nil {
-			log.Println(err)
-			return cserrors.New(cserrors.UNAUTHORIZED, "Unauthorized")
-		}
-
 		var user *models.User
 		if !auth.IsExpired(accessToken, appConfig.JWTSecret) {
+			err := auth.VerifyToken(accessToken, appConfig.JWTSecret)
+			if err != nil {
+				return cserrors.New(cserrors.UNAUTHORIZED, "Unauthorized")
+			}
+
 			claims, err := auth.GetClaims(accessToken, appConfig.JWTSecret)
 			if err != nil {
 				return cserrors.New(cserrors.UNAUTHORIZED, "Unauthorized")

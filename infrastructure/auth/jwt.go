@@ -86,6 +86,10 @@ func GetClaims(tokenString string, secret string) (*JWTClaims, error) {
 }
 
 func IsExpired(token, secret string) bool {
+	if token == "" {
+		return true
+	}
+
 	_, err := jwt.Parse(token, func(t *jwt.Token) (any, error) {
 		return []byte(secret), nil
 	})
