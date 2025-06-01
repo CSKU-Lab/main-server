@@ -64,6 +64,18 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 			return c.Redirect(appConfig.FRONTEND_URL + "/auth/sign-in?error=UNAUTHORIZED")
 		}
 
+		if user.ProfileImage == nil {
+			user, err = userService.Update(c.Context(), user.ID, &requests.UpdateUser{
+				ProfileImage: &userInfo.ProfileImage,
+			})
+			if err != nil {
+				if appConfig.DEV_MODE {
+					return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Error updating user profile image")
+				}
+				return cserrors.NewRedirect(cserrors.REDIRECT_SOMETHING_WENT_WRONG)
+			}
+		}
+
 		newAccessToken, err := auth.SignAccessToken(user, appConfig.JWTSecret)
 		if err != nil {
 			if appConfig.DEV_MODE {

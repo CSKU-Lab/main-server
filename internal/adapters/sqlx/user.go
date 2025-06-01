@@ -337,20 +337,22 @@ func (r *sqlxUserRepository) SetPassword(ctx context.Context, ID string, passwor
 }
 
 type updateUser struct {
-	ID          string
-	Username    string         `db:"username"`
-	DisplayName string         `db:"display_name"`
-	Roles       pq.StringArray `db:"roles"`
-	Email       *string        `db:"email"`
+	ID           string
+	Username     string         `db:"username"`
+	DisplayName  string         `db:"display_name"`
+	Roles        pq.StringArray `db:"roles"`
+	Email        *string        `db:"email"`
+	ProfileImage *string        `db:"profile_image"`
 }
 
 func (r *sqlxUserRepository) Update(ctx context.Context, ID string, user *requests.UpdateUser) (*models.User, error) {
 	fields := &updateUser{
-		ID:          ID,
-		Username:    user.Username,
-		DisplayName: user.DisplayName,
-		Roles:       pq.StringArray(user.Roles),
-		Email:       user.Email,
+		ID:           ID,
+		Username:     user.Username,
+		DisplayName:  user.DisplayName,
+		Roles:        pq.StringArray(user.Roles),
+		Email:        user.Email,
+		ProfileImage: user.ProfileImage,
 	}
 
 	updateFields := getUpdateFields(fields)

@@ -18,8 +18,9 @@ type CreateCredentialUser struct {
 
 type UpdateUser struct {
 	BaseUser
-	Email    *string `json:"email" db:"email"`
-	Password *string `json:"password" db:"password"`
+	Email        *string `json:"email" db:"email"`
+	Password     *string `json:"password" db:"password"`
+	ProfileImage *string `json:"profile_image" db:"profile_image"`
 }
 
 type DeleteManyUser struct {
