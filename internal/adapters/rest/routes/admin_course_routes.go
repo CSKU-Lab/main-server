@@ -71,7 +71,7 @@ func NewAdminCourseRoutes(router fiber.Router, service services.CourseService) {
 				"total_page": math.Ceil(float64(count/pageSize) + 1),
 				"total_rows": count,
 			},
-			"courses": courses,
+			"data": courses,
 		})
 	})
 

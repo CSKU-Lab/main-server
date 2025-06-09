@@ -54,7 +54,7 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 				"total_page": math.Ceil(float64(count/pageSize) + 1),
 				"total_rows": count,
 			},
-			"users": users,
+			"data": users,
 		})
 	})
 
