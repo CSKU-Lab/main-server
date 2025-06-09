@@ -109,14 +109,11 @@ table "courses" {
   column "id" {
     type = uuid
   }
-  column "code" {
-    type = varchar(8)
-  }
   column "name" {
     type = text
   }
-  column "created_by" {
-    type = uuid
+  column "creators" {
+    type = sql("uuid[]")
   }
   column "created_at" {
     type = timestamp
@@ -136,10 +133,6 @@ table "courses" {
   }
   primary_key  {
     columns = [ column.id ]
-  }
-  foreign_key "fk_created_by" {
-    columns = [ column.created_by ]
-    ref_columns = [ table.users.column.id ]
   }
   index "unique_active_course" {
     columns = [ column.name ]

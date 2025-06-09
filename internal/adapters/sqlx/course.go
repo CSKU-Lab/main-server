@@ -8,6 +8,7 @@ import (
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/cserrors"
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/models"
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/repositories"
+	"github.com/SornchaiTheDev/cs-lab-backend/internal/adapters/sqlx/psql"
 	"github.com/SornchaiTheDev/cs-lab-backend/internal/requests"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
@@ -21,11 +22,12 @@ func NewSqlxCourseRepository(db *sqlx.DB) repositories.CourseRepository {
 	return &sqlxCourseRepository{db: db}
 }
 
-func (r *sqlxCourseRepository) Create(ctx context.Context, ID string, c *requests.Course, userID string) (*models.Course, error) {
-	query := `INSERT INTO courses (id, name, code, created_by) VALUES ($1, $2, $3, $4) RETURNING *`
-	row := r.db.QueryRowxContext(ctx, query, ID, c.Name, c.Code, userID)
+func (r *sqlxCourseRepository) Create(ctx context.Context, ID string, c *requests.Course) (*models.Course, error) {
+	query := `INSERT INTO courses (id, name, creators) VALUES ($1, $2, $3) RETURNING *`
 
-	var course models.Course
+	row := r.db.QueryRowxContext(ctx, query, ID, c.Name, pq.StringArray(c.Creators))
+
+	var course psql.Course
 	err := row.StructScan(&course)
 	if err != nil {
 		var pqErr *pq.Error
@@ -37,27 +39,26 @@ func (r *sqlxCourseRepository) Create(ctx context.Context, ID string, c *request
 		return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Failed to create course")
 	}
 
-	return &course, nil
+	return course.ToModel(), nil
 }
 
 func (r *sqlxCourseRepository) GetByID(ctx context.Context, ID string) (*models.Course, error) {
 	query := `SELECT * FROM courses WHERE id = $1 AND is_deleted = false`
 	row := r.db.QueryRowxContext(ctx, query, ID)
 
-	var course models.Course
+	var course psql.Course
 	err := row.StructScan(&course)
 	if err != nil {
 		return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Course not found")
 	}
 
-	return &course, nil
+	return course.ToModel(), nil
 }
 
 func (r *sqlxCourseRepository) GetPagination(ctx context.Context, page int, pageSize int, search string, sortBy string, sortOrder string) ([]models.Course, error) {
 	query := fmt.Sprintf(`SELECT * FROM courses 
 		WHERE (
 		name LIKE $1 
-		OR code LIKE $1
 		)
 		AND deleted_at IS NULL
 		ORDER BY %s %s
@@ -73,13 +74,13 @@ func (r *sqlxCourseRepository) GetPagination(ctx context.Context, page int, page
 	courses := []models.Course{}
 
 	for rows.Next() {
-		var course models.Course
+		var course psql.Course
 		err = rows.StructScan(&course)
 		if err != nil {
 			return nil, err
 		}
 
-		courses = append(courses, course)
+		courses = append(courses, *course.ToModel())
 	}
 
 	return courses, nil
@@ -90,7 +91,6 @@ func (r *sqlxCourseRepository) Count(ctx context.Context, search string) (int, e
 		SELECT COUNT(*) FROM courses 
 		WHERE (
 		name LIKE $1 
-		OR code LIKE $1
 		)
 		AND deleted_at IS NULL
 	`
@@ -118,7 +118,6 @@ func (r *sqlxCourseRepository) UpdateByID(ctx context.Context, ID string, c *req
 
 	row, err := r.db.NamedQueryContext(ctx, query, &models.Course{
 		ID:   ID,
-		Code: c.Code,
 		Name: c.Name,
 	})
 	if err != nil {
@@ -131,7 +130,7 @@ func (r *sqlxCourseRepository) UpdateByID(ctx context.Context, ID string, c *req
 		return nil, err
 	}
 
-	var updatedCourse models.Course
+	var updatedCourse psql.Course
 	for row.Next() {
 		err = row.StructScan(&updatedCourse)
 		if err != nil {
@@ -139,7 +138,7 @@ func (r *sqlxCourseRepository) UpdateByID(ctx context.Context, ID string, c *req
 		}
 	}
 
-	return &updatedCourse, nil
+	return updatedCourse.ToModel(), nil
 }
 
 func (r *sqlxCourseRepository) DeleteByID(ctx context.Context, ID string) error {

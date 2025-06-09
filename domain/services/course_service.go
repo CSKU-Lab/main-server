@@ -35,7 +35,7 @@ func (s *courseService) Create(ctx context.Context, c *requests.Course, userID s
 		return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Cannot generate user ID")
 	}
 
-	return s.repo.Create(ctx, id.String(), c, userID)
+	return s.repo.Create(ctx, id.String(), c)
 }
 
 func (s *courseService) GetByID(ctx context.Context, ID string) (*models.Course, error) {
