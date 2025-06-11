@@ -112,9 +112,6 @@ table "courses" {
   column "name" {
     type = text
   }
-  column "creators" {
-    type = sql("uuid[]")
-  }
   column "created_at" {
     type = timestamp
     default = sql("CURRENT_TIMESTAMP")
@@ -138,6 +135,32 @@ table "courses" {
     columns = [ column.name ]
     where = "is_deleted = false"
     unique = true
+  }
+}
+
+table "course_creators" {
+  schema = schema.public
+  column "course_id" {
+    type = uuid
+  }
+  column "creator_id" {
+    type = uuid
+  }
+  column "order" {
+    type = integer
+  }
+  primary_key  {
+    columns = [ column.course_id, column.creator_id , column.order ]
+  }
+  foreign_key "fk_course_id" {
+    columns = [ column.course_id ]
+    ref_columns = [ table.courses.column.id ]
+    on_delete = CASCADE
+  }
+  foreign_key "fk_creator_id" {
+    columns = [ column.creator_id ]
+    ref_columns = [ table.users.column.id ]
+    on_delete = CASCADE
   }
 }
 
