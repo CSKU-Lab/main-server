@@ -145,9 +145,7 @@ func (r *sqlxCourseRepository) GetByID(ctx context.Context, ID string) (*reposit
 
 func (r *sqlxCourseRepository) GetPagination(ctx context.Context, page int, pageSize int, search string, sortBy string, sortOrder string) ([]models.Course, error) {
 	query := fmt.Sprintf(`SELECT * FROM courses 
-		WHERE (
-		name LIKE $1 
-		)
+		WHERE LOWER(name) LIKE $1 
 		AND deleted_at IS NULL
 		ORDER BY %s %s
 		OFFSET $2
