@@ -143,14 +143,25 @@ func (r *sqlxCourseRepository) GetByID(ctx context.Context, ID string) (*reposit
 	return &course, nil
 }
 
-func (r *sqlxCourseRepository) GetPagination(ctx context.Context, page int, pageSize int, search string, sortBy string, sortOrder string) ([]models.Course, error) {
+func (r *sqlxCourseRepository) GetPagination(ctx context.Context, page int, pageSize int, search string, sortBy string, sortOrder string, show string) ([]models.Course, error) {
+	var archiveCondition string
+	switch show {
+	case "active":
+		archiveCondition = "AND is_archived = false"
+	case "archived":
+		archiveCondition = "AND is_archived = true"
+	case "all":
+		archiveCondition = ""
+	}
+
 	query := fmt.Sprintf(`SELECT * FROM courses 
 		WHERE LOWER(name) LIKE $1 
 		AND deleted_at IS NULL
+		%s
 		ORDER BY %s %s
 		OFFSET $2
 		LIMIT $3
-		`, sortBy, sortOrder)
+		`, archiveCondition, sortBy, sortOrder)
 
 	rows, err := r.db.QueryxContext(ctx, query, "%"+search+"%", (page-1)*pageSize, pageSize)
 	if err != nil {
@@ -179,14 +190,24 @@ func (r *sqlxCourseRepository) GetPagination(ctx context.Context, page int, page
 	return courses, nil
 }
 
-func (r *sqlxCourseRepository) Count(ctx context.Context, search string) (int, error) {
-	query := `
+func (r *sqlxCourseRepository) Count(ctx context.Context, search string, show string) (int, error) {
+	var archiveCondition string
+	switch show {
+	case "active":
+		archiveCondition = "AND is_archived = false"
+	case "archived":
+		archiveCondition = "AND is_archived = true"
+	case "all":
+		archiveCondition = ""
+	}
+
+	query := fmt.Sprintf(`
 		SELECT COUNT(*) FROM courses 
-		WHERE (
-		name LIKE $1 
-		)
+		WHERE LOWER(name) LIKE $1 
 		AND deleted_at IS NULL
-	`
+		%s
+	`, archiveCondition)
+	
 	row := r.db.QueryRowContext(ctx, query, "%"+search+"%")
 
 	var count int

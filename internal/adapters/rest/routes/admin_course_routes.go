@@ -44,6 +44,7 @@ func NewAdminCourseRoutes(router fiber.Router, service services.CourseService) {
 		search := c.Query("search", "")
 		sortBy := c.Query("sort_by", "created_at")
 		sortOrder := c.Query("sort_order", "desc")
+		show := c.Query("show", "active")
 
 		page, err := strconv.Atoi(pageQuery)
 		if err != nil {
@@ -55,14 +56,14 @@ func NewAdminCourseRoutes(router fiber.Router, service services.CourseService) {
 			return cserrors.New(cserrors.BAD_REQUEST, "Invalid page size")
 		}
 
-		courses, err := service.GetPagination(c.Context(), page, pageSize, search, sortBy, sortOrder)
+		courses, err := service.GetPagination(c.Context(), page, pageSize, search, sortBy, sortOrder, show)
 		if err != nil {
-			return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Error getting courses")
+			return err
 		}
 
-		count, err := service.Count(c.Context(), search)
+		count, err := service.Count(c.Context(), search, show)
 		if err != nil {
-			return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Error getting courses count")
+			return err
 		}
 
 		return c.JSON(fiber.Map{

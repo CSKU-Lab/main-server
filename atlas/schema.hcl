@@ -120,6 +120,10 @@ table "courses" {
     type = timestamp
     default = sql("CURRENT_TIMESTAMP")
   }
+  column "is_archived" {
+    type = boolean
+    default = false
+  }
   column "is_deleted" {
     type = boolean
     default = false
@@ -133,7 +137,7 @@ table "courses" {
   }
   index "unique_active_course" {
     columns = [ column.name ]
-    where = "is_deleted = false"
+    where = "is_deleted = false AND is_archived = false"
     unique = true
   }
 }

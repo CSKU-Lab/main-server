@@ -1,9 +1,10 @@
 package models
 
 type Course struct {
-	ID       string          `json:"id" db:"id"`
-	Name     string          `json:"name" db:"name"`
-	Creators []CourseCreator `json:"creators" db:"creators"`
+	ID         string          `json:"id" db:"id"`
+	Name       string          `json:"name" db:"name"`
+	Creators   []CourseCreator `json:"creators" db:"creators"`
+	IsArchived bool            `json:"is_archived" db:"is_archived"`
 	RecordStatus
 }
 

@@ -13,8 +13,8 @@ import (
 type CourseService interface {
 	Create(ctx context.Context, c *requests.Course, userID string) (*models.Course, error)
 	GetByID(ctx context.Context, ID string) (*models.Course, error)
-	GetPagination(ctx context.Context, page int, pageSize int, search string, sortBy string, sortOrder string) ([]models.Course, error)
-	Count(ctx context.Context, search string) (int, error)
+	GetPagination(ctx context.Context, page int, pageSize int, search string, sortBy string, sortOrder string, show string) ([]models.Course, error)
+	Count(ctx context.Context, search string, show string) (int, error)
 	UpdateByID(ctx context.Context, ID string, c *requests.Course) (*models.Course, error)
 	DeleteByID(ctx context.Context, ID string) error
 }
@@ -65,7 +65,7 @@ func (s *courseService) GetByID(ctx context.Context, ID string) (*models.Course,
 	return courseModel, nil
 }
 
-func (s *courseService) GetPagination(ctx context.Context, page int, pageSize int, search string, sortBy string, sortOrder string) ([]models.Course, error) {
+func (s *courseService) GetPagination(ctx context.Context, page int, pageSize int, search string, sortBy string, sortOrder string, show string) ([]models.Course, error) {
 	sanitizedSortBy, err := sanitizeSortBy(sortBy, &models.Course{})
 	if err != nil {
 		return nil, cserrors.New(cserrors.BAD_REQUEST, "Invalid sort by field")
@@ -76,12 +76,20 @@ func (s *courseService) GetPagination(ctx context.Context, page int, pageSize in
 		return nil, cserrors.New(cserrors.BAD_REQUEST, "Invalid sort order")
 	}
 
-	return s.repo.GetPagination(ctx, page, pageSize, search, sanitizedSortBy, sanitizedSortOrder)
+	if show != "all" && show != "active" && show != "archived" {
+		return nil, cserrors.New(cserrors.BAD_REQUEST, "Invalid show value. Must be 'all', 'active', or 'archived'")
+	}
+
+	return s.repo.GetPagination(ctx, page, pageSize, search, sanitizedSortBy, sanitizedSortOrder, show)
 
 }
 
-func (s *courseService) Count(ctx context.Context, search string) (int, error) {
-	return s.repo.Count(ctx, search)
+func (s *courseService) Count(ctx context.Context, search string, show string) (int, error) {
+	if show != "all" && show != "active" && show != "archived" {
+		return 0, cserrors.New(cserrors.BAD_REQUEST, "Invalid show value. Must be 'all', 'active', or 'archived'")
+	}
+	
+	return s.repo.Count(ctx, search, show)
 }
 
 func (s *courseService) UpdateByID(ctx context.Context, ID string, c *requests.Course) (*models.Course, error) {
