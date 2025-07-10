@@ -19,9 +19,10 @@ type CourseRepository interface {
 }
 
 type Course struct {
-	ID       string                 `db:"id"`
-	Name     string                 `db:"name"`
-	Creators []models.CourseCreator `db:"creators"`
+	ID         string                 `db:"id"`
+	Name       string                 `db:"name"`
+	Creators   []models.CourseCreator `db:"creators"`
+	IsArchived bool                   `db:"is_archived"`
 	models.RecordStatus
 }
 

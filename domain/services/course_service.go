@@ -88,7 +88,7 @@ func (s *courseService) Count(ctx context.Context, search string, show string) (
 	if show != "all" && show != "active" && show != "archived" {
 		return 0, cserrors.New(cserrors.BAD_REQUEST, "Invalid show value. Must be 'all', 'active', or 'archived'")
 	}
-	
+
 	return s.repo.Count(ctx, search, show)
 }
 
