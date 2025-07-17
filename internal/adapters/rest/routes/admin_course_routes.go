@@ -40,7 +40,7 @@ func NewAdminCourseRoutes(router fiber.Router, service services.CourseService) {
 
 	courseRouter.Get("/", func(c *fiber.Ctx) error {
 		pageQuery := c.Query("page", "1")
-		pageSizeQuery := c.Query("pageSize", "10")
+		pageSizeQuery := c.Query("page_size", "10")
 		search := c.Query("search", "")
 		sortBy := c.Query("sort_by", "created_at")
 		sortOrder := c.Query("sort_order", "desc")
