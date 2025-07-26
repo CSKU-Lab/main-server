@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/SornchaiTheDev/cs-lab-backend/internal/adapters/middlewares"
 	"github.com/SornchaiTheDev/cs-lab-backend/internal/adapters/rest"
 	"github.com/SornchaiTheDev/cs-lab-backend/internal/adapters/sqlx"
+	"github.com/SornchaiTheDev/cs-lab-backend/internal/adapters/storage"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -16,6 +18,11 @@ func main() {
 	config := configs.NewConfig()
 
 	db := configs.NewDB(config)
+
+	// will be implemented in graceful shutdown
+	ctx := context.TODO()
+
+	minio := storage.NewMinIOStorage(ctx, config)
 
 	userRepo := sqlx.NewSqlxUserRepository(db)
 	userService := services.NewUserService(userRepo)
@@ -28,6 +35,9 @@ func main() {
 
 	courseRepo := sqlx.NewSqlxCourseRepository(db)
 	courseService := services.NewCourseService(courseRepo)
+
+	sectionRepo := sqlx.NewSectionRepository(db)
+	sectionService := services.NewSectionService(sectionRepo, minio)
 
 	errHandlerMiddleware := middlewares.NewErrorHandlerMiddleware(config)
 

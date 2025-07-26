@@ -17,6 +17,15 @@ type Config struct {
 	COOKIE_DOMAIN      string `mapstructure:"COOKIE_DOMAIN"`
 	DEV_MODE           bool   `mapstructure:"DEV_MODE"`
 	FRONTEND_URL       string `mapstructure:"FRONTEND_URL"`
+	MinIO              MinIO
+}
+
+type MinIO struct {
+	Endpoint        string `mapstructure:"MINIO_ENDPOINT"`
+	AccessKeyID     string `mapstructure:"MINIO_ACCESS_KEY_ID"`
+	SecretAccessKey string `mapstructure:"MINIO_SECRET_ACCESS_KEY"`
+	UseSSL          bool   `mapstructure:"MINIO_USE_SSL"`
+	Bucket          string `mapstructure:"MINIO_BUCKET"`
 }
 
 func NewConfig() *Config {
