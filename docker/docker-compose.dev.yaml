@@ -38,5 +38,18 @@ services:
       start_period: 30s
       timeout: 10s
 
+  s3:
+    container_name: main-server-s3
+    image: quay.io/minio/minio
+    restart: unless-stopped
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+    volumes:
+      - ./data:/data
+    ports:
+      - 9001:9001
+    command: ["server", "/data", "--console-address", ":9001"]
+
 volumes:
   postgres_data:

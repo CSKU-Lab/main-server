@@ -20,38 +20,37 @@ type minIO struct {
 }
 
 func NewMinIOStorage(ctx context.Context, config *configs.Config) repositories.FileRepository {
-	client, err := minio.New(config.MinIO.Endpoint, &minio.Options{
-		Creds:  credentials.NewStaticV4(config.MinIO.AccessKeyID, config.MinIO.SecretAccessKey, ""),
-		Secure: config.MinIO.UseSSL,
+	client, err := minio.New(config.MinIO_Endpoint, &minio.Options{
+		Creds:  credentials.NewStaticV4(config.MinIO_AccessKeyID, config.MinIO_SecretAccessKey, ""),
+		Secure: config.MinIO_UseSSL,
 	})
-
 	if err != nil {
 		log.Fatalf("❌ Error creating MinIO client: %v", err)
 	}
 
-	err = client.MakeBucket(ctx, config.MinIO.Bucket, minio.MakeBucketOptions{})
+	err = client.MakeBucket(ctx, config.MinIO_Bucket, minio.MakeBucketOptions{})
 	if err != nil {
-		exists, errBucketExists := client.BucketExists(ctx, config.MinIO.Bucket)
+		exists, errBucketExists := client.BucketExists(ctx, config.MinIO_Bucket)
 		if errBucketExists != nil {
 			log.Fatalf("❌ Error checking if bucket exists: %v", errBucketExists)
 		}
 		if !exists {
-			log.Fatalf("❌ Bucket %s does not exist and could not be created: %v", config.MinIO.Bucket, err)
+			log.Fatalf("❌ Bucket %s does not exist and could not be created: %v", config.MinIO_Bucket, err)
 		}
 	} else {
-		log.Printf("✅ Bucket %s created successfully", config.MinIO.Bucket)
+		log.Printf("✅ Bucket %s created successfully", config.MinIO_Bucket)
 	}
 
 	return &minIO{
-		bucket: config.MinIO.Bucket,
+		bucket: config.MinIO_Bucket,
 		client: client,
 	}
 }
 
 func (m *minIO) UploadFile(ctx context.Context, path string, file *requests.File) (*models.UploadedFile, error) {
 	_path := fmt.Sprintf("%s/%s", path, file.Name)
-	info, err := m.client.PutObject(ctx, m.bucket, _path, file.Content, file.Size, minio.PutObjectOptions{
-		ContentType: file.MimeType,
+	info, err := m.client.PutObject(ctx, m.bucket, _path, file.Reader, file.Size, minio.PutObjectOptions{
+		ContentType: file.ContentType,
 	})
 	if err != nil {
 		return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, fmt.Sprintln("Failed to upload file to storage : ", err.Error()))

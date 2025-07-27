@@ -7,25 +7,21 @@ import (
 )
 
 type Config struct {
-	ApiURL             string `mapstructure:"API_URL"`
-	DatabaseURL        string `mapstructure:"DATABASE_URL"`
-	Port               string `mapstructure:"PORT"`
-	GoogleClientID     string `mapstructure:"GOOGLE_CLIENT_ID"`
-	GoogleClientSecret string `mapstructure:"GOOGLE_CLIENT_SECRET"`
-	JWTSecret          string `mapstructure:"JWT_SECRET"`
-	JWTRefreshSecret   string `mapstructure:"JWT_REFRESH_SECRET"`
-	COOKIE_DOMAIN      string `mapstructure:"COOKIE_DOMAIN"`
-	DEV_MODE           bool   `mapstructure:"DEV_MODE"`
-	FRONTEND_URL       string `mapstructure:"FRONTEND_URL"`
-	MinIO              MinIO
-}
-
-type MinIO struct {
-	Endpoint        string `mapstructure:"MINIO_ENDPOINT"`
-	AccessKeyID     string `mapstructure:"MINIO_ACCESS_KEY_ID"`
-	SecretAccessKey string `mapstructure:"MINIO_SECRET_ACCESS_KEY"`
-	UseSSL          bool   `mapstructure:"MINIO_USE_SSL"`
-	Bucket          string `mapstructure:"MINIO_BUCKET"`
+	ApiURL                string `mapstructure:"API_URL"`
+	DatabaseURL           string `mapstructure:"DATABASE_URL"`
+	Port                  string `mapstructure:"PORT"`
+	GoogleClientID        string `mapstructure:"GOOGLE_CLIENT_ID"`
+	GoogleClientSecret    string `mapstructure:"GOOGLE_CLIENT_SECRET"`
+	JWTSecret             string `mapstructure:"JWT_SECRET"`
+	JWTRefreshSecret      string `mapstructure:"JWT_REFRESH_SECRET"`
+	COOKIE_DOMAIN         string `mapstructure:"COOKIE_DOMAIN"`
+	DEV_MODE              bool   `mapstructure:"DEV_MODE"`
+	FRONTEND_URL          string `mapstructure:"FRONTEND_URL"`
+	MinIO_Endpoint        string `mapstructure:"MINIO_ENDPOINT"`
+	MinIO_AccessKeyID     string `mapstructure:"MINIO_ACCESS_KEY_ID"`
+	MinIO_SecretAccessKey string `mapstructure:"MINIO_SECRET_ACCESS_KEY"`
+	MinIO_UseSSL          bool   `mapstructure:"MINIO_USE_SSL"`
+	MinIO_Bucket          string `mapstructure:"MINIO_BUCKET"`
 }
 
 func NewConfig() *Config {

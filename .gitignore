@@ -6,3 +6,5 @@
 # Air tmp files
 tmp/
 
+# Minio files
+docker/data
