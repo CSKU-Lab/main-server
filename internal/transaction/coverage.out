@@ -1,0 +1,26 @@
+mode: set
+github.com/SornchaiTheDev/cs-lab-backend/internal/transaction/transaction.go:18.27,22.2 1 1
+github.com/SornchaiTheDev/cs-lab-backend/internal/transaction/transaction.go:24.44,26.16 2 1
+github.com/SornchaiTheDev/cs-lab-backend/internal/transaction/transaction.go:26.16,29.3 2 1
+github.com/SornchaiTheDev/cs-lab-backend/internal/transaction/transaction.go:30.2,30.12 1 1
+github.com/SornchaiTheDev/cs-lab-backend/internal/transaction/transaction.go:33.55,34.29 1 1
+github.com/SornchaiTheDev/cs-lab-backend/internal/transaction/transaction.go:34.29,35.39 1 1
+github.com/SornchaiTheDev/cs-lab-backend/internal/transaction/transaction.go:35.39,37.18 2 1
+github.com/SornchaiTheDev/cs-lab-backend/internal/transaction/transaction.go:37.18,38.10 1 1
+github.com/SornchaiTheDev/cs-lab-backend/internal/transaction/transaction.go:41.4,41.29 1 1
+github.com/SornchaiTheDev/cs-lab-backend/internal/transaction/transaction.go:41.29,43.5 1 1
+github.com/SornchaiTheDev/cs-lab-backend/internal/transaction/transaction.go:45.4,45.32 1 1
+github.com/SornchaiTheDev/cs-lab-backend/internal/transaction/transaction.go:48.2,48.16 1 1
+github.com/SornchaiTheDev/cs-lab-backend/internal/transaction/transaction.go:51.61,52.34 1 1
+github.com/SornchaiTheDev/cs-lab-backend/internal/transaction/transaction.go:52.34,53.39 1 1
+github.com/SornchaiTheDev/cs-lab-backend/internal/transaction/transaction.go:53.39,54.32 1 1
+github.com/SornchaiTheDev/cs-lab-backend/internal/transaction/transaction.go:54.32,55.13 1 1
+github.com/SornchaiTheDev/cs-lab-backend/internal/transaction/transaction.go:58.4,59.18 2 1
+github.com/SornchaiTheDev/cs-lab-backend/internal/transaction/transaction.go:59.18,60.10 1 1
+github.com/SornchaiTheDev/cs-lab-backend/internal/transaction/transaction.go:63.4,63.29 1 1
+github.com/SornchaiTheDev/cs-lab-backend/internal/transaction/transaction.go:63.29,65.5 1 1
+github.com/SornchaiTheDev/cs-lab-backend/internal/transaction/transaction.go:67.4,67.32 1 1
+github.com/SornchaiTheDev/cs-lab-backend/internal/transaction/transaction.go:70.2,70.12 1 1
+github.com/SornchaiTheDev/cs-lab-backend/internal/transaction/transaction.go:78.27,80.2 1 1
+github.com/SornchaiTheDev/cs-lab-backend/internal/transaction/transaction.go:82.54,85.2 2 1
+github.com/SornchaiTheDev/cs-lab-backend/internal/transaction/transaction.go:87.58,90.2 2 1
