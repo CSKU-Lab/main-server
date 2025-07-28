@@ -177,13 +177,14 @@ table "sections" {
     type = text
   }
   column "started_at" {
-    type = timestamp
+    type = time
   }
   column "ended_at" {
-    type = timestamp
+    type = time
   }
-  column "icon" {
+  column "image" {
     type = text
+    null = true
   }
   column "course_id" {
     type = uuid

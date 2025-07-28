@@ -37,7 +37,7 @@ func main() {
 	courseService := services.NewCourseService(courseRepo)
 
 	sectionRepo := sqlx.NewSectionRepository(db)
-	sectionService := services.NewSectionService(sectionRepo, minio)
+	sectionService := services.NewSectionService(sectionRepo, courseRepo, minio)
 
 	errHandlerMiddleware := middlewares.NewErrorHandlerMiddleware(config)
 
@@ -56,6 +56,13 @@ func main() {
 		UserService:     userService,
 		SemesterService: semesterService,
 		CourseService:   courseService,
+	})
+
+	rest.NewCMSRouter(&rest.CMSRouter{
+		Router:          protectedApi,
+		SemesterService: semesterService,
+		CourseService:   courseService,
+		SectionService:  sectionService,
 	})
 
 	port := fmt.Sprintf(":%v", config.Port)

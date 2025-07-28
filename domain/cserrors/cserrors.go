@@ -14,6 +14,7 @@ func (c *ErrorCode) String() string {
 const (
 	BAD_REQUEST           ErrorCode = http.StatusBadRequest
 	UNAUTHORIZED          ErrorCode = http.StatusUnauthorized
+	ALREADY_EXISTS        ErrorCode = http.StatusConflict
 	INTERNAL_SERVER_ERROR ErrorCode = http.StatusInternalServerError
 )
 
