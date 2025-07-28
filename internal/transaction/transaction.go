@@ -1,7 +1,6 @@
 package transaction
 
 import (
-	"errors"
 	"fmt"
 	"time"
 )
@@ -24,8 +23,11 @@ func New(opt *Option) *tr {
 func (t *tr) Execute(steps ...*step) error {
 	failedAt, err := t.commitPhase(steps...)
 	if err != nil {
-		err := t.rollbackPhase(failedAt, steps...)
-		return fmt.Errorf("Commit failed: %w", err)
+		rollbackErr := t.rollbackPhase(failedAt, steps...)
+		if rollbackErr != nil {
+			return fmt.Errorf("transaction failed. commit error: %w, rollback error: %w", err, rollbackErr)
+		}
+		return fmt.Errorf("transaction failed. commit error: %w", err)
 	}
 	return nil
 }
@@ -39,7 +41,7 @@ func (t *tr) commitPhase(steps ...*step) (int, error) {
 			}
 
 			if r == t.opt.RetryCount {
-				return i, errors.New("Commit failed: " + err.Error())
+				return i, err
 			}
 
 			time.Sleep(t.opt.RetryDelay)
@@ -61,7 +63,7 @@ func (t *tr) rollbackPhase(start int, steps ...*step) error {
 			}
 
 			if r == t.opt.RetryCount {
-				return errors.New("Rollback failed: " + err.Error())
+				return err
 			}
 
 			time.Sleep(t.opt.RetryDelay)

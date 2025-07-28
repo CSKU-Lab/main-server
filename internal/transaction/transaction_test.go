@@ -188,3 +188,18 @@ func TestStepNoRollback(t *testing.T) {
 	assert.NotNil(t, err, "There should be an error")
 	assert.Equal(t, 2, a, "a should be 1 after commit")
 }
+
+func TestGetCommitFailedError(t *testing.T) {
+	tr := transaction.New(&transaction.Option{})
+
+	err := tr.Execute(
+		tr.Step().CommitWith(func() error {
+			return errors.New("this commit failed")
+		}),
+	)
+
+	assert.NotNil(t, err, "There should be an error")
+
+	unwrappedErr := errors.Unwrap(err)
+	assert.Equal(t, "this commit failed", unwrappedErr.Error(), "Unwrapped error should match the original error message")
+}
