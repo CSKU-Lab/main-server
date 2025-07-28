@@ -1,8 +1,11 @@
 package transaction
 
 import (
+	"errors"
 	"fmt"
 	"time"
+
+	"github.com/SornchaiTheDev/cs-lab-backend/domain/cserrors"
 )
 
 type tr struct {
@@ -38,6 +41,12 @@ func (t *tr) commitPhase(steps ...*step) (int, error) {
 			err := step.commit()
 			if err == nil {
 				break
+			}
+
+			// Not the best way but works for now when doesn't need to wait for retry
+			var csErr *cserrors.Error
+			if errors.As(err, &csErr); csErr != nil {
+				return i, err
 			}
 
 			if r == t.opt.RetryCount {

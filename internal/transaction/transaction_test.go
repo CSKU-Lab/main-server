@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/SornchaiTheDev/cs-lab-backend/domain/cserrors"
 	"github.com/SornchaiTheDev/cs-lab-backend/internal/transaction"
 	"github.com/stretchr/testify/assert"
 )
@@ -202,4 +203,29 @@ func TestGetCommitFailedError(t *testing.T) {
 
 	unwrappedErr := errors.Unwrap(err)
 	assert.Equal(t, "this commit failed", unwrappedErr.Error(), "Unwrapped error should match the original error message")
+}
+
+func TestSkipRetryOnCSError(t *testing.T) {
+	a := 0
+
+	tr := transaction.New(&transaction.Option{
+		RetryCount: 3,
+		RetryDelay: 1 * time.Second,
+	})
+
+	err := tr.Execute(
+		tr.Step().CommitWith(func() error {
+			return Add(&a, 1)
+		}).RollbackWith(func() error {
+			return Remove(&a, 1)
+		}),
+		tr.Step().CommitWith(func() error {
+			return cserrors.New(cserrors.BAD_REQUEST, "this commit failed")
+		}).RollbackWith(func() error {
+			return Remove(&a, 1)
+		}),
+	)
+
+	assert.Equal(t, 0, a, "a should be 0 as initial value")
+	assert.NotNil(t, err, "There should be Commit Failed error")
 }
