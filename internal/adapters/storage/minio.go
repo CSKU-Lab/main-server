@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/models"
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/repositories"
 	"github.com/SornchaiTheDev/cs-lab-backend/internal/requests"
+	"github.com/google/uuid"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )
@@ -48,7 +50,12 @@ func NewMinIOStorage(ctx context.Context, config *configs.Config) repositories.F
 }
 
 func (m *minIO) UploadFile(ctx context.Context, path string, file *requests.File) (*models.UploadedFile, error) {
-	_path := fmt.Sprintf("%s/%s", path, file.Name)
+	id, err := uuid.NewV7()
+	if err != nil {
+		return nil, errors.New("Cannot generate uuid")
+	}
+
+	_path := fmt.Sprintf("%s/%s.%s", path, id, file.Extension())
 	info, err := m.client.PutObject(ctx, m.bucket, _path, file.Reader, file.Size, minio.PutObjectOptions{
 		ContentType: file.ContentType,
 	})
@@ -57,9 +64,9 @@ func (m *minIO) UploadFile(ctx context.Context, path string, file *requests.File
 	}
 
 	return &models.UploadedFile{
-		FileName: file.Name,
-		FilePath: fmt.Sprintf("%s/%s", m.bucket, path),
-		Size:     info.Size,
+		Name: file.Name,
+		Path: _path,
+		Size: info.Size,
 	}, nil
 }
 

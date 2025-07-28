@@ -1,14 +1,13 @@
 package models
 
 type File struct {
-	Name    string
-	Path    string
-	Type    string
-	Content []byte
+	Name string
+	URL  string
+	Type string
 }
 
 type UploadedFile struct {
-	FileName string
-	FilePath string
-	Size     int64
+	Name string
+	Path string
+	Size int64
 }
