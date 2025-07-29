@@ -106,7 +106,7 @@ func (r *sqlxCourseRepository) SetCreators(ctx context.Context, ID string, creat
 }
 
 func (r *sqlxCourseRepository) GetCreators(ctx context.Context, ID string) ([]models.CourseCreator, error) {
-	query := `SELECT id, display_name, profile_image FROM course_creators CA
+	query := `SELECT id, username, display_name, profile_image FROM course_creators CA
 		  JOIN users ON users.id = CA.creator_id 
 		  WHERE course_id = $1
 		  ORDER BY "order" ASC`
