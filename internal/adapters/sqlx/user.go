@@ -128,9 +128,9 @@ func (r *sqlxUserRepository) GetPasswordByID(ctx context.Context, ID string) (st
 
 func (r *sqlxUserRepository) GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string) ([]models.User, error) {
 	query := fmt.Sprintf(`SELECT * FROM users 
-		WHERE (username LIKE $1 
-		OR display_name LIKE $1 
-		OR email LIKE $1)
+		WHERE (LOWER(username) LIKE LOWER($1)
+		OR LOWER(display_name) LIKE LOWER($1)
+		OR LOWER(email) LIKE LOWER($1))
 		AND deleted_at IS NULL
 		ORDER BY %s %s
 		OFFSET $2
