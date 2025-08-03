@@ -4,11 +4,13 @@ import (
 	"errors"
 	"reflect"
 	"slices"
+
+	"github.com/SornchaiTheDev/cs-lab-backend/domain/cserrors"
 )
 
 func sanitizeSortOrder(sortOrder string) (string, error) {
 	if sortOrder != "asc" && sortOrder != "desc" {
-		return "", errors.New("Invalid sort order")
+		return "", cserrors.New(cserrors.BAD_REQUEST, "Invalid sort order")
 	}
 	return sortOrder, nil
 }
@@ -21,7 +23,7 @@ func sanitizeSortBy(sortBy string, s any) (string, error) {
 	}
 
 	if !slices.Contains(fields, sortBy) {
-		return "", errors.New("The field that you want to sort by is not exist")
+		return "", cserrors.New(cserrors.BAD_REQUEST, "The field that you want to sort by is not exist")
 	}
 
 	return sortBy, nil

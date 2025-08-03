@@ -104,6 +104,45 @@ table "user_passwords" {
   }
 }
 
+table "user_groups" {
+  schema = schema.public
+  column "id" {
+    type = uuid
+  }
+  column "name" {
+    type = text
+  }
+  unique "name" {
+    columns = [ column.name ]
+  }
+  primary_key {
+    columns = [ column.id ]
+  }
+}
+
+table "user_group_members" {
+  schema = schema.public
+  column "user_id" {
+    type = uuid
+  }
+  column "group_id" {
+    type = uuid
+  }
+  primary_key {
+    columns = [ column.user_id, column.group_id ]
+  }
+  foreign_key "fk_user_id" {
+    columns = [ column.user_id ]
+    ref_columns = [ table.users.column.id ]
+    on_delete = CASCADE
+  }
+  foreign_key "fk_group_id" {
+    columns = [ column.group_id ]
+    ref_columns = [ table.user_groups.column.id ]
+    on_delete = CASCADE
+  }
+}
+
 table "courses" {
   schema = schema.public
   column "id" {
