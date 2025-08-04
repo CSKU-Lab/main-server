@@ -67,6 +67,19 @@ func (r *userGroupRepository) GetPagination(ctx context.Context, page int, limit
 	return userGroupModels, nil
 }
 
+func (r *userGroupRepository) Count(ctx context.Context, search string) (int, error) {
+	query := `SELECT COUNT(*) FROM user_groups WHERE name ILIKE $1`
+	searchPattern := "%" + search + "%"
+
+	var count int
+	err := r.db.GetContext(ctx, &count, query, searchPattern)
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
 func (r *userGroupRepository) Update(ctx context.Context, ID string, name string) error {
 	query := `UPDATE user_groups SET name = $1 WHERE id = $2`
 

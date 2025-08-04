@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"math"
 	"strconv"
 
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/cserrors"
@@ -50,7 +51,19 @@ func NewAdminUserGroupRoutes(router fiber.Router, userGroupService services.User
 			userGroupsResponse = append(userGroupsResponse, *userGroup.ToResponse())
 		}
 
-		return c.JSON(userGroupsResponse)
+		count, err := userGroupService.Count(c.Context(), search)
+		if err != nil {
+			return err
+		}
+
+		return c.JSON(fiber.Map{
+			"pagination": fiber.Map{
+				"page":       page,
+				"total_page": math.Ceil(float64(count/pageSize) + 1),
+				"total_rows": count,
+			},
+			"data": userGroupsResponse,
+		})
 	})
 
 	adminUserGroupRoutes.Patch("/:id", func(c *fiber.Ctx) error {
