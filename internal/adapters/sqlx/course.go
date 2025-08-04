@@ -207,7 +207,7 @@ func (r *sqlxCourseRepository) Count(ctx context.Context, search string, show st
 		AND deleted_at IS NULL
 		%s
 	`, archiveCondition)
-	
+
 	row := r.db.QueryRowContext(ctx, query, "%"+search+"%")
 
 	var count int
@@ -221,9 +221,10 @@ func (r *sqlxCourseRepository) Count(ctx context.Context, search string, show st
 }
 
 func (r *sqlxCourseRepository) UpdateByID(ctx context.Context, ID string, c *requests.Course) error {
-	updateFields := getUpdateFields(c)
+	updateFields := getUpdateFields(&models.Course{
+		Name: c.Name,
+	})
 
-	log.Println(updateFields)
 	query := fmt.Sprintf(`
 	UPDATE courses
 	SET %s , updated_at = NOW()
