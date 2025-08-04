@@ -109,4 +109,29 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 			"ended_at":   updatedSection.EndedAt,
 		})
 	})
+
+	cmsSectionRouter.Get("/:id", func(c *fiber.Ctx) error {
+		id := c.Params("id")
+		section, err := sectionService.GetByID(c.Context(), id)
+		if err != nil {
+			return err
+		}
+
+		return c.Status(fiber.StatusOK).JSON(fiber.Map{
+			"id":         section.ID,
+			"name":       section.Name,
+			"image":      section.Image,
+			"started_at": section.StartedAt,
+			"ended_at":   section.EndedAt,
+		})
+	})
+
+	cmsSectionRouter.Delete("/:id", func(c *fiber.Ctx) error {
+		id := c.Params("id")
+		if err := sectionService.DeleteByID(c.Context(), id); err != nil {
+			return err
+		}
+
+		return c.Status(fiber.StatusNoContent).JSON(fiber.Map{})
+	})
 }

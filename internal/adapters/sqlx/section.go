@@ -73,11 +73,12 @@ func (s *sqlxSectionRepository) UpdateByID(ctx context.Context, section *models.
 
 func (s *sqlxSectionRepository) GetByID(ctx context.Context, ID string) (*models.Section, error) {
 	var section sectionSchema
-	query := "SELECT id, name, image, started_at, ended_at FROM sections WHERE id = $1"
+	query := "SELECT id, name, image, started_at, ended_at FROM sections WHERE id = $1 AND is_deleted = false"
 	err := s.db.GetContext(ctx, &section, query, ID)
 	if err != nil {
-		return nil, err
+		return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Section not found")
 	}
+
 	return &models.Section{
 		ID:        section.ID,
 		Name:      section.Name,
@@ -89,7 +90,7 @@ func (s *sqlxSectionRepository) GetByID(ctx context.Context, ID string) (*models
 
 func (s *sqlxSectionRepository) GetBySemesterID(ctx context.Context, ID string) ([]models.Section, error) {
 	var sections []models.Section
-	query := "SELECT * FROM sections WHERE section_id = $1"
+	query := "SELECT * FROM sections WHERE section_id = $1 AND is_deleted = false"
 	err := s.db.SelectContext(ctx, &sections, query, ID)
 	if err != nil {
 		return nil, err
@@ -98,7 +99,7 @@ func (s *sqlxSectionRepository) GetBySemesterID(ctx context.Context, ID string) 
 }
 
 func (s *sqlxSectionRepository) DeleteByID(ctx context.Context, ID string) error {
-	query := "DELETE FROM sections WHERE id = $1"
+	query := "UPDATE sections SET is_deleted = true, deleted_at = NOW() WHERE id = $1"
 	_, err := s.db.ExecContext(ctx, query, ID)
 	if err != nil {
 		return err
