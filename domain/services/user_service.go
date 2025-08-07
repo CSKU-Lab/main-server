@@ -76,14 +76,27 @@ func (s *userService) Count(ctx context.Context, search string) (int, error) {
 }
 
 func (s *userService) Create(ctx context.Context, user *requests.CreateMultiTypeUser) (*models.User, error) {
+	repoUser := repositories.CreateMultiTypeUser{
+		CreateMultiTypeUser: *user,
+	}
+
 	id, err := uuid.NewV7()
 	if err != nil {
 		return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Cannot generate user ID")
 	}
 
-	user.ID = id.String()
-	users, err := s.userRepository.CreateMany(ctx, []requests.CreateMultiTypeUser{
-		*user,
+	repoUser.ID = id.String()
+
+	if user.Type == models.UserTypeCredential.String() && user.Email != nil {
+		return nil, cserrors.New(cserrors.BAD_REQUEST, "Credential user cannot have email")
+	}
+
+	if user.Type == models.UserTypeOauth.String() && user.Password != nil {
+		return nil, cserrors.New(cserrors.BAD_REQUEST, "Oauth user cannot have password")
+	}
+
+	users, err := s.userRepository.CreateMany(ctx, []repositories.CreateMultiTypeUser{
+		repoUser,
 	})
 	if err != nil {
 		return nil, err
@@ -97,19 +110,30 @@ func (s *userService) CreateMany(ctx context.Context, users *requests.CreateMany
 		return nil, cserrors.New(cserrors.BAD_REQUEST, "No users to create")
 	}
 
-	usersWithIds := make([]requests.CreateMultiTypeUser, 0, 10)
+	repoUsers := make([]repositories.CreateMultiTypeUser, 0, 10)
 	for _, user := range users.Users {
-		if user.ID == "" {
-			id, err := uuid.NewV7()
-			if err != nil {
-				return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Cannot generate user ID")
-			}
-			user.ID = id.String()
+		repoUser := repositories.CreateMultiTypeUser{
+			CreateMultiTypeUser: user,
 		}
-		usersWithIds = append(usersWithIds, user)
+
+		id, err := uuid.NewV7()
+		if err != nil {
+			return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Cannot generate user ID")
+		}
+		repoUser.ID = id.String()
+
+		if user.Type == models.UserTypeCredential.String() && user.Email != nil {
+			return nil, cserrors.New(cserrors.BAD_REQUEST, "Credential user cannot have email")
+		}
+
+		if user.Type == models.UserTypeOauth.String() && user.Password != nil {
+			return nil, cserrors.New(cserrors.BAD_REQUEST, "Oauth user cannot have password")
+		}
+
+		repoUsers = append(repoUsers, repoUser)
 	}
 
-	return s.userRepository.CreateMany(ctx, usersWithIds)
+	return s.userRepository.CreateMany(ctx, repoUsers)
 }
 
 func (s *userService) SetPassword(ctx context.Context, ID string, password string) error {
