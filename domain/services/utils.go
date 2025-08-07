@@ -62,7 +62,7 @@ func getAllStructFields(s any) []string {
 			keys = append(keys, getAllStructFields(val.Field(i).Interface())...)
 		}
 
-		key := field.Tag.Get("db")
+		key := field.Tag.Get("json")
 		keys = append(keys, key)
 	}
 

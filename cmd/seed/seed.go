@@ -18,17 +18,19 @@ func main() {
 	db := configs.NewDB(config)
 
 	userRepo := sqlx.NewSqlxUserRepository(db)
-	userService := services.NewUserService(userRepo)
+	userPasswordRepo := sqlx.NewUserPasswordRepository(db)
+	userService := services.NewUserService(userRepo, userPasswordRepo)
 
-	user, err := userService.Create(context.Background(), models.UserTypeOauth, &requests.CreateUser{
+	user, err := userService.Create(context.Background(), &requests.CreateMultiTypeUser{
 		BaseUser: requests.BaseUser{
-			Username:    "SornchaiTheDev",
-			DisplayName: "Sornchai Somsakul",
-			Roles:       []string{"admin"},
+			Username:    "test_user_1",
+			DisplayName: "Test user",
+			Roles:       []string{"student"},
 		},
-		Email: func() *string {
-			email := "sornchaithedev@gmail.com"
-			return &email
+		Type: models.UserTypeCredential.String(),
+		Password: func() *string {
+			password := "test_user_1_password"
+			return &password
 		}(),
 	})
 	if err != nil {

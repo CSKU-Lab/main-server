@@ -1,8 +1,6 @@
-package models
+package responses
 
-import (
-	"time"
-)
+import "time"
 
 type User struct {
 	ID           string    `json:"id"`
@@ -15,14 +13,3 @@ type User struct {
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
 }
-
-type UserType string
-
-func (u *UserType) String() string {
-	return string(*u)
-}
-
-var (
-	UserTypeOauth      UserType = "oauth"
-	UserTypeCredential UserType = "credential"
-)

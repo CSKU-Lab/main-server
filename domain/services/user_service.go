@@ -20,7 +20,7 @@ type UserService interface {
 	GetPasswordByID(ctx context.Context, ID string) (string, error)
 	GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string) ([]models.User, error)
 	Count(ctx context.Context, search string) (int, error)
-	Create(ctx context.Context, userType models.UserType, user *requests.CreateUser) (*models.User, error)
+	Create(ctx context.Context, user *requests.CreateMultiTypeUser) (*models.User, error)
 	CreateMany(ctx context.Context, users *requests.CreateManyUsers) ([]models.User, error)
 	SetPassword(ctx context.Context, ID string, password string) error
 	Update(ctx context.Context, ID string, user *requests.UpdateUser) (*models.User, error)
@@ -29,11 +29,15 @@ type UserService interface {
 }
 
 type userService struct {
-	userRepository repositories.UserRepository
+	userRepository         repositories.UserRepository
+	userPasswordRepository repositories.UserPasswordRepository
 }
 
-func NewUserService(userRepository repositories.UserRepository) UserService {
-	return &userService{userRepository: userRepository}
+func NewUserService(userRepository repositories.UserRepository, userPasswordRepository repositories.UserPasswordRepository) UserService {
+	return &userService{
+		userRepository:         userRepository,
+		userPasswordRepository: userPasswordRepository,
+	}
 }
 
 func (s *userService) GetByEmail(ctx context.Context, email string) (*models.User, error) {
@@ -49,7 +53,7 @@ func (s *userService) GetByID(ctx context.Context, ID string) (*models.User, err
 }
 
 func (s *userService) GetPasswordByID(ctx context.Context, ID string) (string, error) {
-	return s.userRepository.GetPasswordByID(ctx, ID)
+	return s.userPasswordRepository.GetPasswordByID(ctx, ID)
 }
 
 func (s *userService) GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string) ([]models.User, error) {
@@ -71,13 +75,21 @@ func (s *userService) Count(ctx context.Context, search string) (int, error) {
 	return s.userRepository.Count(ctx, search)
 }
 
-func (s *userService) Create(ctx context.Context, userType models.UserType, user *requests.CreateUser) (*models.User, error) {
+func (s *userService) Create(ctx context.Context, user *requests.CreateMultiTypeUser) (*models.User, error) {
 	id, err := uuid.NewV7()
 	if err != nil {
 		return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Cannot generate user ID")
 	}
 
-	return s.userRepository.Create(ctx, userType, id.String(), user)
+	user.ID = id.String()
+	users, err := s.userRepository.CreateMany(ctx, []requests.CreateMultiTypeUser{
+		*user,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &users[0], nil
 }
 
 func (s *userService) CreateMany(ctx context.Context, users *requests.CreateManyUsers) ([]models.User, error) {
@@ -101,13 +113,12 @@ func (s *userService) CreateMany(ctx context.Context, users *requests.CreateMany
 }
 
 func (s *userService) SetPassword(ctx context.Context, ID string, password string) error {
-	// TODO: make reuseable function for password hashing
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), 10)
 	if err != nil {
 		return fmt.Errorf("Cannot generate password")
 	}
 
-	return s.userRepository.SetPassword(ctx, ID, string(hashedPassword))
+	return s.userPasswordRepository.SetPassword(ctx, ID, string(hashedPassword))
 }
 
 func (s *userService) Update(ctx context.Context, ID string, user *requests.UpdateUser) (*models.User, error) {

@@ -11,12 +11,9 @@ type UserRepository interface {
 	GetByEmail(ctx context.Context, email string) (*models.User, error)
 	GetByUsername(ctx context.Context, username string) (*models.User, error)
 	GetByID(ctx context.Context, ID string) (*models.User, error)
-	GetPasswordByID(ctx context.Context, ID string) (string, error)
 	GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string) ([]models.User, error)
 	Count(ctx context.Context, search string) (int, error)
-	Create(ctx context.Context, userType models.UserType, ID string, user *requests.CreateUser) (*models.User, error)
 	CreateMany(ctx context.Context, users []requests.CreateMultiTypeUser) ([]models.User, error)
-	SetPassword(ctx context.Context, username string, password string) error
 	Update(ctx context.Context, ID string, user *requests.UpdateUser) (*models.User, error)
 	Delete(ctx context.Context, ID string) error
 	DeleteMany(ctx context.Context, IDs []string) error

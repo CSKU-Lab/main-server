@@ -7,7 +7,6 @@ import (
 	"strconv"
 
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/cserrors"
-	"github.com/SornchaiTheDev/cs-lab-backend/domain/models"
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/services"
 	"github.com/SornchaiTheDev/cs-lab-backend/internal/requests"
 	"github.com/gofiber/fiber/v2"
@@ -58,52 +57,20 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 		})
 	})
 
-	adminUserRouter.Post("/oauth", func(c *fiber.Ctx) error {
-		var userRequest requests.CreateUser
+	adminUserRouter.Post("/", func(c *fiber.Ctx) error {
+		var userRequest requests.CreateMultiTypeUser
 
 		err := c.BodyParser(&userRequest)
 		if err != nil {
 			return cserrors.New(cserrors.BAD_REQUEST, "Error parsing request")
 		}
 
-		user, err := userService.Create(c.Context(), models.UserTypeOauth, &userRequest)
+		user, err := userService.Create(c.Context(), &userRequest)
 		if err != nil {
 			var e *cserrors.Error
 			if errors.As(err, &e) {
 				return e
 			}
-			return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Error creating user")
-		}
-
-		return c.Status(fiber.StatusCreated).JSON(user)
-	})
-
-	adminUserRouter.Post("/credential", func(c *fiber.Ctx) error {
-		var userRequest requests.CreateCredentialUser
-
-		err := c.BodyParser(&userRequest)
-		if err != nil {
-			return cserrors.New(cserrors.BAD_REQUEST, "Error parsing request")
-		}
-
-		user, err := userService.Create(c.Context(), models.UserTypeCredential, &requests.CreateUser{
-			BaseUser: requests.BaseUser{
-				Username:    userRequest.Username,
-				DisplayName: userRequest.DisplayName,
-				Roles:       userRequest.Roles,
-			},
-			Email: nil,
-		})
-		if err != nil {
-			var e *cserrors.Error
-			if errors.As(err, &e) {
-				return e
-			}
-			return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Error creating user")
-		}
-
-		err = userService.SetPassword(c.Context(), user.ID, userRequest.Password)
-		if err != nil {
 			return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Error creating user")
 		}
 
