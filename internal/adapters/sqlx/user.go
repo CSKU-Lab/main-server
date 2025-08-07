@@ -211,7 +211,7 @@ func (r *sqlxUserRepository) CreateMany(ctx context.Context, users []repositorie
 			return nil, err
 		}
 
-		if user.Type == string(models.UserTypeCredential) && user.Password != nil {
+		if user.Password != nil {
 			hashedPassword, err := bcrypt.GenerateFromPassword([]byte(*user.Password), 10)
 			if err != nil {
 				return nil, err
