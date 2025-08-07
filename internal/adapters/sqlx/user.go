@@ -172,10 +172,10 @@ func (r *sqlxUserRepository) Count(ctx context.Context, search string) (int, err
 	return count, nil
 }
 
-func (r *sqlxUserRepository) CreateMany(ctx context.Context, users []requests.CreateMultiTypeUser) ([]models.User, error) {
+func (r *sqlxUserRepository) CreateMany(ctx context.Context, users []repositories.CreateMultiTypeUser) ([]models.User, error) {
 	tx, err := r.db.BeginTxx(ctx, nil)
 	if err != nil {
-		return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Cannot begin transaction")
+		return nil, err
 	}
 
 	var insertedUsers []models.User
@@ -200,7 +200,7 @@ func (r *sqlxUserRepository) CreateMany(ctx context.Context, users []requests.Cr
 			RETURNING id, email, username,display_name,profile_image,
 		roles, type, created_at, updated_at`, pgUser)
 		if err != nil {
-			return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "sqlx.Named")
+			return nil, err
 		}
 
 		query = tx.Rebind(query)
@@ -208,20 +208,20 @@ func (r *sqlxUserRepository) CreateMany(ctx context.Context, users []requests.Cr
 		var dbUser postgresUser
 		err = tx.GetContext(ctx, &dbUser, query, args...)
 		if err != nil {
-			return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, err.Error())
+			return nil, err
 		}
 
 		if user.Type == string(models.UserTypeCredential) && user.Password != nil {
 			hashedPassword, err := bcrypt.GenerateFromPassword([]byte(*user.Password), 10)
 			if err != nil {
-				return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Cannot generate password")
+				return nil, err
 			}
 
 			_, err = tx.ExecContext(ctx, "INSERT INTO user_passwords (user_id, password) VALUES ($1, $2) ON CONFLICT (user_id) DO UPDATE SET password = $2", dbUser.ID, string(hashedPassword))
 			if err != nil {
 				if rollbackErr := tx.Rollback(); rollbackErr != nil {
 					log.Printf("Failed to rollback transaction: %v", rollbackErr)
-					return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Cannot rollback transaction")
+					return nil, err
 				}
 				return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Cannot set password")
 			}
@@ -242,10 +242,9 @@ func (r *sqlxUserRepository) CreateMany(ctx context.Context, users []requests.Cr
 
 	if err := tx.Commit(); err != nil {
 		if rollbackErr := tx.Rollback(); rollbackErr != nil {
-			log.Printf("Failed to rollback transaction: %v", rollbackErr)
-			return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Cannot rollback transaction")
+			return nil, err
 		}
-		return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Cannot commit transaction")
+		return nil, err
 	}
 
 	return insertedUsers, nil
