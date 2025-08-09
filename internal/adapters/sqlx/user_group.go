@@ -7,15 +7,14 @@ import (
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/cserrors"
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/models"
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/repositories"
-	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 )
 
 type userGroupRepository struct {
-	db *sqlx.DB
+	db instance
 }
 
-func NewUserGroupRepository(db *sqlx.DB) repositories.UserGroupRepository {
+func NewUserGroupRepository(db instance) repositories.UserGroupRepository {
 	return &userGroupRepository{
 		db: db,
 	}
@@ -95,6 +94,22 @@ func (r *userGroupRepository) Delete(ctx context.Context, ID string) error {
 
 	_, err := r.db.ExecContext(ctx, query, ID)
 	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *userGroupRepository) AddUserToGroup(ctx context.Context, groupID string, userID string) error {
+	query := `INSERT INTO user_group_members (group_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`
+
+	_, err := r.db.ExecContext(ctx, query, groupID, userID)
+	if err != nil {
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) {
+			if pqErr.Code == "23505" {
+				return cserrors.New(cserrors.ALREADY_EXISTS, "user already in group")
+			}
+		}
 		return err
 	}
 	return nil

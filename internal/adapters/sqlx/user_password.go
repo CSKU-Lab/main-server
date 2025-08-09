@@ -6,14 +6,13 @@ import (
 
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/cserrors"
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/repositories"
-	"github.com/jmoiron/sqlx"
 )
 
 type userPasswordRepository struct {
-	db *sqlx.DB
+	db instance
 }
 
-func NewUserPasswordRepository(db *sqlx.DB) repositories.UserPasswordRepository {
+func NewUserPasswordRepository(db instance) repositories.UserPasswordRepository {
 	return &userPasswordRepository{db: db}
 }
 

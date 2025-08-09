@@ -13,6 +13,7 @@ type UserGroupRepository interface {
 	Count(ctx context.Context, search string) (int, error)
 	Update(ctx context.Context, ID string, name string) error
 	Delete(ctx context.Context, ID string) error
+	AddUserToGroup(ctx context.Context, groupID string, userID string) error
 }
 
 type UserGroup struct {

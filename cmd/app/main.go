@@ -24,9 +24,11 @@ func main() {
 
 	minio := storage.NewMinIOStorage(ctx, config)
 
+	userUoWRepo := sqlx.NewUserUoWRepository(ctx, db)
+
 	userRepo := sqlx.NewSqlxUserRepository(db)
 	userPasswordRepo := sqlx.NewUserPasswordRepository(db)
-	userService := services.NewUserService(userRepo, userPasswordRepo)
+	userService := services.NewUserService(userRepo, userPasswordRepo, userUoWRepo)
 
 	userGroupRepo := sqlx.NewUserGroupRepository(db)
 	userGroupService := services.NewUserGroupService(userGroupRepo)

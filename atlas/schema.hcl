@@ -129,7 +129,7 @@ table "user_group_members" {
     type = uuid
   }
   primary_key {
-    columns = [ column.user_id, column.group_id ]
+    columns = [ column.user_id ]
   }
   foreign_key "fk_user_id" {
     columns = [ column.user_id ]

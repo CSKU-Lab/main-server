@@ -13,7 +13,7 @@ type UserRepository interface {
 	GetByID(ctx context.Context, ID string) (*models.User, error)
 	GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string) ([]models.User, error)
 	Count(ctx context.Context, search string) (int, error)
-	CreateMany(ctx context.Context, users []CreateMultiTypeUser) ([]models.User, error)
+	Create(ctx context.Context, user CreateMultiTypeUser) (*models.User, error)
 	Update(ctx context.Context, ID string, user *requests.UpdateUser) (*models.User, error)
 	Delete(ctx context.Context, ID string) error
 	DeleteMany(ctx context.Context, IDs []string) error

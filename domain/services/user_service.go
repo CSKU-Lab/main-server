@@ -31,12 +31,14 @@ type UserService interface {
 type userService struct {
 	userRepository         repositories.UserRepository
 	userPasswordRepository repositories.UserPasswordRepository
+	uowRepository          repositories.UserUoWRepository
 }
 
-func NewUserService(userRepository repositories.UserRepository, userPasswordRepository repositories.UserPasswordRepository) UserService {
+func NewUserService(userRepository repositories.UserRepository, userPasswordRepository repositories.UserPasswordRepository, uowRepository repositories.UserUoWRepository) UserService {
 	return &userService{
 		userRepository:         userRepository,
 		userPasswordRepository: userPasswordRepository,
+		uowRepository:          uowRepository,
 	}
 }
 
@@ -75,9 +77,25 @@ func (s *userService) Count(ctx context.Context, search string) (int, error) {
 	return s.userRepository.Count(ctx, search)
 }
 
-func (s *userService) Create(ctx context.Context, user *requests.CreateMultiTypeUser) (*models.User, error) {
+func (s *userService) Create(ctx context.Context, req *requests.CreateMultiTypeUser) (*models.User, error) {
+	if req.Type == models.UserTypeCredential.String() && req.Email != nil {
+		return nil, cserrors.New(cserrors.BAD_REQUEST, "Credential user cannot have email")
+	}
+
+	if req.Type == models.UserTypeOauth.String() && req.Password != nil {
+		return nil, cserrors.New(cserrors.BAD_REQUEST, "Oauth user cannot have password")
+	}
+
+	if req.Type == models.UserTypeCredential.String() && req.Password == nil {
+		return nil, cserrors.New(cserrors.BAD_REQUEST, "Credential user must have password")
+	}
+
+	if req.Type == models.UserTypeCredential.String() && req.Group == nil {
+		return nil, cserrors.New(cserrors.BAD_REQUEST, "Credential user must have group")
+	}
+
 	repoUser := repositories.CreateMultiTypeUser{
-		CreateMultiTypeUser: *user,
+		CreateMultiTypeUser: *req,
 	}
 
 	id, err := uuid.NewV7()
@@ -87,53 +105,44 @@ func (s *userService) Create(ctx context.Context, user *requests.CreateMultiType
 
 	repoUser.ID = id.String()
 
-	if user.Type == models.UserTypeCredential.String() && user.Email != nil {
-		return nil, cserrors.New(cserrors.BAD_REQUEST, "Credential user cannot have email")
-	}
+	var user *models.User
+	err = s.uowRepository.Execute(func(u repositories.UserUoWInstance) {
+		user, _ = u.User().Create(ctx, repoUser)
 
-	if user.Type == models.UserTypeOauth.String() && user.Password != nil {
-		return nil, cserrors.New(cserrors.BAD_REQUEST, "Oauth user cannot have password")
-	}
+		if req.Group != nil {
+			u.UserGroup().AddUserToGroup(ctx, *req.Group, user.ID)
 
-	users, err := s.userRepository.CreateMany(ctx, []repositories.CreateMultiTypeUser{
-		repoUser,
+			group, _ := u.UserGroup().GetByID(ctx, *req.Group)
+			user.Group = &group.Name
+		}
+
+		if req.Password != nil {
+			u.UserPassword().SetPassword(ctx, user.ID, *req.Password)
+		}
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	return &users[0], nil
+	return user, nil
 }
 
-func (s *userService) CreateMany(ctx context.Context, users *requests.CreateManyUsers) ([]models.User, error) {
-	if len(users.Users) == 0 {
+func (s *userService) CreateMany(ctx context.Context, req *requests.CreateManyUsers) ([]models.User, error) {
+	if len(req.Users) == 0 {
 		return nil, cserrors.New(cserrors.BAD_REQUEST, "No users to create")
 	}
 
-	repoUsers := make([]repositories.CreateMultiTypeUser, 0, 10)
-	for _, user := range users.Users {
-		repoUser := repositories.CreateMultiTypeUser{
-			CreateMultiTypeUser: user,
-		}
-
-		id, err := uuid.NewV7()
+	users := make([]models.User, len(req.Users))
+	for i, user := range req.Users {
+		user, err := s.Create(ctx, &user)
 		if err != nil {
-			return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Cannot generate user ID")
-		}
-		repoUser.ID = id.String()
-
-		if user.Type == models.UserTypeCredential.String() && user.Email != nil {
-			return nil, cserrors.New(cserrors.BAD_REQUEST, "Credential user cannot have email")
+			return nil, err
 		}
 
-		if user.Type == models.UserTypeOauth.String() && user.Password != nil {
-			return nil, cserrors.New(cserrors.BAD_REQUEST, "Oauth user cannot have password")
-		}
-
-		repoUsers = append(repoUsers, repoUser)
+		users[i] = *user
 	}
 
-	return s.userRepository.CreateMany(ctx, repoUsers)
+	return users, nil
 }
 
 func (s *userService) SetPassword(ctx context.Context, ID string, password string) error {

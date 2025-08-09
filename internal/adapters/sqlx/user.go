@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/cserrors"
@@ -14,14 +13,13 @@ import (
 	"github.com/SornchaiTheDev/cs-lab-backend/internal/requests"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type sqlxUserRepository struct {
-	db *sqlx.DB
+	db instance
 }
 
-func NewSqlxUserRepository(db *sqlx.DB) repositories.UserRepository {
+func NewSqlxUserRepository(db instance) repositories.UserRepository {
 	return &sqlxUserRepository{db: db}
 }
 
@@ -97,7 +95,7 @@ func (r *sqlxUserRepository) GetByID(ctx context.Context, ID string) (*models.Us
 	FROM users 
 	WHERE id = $1 AND is_deleted = false`
 
-	err := r.db.Get(&user, query, ID)
+	err := r.db.GetContext(ctx, &user, query, ID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "User not found")
@@ -172,24 +170,17 @@ func (r *sqlxUserRepository) Count(ctx context.Context, search string) (int, err
 	return count, nil
 }
 
-func (r *sqlxUserRepository) CreateMany(ctx context.Context, users []repositories.CreateMultiTypeUser) ([]models.User, error) {
-	tx, err := r.db.BeginTxx(ctx, nil)
-	if err != nil {
-		return nil, err
+func (r *sqlxUserRepository) Create(ctx context.Context, user repositories.CreateMultiTypeUser) (*models.User, error) {
+	pgUser := postgresUser{
+		ID:          user.ID,
+		Username:    user.Username,
+		Type:        user.Type,
+		Email:       user.Email,
+		DisplayName: user.DisplayName,
+		Roles:       user.Roles,
 	}
 
-	var insertedUsers []models.User
-	for _, user := range users {
-		pgUser := map[string]any{
-			"id":           user.ID,
-			"username":     user.Username,
-			"display_name": user.DisplayName,
-			"email":        user.Email,
-			"roles":        pq.StringArray(user.Roles),
-			"type":         user.Type,
-		}
-
-		query, args, err := sqlx.Named(`INSERT INTO users (
+	query, args, err := sqlx.Named(`INSERT INTO users (
 			id,
 			username,
 			display_name,
@@ -199,55 +190,29 @@ func (r *sqlxUserRepository) CreateMany(ctx context.Context, users []repositorie
 			) VALUES (:id,:username,:display_name,:email,:roles,:type)
 			RETURNING id, email, username,display_name,profile_image,
 		roles, type, created_at, updated_at`, pgUser)
-		if err != nil {
-			return nil, err
-		}
-
-		query = tx.Rebind(query)
-
-		var dbUser postgresUser
-		err = tx.GetContext(ctx, &dbUser, query, args...)
-		if err != nil {
-			return nil, err
-		}
-
-		if user.Password != nil {
-			hashedPassword, err := bcrypt.GenerateFromPassword([]byte(*user.Password), 10)
-			if err != nil {
-				return nil, err
-			}
-
-			_, err = tx.ExecContext(ctx, "INSERT INTO user_passwords (user_id, password) VALUES ($1, $2) ON CONFLICT (user_id) DO UPDATE SET password = $2", dbUser.ID, string(hashedPassword))
-			if err != nil {
-				if rollbackErr := tx.Rollback(); rollbackErr != nil {
-					log.Printf("Failed to rollback transaction: %v", rollbackErr)
-					return nil, err
-				}
-				return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Cannot set password")
-			}
-		}
-
-		insertedUsers = append(insertedUsers, models.User{
-			ID:           dbUser.ID,
-			Email:        dbUser.Email,
-			Username:     dbUser.Username,
-			DisplayName:  dbUser.DisplayName,
-			ProfileImage: dbUser.ProfileImage,
-			Roles:        dbUser.Roles,
-			Type:         dbUser.Type,
-			CreatedAt:    dbUser.CreatedAt,
-			UpdatedAt:    dbUser.UpdatedAt,
-		})
-	}
-
-	if err := tx.Commit(); err != nil {
-		if rollbackErr := tx.Rollback(); rollbackErr != nil {
-			return nil, err
-		}
+	if err != nil {
 		return nil, err
 	}
 
-	return insertedUsers, nil
+	query = r.db.Rebind(query)
+
+	var dbUser postgresUser
+	err = r.db.GetContext(ctx, &dbUser, query, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	return &models.User{
+		ID:           dbUser.ID,
+		Email:        dbUser.Email,
+		Username:     dbUser.Username,
+		DisplayName:  dbUser.DisplayName,
+		ProfileImage: dbUser.ProfileImage,
+		Roles:        dbUser.Roles,
+		Type:         dbUser.Type,
+		CreatedAt:    dbUser.CreatedAt,
+		UpdatedAt:    dbUser.UpdatedAt,
+	}, nil
 }
 
 func (r *sqlxUserRepository) Update(ctx context.Context, ID string, user *requests.UpdateUser) (*models.User, error) {
