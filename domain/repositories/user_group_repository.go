@@ -20,10 +20,3 @@ type UserGroup struct {
 	ID   string `db:"id"`
 	Name string `db:"name"`
 }
-
-func (u *UserGroup) ToModel() *models.UserGroup {
-	return &models.UserGroup{
-		ID:   u.ID,
-		Name: u.Name,
-	}
-}
