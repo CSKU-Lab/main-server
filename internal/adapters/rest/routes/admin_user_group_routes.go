@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/cserrors"
+	"github.com/SornchaiTheDev/cs-lab-backend/domain/models"
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/services"
 	"github.com/SornchaiTheDev/cs-lab-backend/internal/requests"
 	"github.com/SornchaiTheDev/cs-lab-backend/internal/responses"
@@ -46,9 +47,12 @@ func NewAdminUserGroupRoutes(router fiber.Router, userGroupService services.User
 			return err
 		}
 
-		userGroupsResponse := make([]responses.UserGroup, 0, len(userGroups))
-		for _, userGroup := range userGroups {
-			userGroupsResponse = append(userGroupsResponse, *userGroup.ToResponse())
+		userGroupsResponse := make([]responses.UserGroup, len(userGroups))
+		for i, userGroup := range userGroups {
+			userGroupsResponse[i] = responses.UserGroup{
+				ID:   userGroup.ID,
+				Name: userGroup.Name,
+			}
 		}
 
 		count, err := userGroupService.Count(c.Context(), search)
@@ -79,7 +83,11 @@ func NewAdminUserGroupRoutes(router fiber.Router, userGroupService services.User
 			return err
 		}
 
-		return c.JSON(updatedGroup.ToResponse())
+		return c.JSON(&models.UserGroup{
+			ID:   updatedGroup.ID,
+			Name: updatedGroup.Name,
+		})
+
 	})
 
 	adminUserGroupRoutes.Delete("/:id", func(c *fiber.Ctx) error {

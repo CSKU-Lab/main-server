@@ -14,6 +14,11 @@ type userGroupRepository struct {
 	db instance
 }
 
+type userGroup struct {
+	ID   string `db:"id"`
+	Name string `db:"name"`
+}
+
 func NewUserGroupRepository(db instance) repositories.UserGroupRepository {
 	return &userGroupRepository{
 		db: db,
@@ -38,13 +43,16 @@ func (r *userGroupRepository) Create(ctx context.Context, ID string, name string
 
 func (r *userGroupRepository) GetByID(ctx context.Context, ID string) (*models.UserGroup, error) {
 	query := `SELECT * FROM user_groups WHERE id = $1`
-	var userGroup repositories.UserGroup
+	var userGroup userGroup
 	err := r.db.GetContext(ctx, &userGroup, query, ID)
 	if err != nil {
 		return nil, err
 	}
 
-	return userGroup.ToModel(), nil
+	return &models.UserGroup{
+		ID:   userGroup.ID,
+		Name: userGroup.Name,
+	}, nil
 }
 
 func (r *userGroupRepository) GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string) ([]models.UserGroup, error) {
@@ -52,7 +60,7 @@ func (r *userGroupRepository) GetPagination(ctx context.Context, page int, limit
 	searchPattern := "%" + search + "%"
 	offset := (page - 1) * limit
 
-	var userGroups []repositories.UserGroup
+	var userGroups []userGroup
 	err := r.db.SelectContext(ctx, &userGroups, query, searchPattern, limit, offset)
 	if err != nil {
 		return nil, err
@@ -60,7 +68,10 @@ func (r *userGroupRepository) GetPagination(ctx context.Context, page int, limit
 
 	userGroupModels := make([]models.UserGroup, 0, len(userGroups))
 	for _, userGroup := range userGroups {
-		userGroupModels = append(userGroupModels, *userGroup.ToModel())
+		userGroupModels = append(userGroupModels, models.UserGroup{
+			ID:   userGroup.ID,
+			Name: userGroup.Name,
+		})
 	}
 
 	return userGroupModels, nil

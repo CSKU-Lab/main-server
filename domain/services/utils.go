@@ -55,14 +55,14 @@ func getAllStructFields(s any) []string {
 		val = val.Elem()
 	}
 
-	for i := 0; i < val.NumField(); i++ {
+	for i := range val.NumField() {
 		field := typ.Field(i)
 
 		if field.Anonymous {
 			keys = append(keys, getAllStructFields(val.Field(i).Interface())...)
 		}
 
-		key := field.Tag.Get("json")
+		key := field.Tag.Get("sort_field")
 		keys = append(keys, key)
 	}
 

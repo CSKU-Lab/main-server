@@ -36,7 +36,7 @@ func (u *userGroupService) Create(ctx context.Context, name string) error {
 }
 
 func (u *userGroupService) GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string) ([]models.UserGroup, error) {
-	sanitizedSortBy, err := sanitizeSortBy(sortBy, &repositories.UserGroup{})
+	sanitizedSortBy, err := sanitizeSortBy(sortBy, &models.UserGroup{})
 	if err != nil {
 		return nil, err
 	}
