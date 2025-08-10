@@ -120,9 +120,9 @@ func (r *sqlxUserRepository) GetPagination(ctx context.Context, page int, limit 
 	query := fmt.Sprintf(`SELECT id, email, username,display_name,profile_image,
 		roles, type, created_at, updated_at
 		FROM users 
-		WHERE username ILIKE $1
+		WHERE ( username ILIKE $1
 		OR display_name ILIKE $1
-		OR email ILIKE $1
+		OR email ILIKE $1 )
 		AND deleted_at IS NULL
 		ORDER BY %s %s
 		OFFSET $2
