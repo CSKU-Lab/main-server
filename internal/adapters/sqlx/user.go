@@ -23,7 +23,7 @@ func NewSqlxUserRepository(db instance) repositories.UserRepository {
 	return &sqlxUserRepository{db: db}
 }
 
-type postgresUser struct {
+type user struct {
 	ID           string         `db:"id"`
 	Username     string         `db:"username"`
 	Type         string         `db:"type"`
@@ -36,7 +36,7 @@ type postgresUser struct {
 }
 
 func (r *sqlxUserRepository) GetByEmail(ctx context.Context, email string) (*models.User, error) {
-	var user postgresUser
+	var user user
 	query := `SELECT  id, email, username,display_name,profile_image,
 	roles, type, created_at, updated_at FROM users WHERE email = $1 AND is_deleted = false`
 	err := r.db.GetContext(ctx, &user, query, email)
@@ -61,7 +61,7 @@ func (r *sqlxUserRepository) GetByEmail(ctx context.Context, email string) (*mod
 }
 
 func (r *sqlxUserRepository) GetByUsername(ctx context.Context, username string) (*models.User, error) {
-	var user postgresUser
+	var user user
 	query := `SELECT id, email, username,display_name,profile_image,
 	roles, type, created_at, updated_at 
 	FROM users 
@@ -89,7 +89,7 @@ func (r *sqlxUserRepository) GetByUsername(ctx context.Context, username string)
 }
 
 func (r *sqlxUserRepository) GetByID(ctx context.Context, ID string) (*models.User, error) {
-	var user postgresUser
+	var user user
 	query := `SELECT id, email, username,display_name,profile_image,
 	roles, type, created_at, updated_at 
 	FROM users 
@@ -129,7 +129,7 @@ func (r *sqlxUserRepository) GetPagination(ctx context.Context, page int, limit 
 		LIMIT $3
 		`, sortBy, sortOrder)
 
-	pgUsers := []postgresUser{}
+	pgUsers := []user{}
 	err := r.db.SelectContext(ctx, &pgUsers, query, "%"+search+"%", (page-1)*limit, limit)
 	if err != nil {
 		return nil, err
@@ -170,14 +170,14 @@ func (r *sqlxUserRepository) Count(ctx context.Context, search string) (int, err
 	return count, nil
 }
 
-func (r *sqlxUserRepository) Create(ctx context.Context, user repositories.CreateMultiTypeUser) (*models.User, error) {
-	pgUser := postgresUser{
-		ID:          user.ID,
-		Username:    user.Username,
-		Type:        user.Type,
-		Email:       user.Email,
-		DisplayName: user.DisplayName,
-		Roles:       user.Roles,
+func (r *sqlxUserRepository) Create(ctx context.Context, req repositories.CreateMultiTypeUser) (*models.User, error) {
+	pgUser := user{
+		ID:          req.ID,
+		Username:    req.Username,
+		Type:        req.Type,
+		Email:       req.Email,
+		DisplayName: req.DisplayName,
+		Roles:       req.Roles,
 	}
 
 	query, args, err := sqlx.Named(`INSERT INTO users (
@@ -196,7 +196,7 @@ func (r *sqlxUserRepository) Create(ctx context.Context, user repositories.Creat
 
 	query = r.db.Rebind(query)
 
-	var dbUser postgresUser
+	var dbUser user
 	err = r.db.GetContext(ctx, &dbUser, query, args...)
 	if err != nil {
 		return nil, err
@@ -215,14 +215,14 @@ func (r *sqlxUserRepository) Create(ctx context.Context, user repositories.Creat
 	}, nil
 }
 
-func (r *sqlxUserRepository) Update(ctx context.Context, ID string, user *requests.UpdateUser) (*models.User, error) {
-	fields := &postgresUser{
+func (r *sqlxUserRepository) Update(ctx context.Context, ID string, req *requests.UpdateUser) (*models.User, error) {
+	fields := &user{
 		ID:           ID,
-		Username:     user.Username,
-		DisplayName:  user.DisplayName,
-		Roles:        pq.StringArray(user.Roles),
-		Email:        user.Email,
-		ProfileImage: user.ProfileImage,
+		Username:     req.Username,
+		DisplayName:  req.DisplayName,
+		Roles:        pq.StringArray(req.Roles),
+		Email:        req.Email,
+		ProfileImage: req.ProfileImage,
 	}
 
 	updateFields := getUpdateFields(fields)
@@ -245,7 +245,7 @@ func (r *sqlxUserRepository) Update(ctx context.Context, ID string, user *reques
 
 	query = r.db.Rebind(query)
 
-	var updatedUser postgresUser
+	var updatedUser user
 	err = r.db.GetContext(ctx, &updatedUser, query, args...)
 	if err != nil {
 		var pqErr *pq.Error
