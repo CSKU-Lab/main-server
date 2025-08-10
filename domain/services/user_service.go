@@ -90,7 +90,7 @@ func (s *userService) Create(ctx context.Context, req *requests.CreateMultiTypeU
 		return nil, cserrors.New(cserrors.BAD_REQUEST, "Credential user must have password")
 	}
 
-	if req.Type == models.UserTypeCredential.String() && req.Group == nil {
+	if req.Type == models.UserTypeCredential.String() && req.GroupID == nil {
 		return nil, cserrors.New(cserrors.BAD_REQUEST, "Credential user must have group")
 	}
 
@@ -109,10 +109,10 @@ func (s *userService) Create(ctx context.Context, req *requests.CreateMultiTypeU
 	err = s.uowRepository.Execute(func(u repositories.UserUoWInstance) {
 		user, _ = u.User().Create(ctx, repoUser)
 
-		if req.Group != nil {
-			u.UserGroup().AddUserToGroup(ctx, *req.Group, user.ID)
+		if req.GroupID != nil {
+			u.UserGroup().AddUserToGroup(ctx, *req.GroupID, user.ID)
 
-			group, _ := u.UserGroup().GetByID(ctx, *req.Group)
+			group, _ := u.UserGroup().GetByID(ctx, *req.GroupID)
 			user.Group = &group.Name
 		}
 

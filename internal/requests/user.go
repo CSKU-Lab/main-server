@@ -6,7 +6,6 @@ type BaseUser struct {
 	Roles       []string `json:"roles" db:"roles"`
 }
 
-
 type CreateCredentialUser struct {
 	BaseUser
 	Password string `json:"password" db:"password"`
@@ -29,7 +28,7 @@ type CreateMultiTypeUser struct {
 	Type     string  `json:"type" db:"type"`
 	Email    *string `json:"email,omitempty" db:"email"`
 	Password *string `json:"password,omitempty" db:"password"`
-	Group    *string `json:"group,omitempty" db:"group"`
+	GroupID  *string `json:"group_id,omitempty" db:"group"`
 }
 
 type CreateManyUsers struct {
