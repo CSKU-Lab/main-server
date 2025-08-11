@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/cserrors"
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/models"
@@ -36,7 +37,7 @@ func (s *sqlxSectionRepository) Create(ctx context.Context, section *models.Sect
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) {
 			if pqErr.Code == "23505" {
-				return cserrors.New(cserrors.ALREADY_EXISTS, "Section already exists")
+				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusConflict, Message: "Section already exists"})
 			}
 		}
 		return err
@@ -76,7 +77,7 @@ func (s *sqlxSectionRepository) GetByID(ctx context.Context, ID string) (*models
 	query := "SELECT id, name, image, started_at, ended_at FROM sections WHERE id = $1 AND is_deleted = false"
 	err := s.db.GetContext(ctx, &section, query, ID)
 	if err != nil {
-		return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Section not found")
+		return nil, cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Section not found"})
 	}
 
 	return &models.Section{

@@ -3,6 +3,7 @@ package sqlx
 import (
 	"context"
 	"errors"
+	"net/http"
 
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/cserrors"
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/repositories"
@@ -25,7 +26,7 @@ func (r *sqlxRefreshTokenRepository) Get(ctx context.Context, userID string) (st
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) {
 			if pqErr.Code == "22P02" {
-				return "", cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Refresh token not found")
+				return "", cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Refresh token not found"})
 			}
 		}
 	}

@@ -2,6 +2,7 @@ package routes
 
 import (
 	"math"
+	"net/http"
 	"strconv"
 
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/cserrors"
@@ -19,7 +20,10 @@ func NewAdminUserGroupRoutes(router fiber.Router, userGroupService services.User
 		var req requests.UserGroup
 		err := c.BodyParser(&req)
 		if err != nil {
-			return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Cannot parse the body")
+			return cserrors.New(&cserrors.Option{
+				HttpStatus: http.StatusInternalServerError,
+				Message:    "Cannot parse the body",
+			})
 		}
 
 		return userGroupService.Create(c.Context(), req.Name)
@@ -34,12 +38,18 @@ func NewAdminUserGroupRoutes(router fiber.Router, userGroupService services.User
 
 		page, err := strconv.Atoi(pageQuery)
 		if err != nil {
-			return cserrors.New(cserrors.BAD_REQUEST, "Invalid page")
+			return cserrors.New(&cserrors.Option{
+				HttpStatus: http.StatusBadRequest,
+				Message:    "Invalid page",
+			})
 		}
 
 		pageSize, err := strconv.Atoi(pageSizeQuery)
 		if err != nil {
-			return cserrors.New(cserrors.BAD_REQUEST, "Invalid page size")
+			return cserrors.New(&cserrors.Option{
+				HttpStatus: http.StatusBadRequest,
+				Message:    "Invalid page size",
+			})
 		}
 
 		userGroups, err := userGroupService.GetPagination(c.Context(), page, pageSize, search, sortBy, sortOrder)
@@ -75,7 +85,10 @@ func NewAdminUserGroupRoutes(router fiber.Router, userGroupService services.User
 		var req requests.UserGroup
 		err := c.BodyParser(&req)
 		if err != nil {
-			return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Cannot parse the body")
+			return cserrors.New(&cserrors.Option{
+				HttpStatus: http.StatusInternalServerError,
+				Message:    "Cannot parse the body",
+			})
 		}
 
 		updatedGroup, err := userGroupService.Update(c.Context(), id, req.Name)

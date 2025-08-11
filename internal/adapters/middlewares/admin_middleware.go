@@ -1,6 +1,7 @@
 package middlewares
 
 import (
+	"net/http"
 	"slices"
 
 	"github.com/SornchaiTheDev/cs-lab-backend/constants"
@@ -16,5 +17,5 @@ func AdminMiddleware(c *fiber.Ctx) error {
 		return c.Next()
 	}
 
-	return cserrors.New(cserrors.UNAUTHORIZED, "Unauthorized")
+	return cserrors.New(&cserrors.Option{HttpStatus: http.StatusUnauthorized, Message: "Unauthorized"})
 }

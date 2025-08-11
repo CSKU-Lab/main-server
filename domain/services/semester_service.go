@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"net/http"
 
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/cserrors"
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/models"
@@ -32,7 +33,10 @@ func NewSemesterService(repo repositories.SemesterRepository) *semesterService {
 func (s *semesterService) Create(ctx context.Context, sem *requests.Semester) (*models.Semester, error) {
 	id, err := uuid.NewV7()
 	if err != nil {
-		return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Cannot generate user ID")
+		return nil, cserrors.New(&cserrors.Option{
+			HttpStatus: http.StatusInternalServerError,
+			Message:    "Cannot generate user ID",
+		})
 	}
 
 	return s.repo.Create(ctx, id.String(), sem)
@@ -41,12 +45,20 @@ func (s *semesterService) Create(ctx context.Context, sem *requests.Semester) (*
 func (s *semesterService) GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string) ([]models.Semester, error) {
 	sanitizedSortBy, err := sanitizeSortBy(sortBy, &models.Semester{})
 	if err != nil {
-		return nil, cserrors.New(cserrors.BAD_REQUEST, "Invalid sort by field")
+		return nil, cserrors.New(
+			&cserrors.Option{
+				HttpStatus: http.StatusBadRequest,
+				Message:    "Invalid sort by field",
+			})
 	}
 
 	sanitizedSortOrder, err := sanitizeSortOrder(sortOrder)
 	if err != nil {
-		return nil, cserrors.New(cserrors.BAD_REQUEST, "Invalid sort order")
+		return nil, cserrors.New(
+			&cserrors.Option{
+				HttpStatus: http.StatusBadRequest,
+				Message:    "Invalid sort order",
+			})
 	}
 
 	return s.repo.GetPagination(ctx, page, limit, search, sanitizedSortBy, sanitizedSortOrder)

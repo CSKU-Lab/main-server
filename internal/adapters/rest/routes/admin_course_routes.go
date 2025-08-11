@@ -3,6 +3,7 @@ package routes
 import (
 	"errors"
 	"math"
+	"net/http"
 	"strconv"
 
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/cserrors"
@@ -20,7 +21,10 @@ func NewAdminCourseRoutes(router fiber.Router, service services.CourseService) {
 		var courseRequest requests.Course
 		err := c.BodyParser(&courseRequest)
 		if err != nil {
-			return cserrors.New(cserrors.BAD_REQUEST, "Invalid request")
+			return cserrors.New(&cserrors.Option{
+				HttpStatus: http.StatusBadRequest,
+				Message:    "Invalid request",
+			})
 		}
 
 		user := c.Locals("user").(*models.User)
@@ -31,7 +35,10 @@ func NewAdminCourseRoutes(router fiber.Router, service services.CourseService) {
 			if errors.As(err, &csErr) {
 				return err
 			}
-			return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Error creating course")
+			return cserrors.New(&cserrors.Option{
+				HttpStatus: http.StatusInternalServerError,
+				Message:    "Error creating course",
+			})
 		}
 
 		return c.Status(fiber.StatusCreated).JSON(createdCourse)
@@ -48,12 +55,18 @@ func NewAdminCourseRoutes(router fiber.Router, service services.CourseService) {
 
 		page, err := strconv.Atoi(pageQuery)
 		if err != nil {
-			return cserrors.New(cserrors.BAD_REQUEST, "Invalid page")
+			return cserrors.New(&cserrors.Option{
+				HttpStatus: http.StatusBadRequest,
+				Message:    "Invalid page",
+			})
 		}
 
 		pageSize, err := strconv.Atoi(pageSizeQuery)
 		if err != nil {
-			return cserrors.New(cserrors.BAD_REQUEST, "Invalid page size")
+			return cserrors.New(&cserrors.Option{
+				HttpStatus: http.StatusBadRequest,
+				Message:    "Invalid page size",
+			})
 		}
 
 		courses, err := service.GetPagination(c.Context(), page, pageSize, search, sortBy, sortOrder, show)
@@ -84,7 +97,10 @@ func NewAdminCourseRoutes(router fiber.Router, service services.CourseService) {
 			if errors.As(err, &csErr) {
 				return err
 			}
-			return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Error getting course")
+			return cserrors.New(&cserrors.Option{
+				HttpStatus: http.StatusInternalServerError,
+				Message:    "Error getting course",
+			})
 		}
 
 		return c.JSON(course)
@@ -96,7 +112,10 @@ func NewAdminCourseRoutes(router fiber.Router, service services.CourseService) {
 
 		err := c.BodyParser(&course)
 		if err != nil {
-			return cserrors.New(cserrors.BAD_REQUEST, "Error parsing request")
+			return cserrors.New(&cserrors.Option{
+				HttpStatus: http.StatusBadRequest,
+				Message:    "Error parsing request",
+			})
 		}
 
 		updateCourse, err := service.UpdateByID(c.Context(), courseID, &course)
@@ -105,7 +124,10 @@ func NewAdminCourseRoutes(router fiber.Router, service services.CourseService) {
 			if errors.As(err, &csErr) {
 				return err
 			}
-			return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Error updating course")
+			return cserrors.New(&cserrors.Option{
+				HttpStatus: http.StatusInternalServerError,
+				Message:    "Error updating course",
+			})
 		}
 
 		return c.JSON(updateCourse)
@@ -120,7 +142,10 @@ func NewAdminCourseRoutes(router fiber.Router, service services.CourseService) {
 			if errors.As(err, &csErr) {
 				return err
 			}
-			return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Error deleting course")
+			return cserrors.New(&cserrors.Option{
+				HttpStatus: http.StatusInternalServerError,
+				Message:    "Error deleting course",
+			})
 
 		}
 

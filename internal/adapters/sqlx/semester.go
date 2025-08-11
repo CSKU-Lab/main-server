@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 
 	"github.com/SornchaiTheDev/cs-lab-backend/constants"
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/cserrors"
@@ -40,7 +41,7 @@ func (r *sqlxSemesterRepository) Create(ctx context.Context, ID string, sem *req
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) {
 			if pqErr.Code == "23505" {
-				return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Semester already exists")
+				return nil, cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Semester already exists"})
 			}
 		}
 		return nil, err
@@ -110,7 +111,7 @@ func (r *sqlxSemesterRepository) GetByID(ctx context.Context, ID string) (*model
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) {
 			if pqErr.Code == "22P02" {
-				return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Semester not found")
+				return nil, cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Semester not found"})
 			}
 		}
 		return nil, err
@@ -139,7 +140,7 @@ func (r *sqlxSemesterRepository) UpdateByID(ctx context.Context, ID string, sem 
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) {
 			if pqErr.Code == "22P02" {
-				return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Semester not found")
+				return nil, cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Semester not found"})
 			}
 		}
 		return nil, err

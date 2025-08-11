@@ -1,6 +1,8 @@
 package routes
 
 import (
+	"net/http"
+
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/cserrors"
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/services"
 	"github.com/SornchaiTheDev/cs-lab-backend/internal/requests"
@@ -33,7 +35,7 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 		if err == nil {
 			file, err := image.Open()
 			if err != nil {
-				return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Failed to open image file")
+				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Failed to open image file"})
 			}
 
 			defer file.Close()
@@ -83,7 +85,7 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 		if err == nil {
 			file, err := image.Open()
 			if err != nil {
-				return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Failed to open image file")
+				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Failed to open image file"})
 			}
 
 			defer file.Close()

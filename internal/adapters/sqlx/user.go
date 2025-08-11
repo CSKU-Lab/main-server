@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/cserrors"
@@ -42,7 +43,7 @@ func (r *sqlxUserRepository) GetByEmail(ctx context.Context, email string) (*mod
 	err := r.db.GetContext(ctx, &user, query, email)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "User not found")
+			return nil, cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "User not found"})
 		}
 		return nil, err
 	}
@@ -70,7 +71,7 @@ func (r *sqlxUserRepository) GetByUsername(ctx context.Context, username string)
 	err := r.db.GetContext(ctx, &user, query, username)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "User not found")
+			return nil, cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "User not found"})
 		}
 		return nil, err
 	}
@@ -98,7 +99,7 @@ func (r *sqlxUserRepository) GetByID(ctx context.Context, ID string) (*models.Us
 	err := r.db.GetContext(ctx, &user, query, ID)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "User not found")
+			return nil, cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "User not found"})
 		}
 		return nil, err
 	}
@@ -251,7 +252,7 @@ func (r *sqlxUserRepository) Update(ctx context.Context, ID string, req *request
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) {
 			if pqErr.Code == "22P02" {
-				return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Invalid input for update")
+				return nil, cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Invalid input for update"})
 			}
 		}
 		return nil, err

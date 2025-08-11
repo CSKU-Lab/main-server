@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"net/http"
 	"time"
 
 	"github.com/SornchaiTheDev/cs-lab-backend/constants"
@@ -39,7 +40,10 @@ func NewSectionService(repo repositories.SectionRepository, courseRepo repositor
 func (s *sectionService) Create(ctx context.Context, req *requests.CreateSection) (*models.Section, error) {
 	ID, err := uuid.NewV7()
 	if err != nil {
-		return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Cannot generate uuid")
+		return nil, cserrors.New(&cserrors.Option{
+			HttpStatus: http.StatusInternalServerError,
+			Message:    "Cannot generate uuid",
+		})
 	}
 
 	section := &models.Section{
@@ -61,8 +65,11 @@ func (s *sectionService) Create(ctx context.Context, req *requests.CreateSection
 			_, err := s.courseRepo.GetByID(ctx, req.CourseID)
 			if err != nil {
 				var csErr *cserrors.Error
-				if errors.As(err, &csErr) && csErr.Code == cserrors.INTERNAL_SERVER_ERROR {
-					return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Cannot find course")
+				if errors.As(err, &csErr) && csErr.HttpStatus == http.StatusInternalServerError {
+					return cserrors.New(&cserrors.Option{
+						HttpStatus: http.StatusInternalServerError,
+						Message:    "Cannot find course",
+					})
 				}
 			}
 			return s.repo.Create(ctx, section, req.CourseID, req.SemesterID)
@@ -121,7 +128,10 @@ func (s *sectionService) UpdateByID(ctx context.Context, ID string, req *request
 			if req.Image != nil {
 				image, err := s.storage.UploadFile(ctx, constants.SECTION_BANNER, req.Image)
 				if err != nil {
-					return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Cannot upload image")
+					return cserrors.New(&cserrors.Option{
+						HttpStatus: http.StatusInternalServerError,
+						Message:    "Cannot upload image",
+					})
 				}
 				updatedSection.Image = &image.Path
 			}

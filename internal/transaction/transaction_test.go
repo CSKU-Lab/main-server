@@ -2,6 +2,7 @@ package transaction_test
 
 import (
 	"errors"
+	"net/http"
 	"testing"
 	"time"
 
@@ -220,7 +221,7 @@ func TestSkipRetryOnCSError(t *testing.T) {
 			return Remove(&a, 1)
 		}),
 		tr.Step().CommitWith(func() error {
-			return cserrors.New(cserrors.BAD_REQUEST, "this commit failed")
+			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusBadRequest, Message: "this commit failed"})
 		}).RollbackWith(func() error {
 			return Remove(&a, 1)
 		}),

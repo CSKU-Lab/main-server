@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net/http"
 
 	"github.com/SornchaiTheDev/cs-lab-backend/configs"
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/cserrors"
@@ -60,7 +61,7 @@ func (m *minIO) UploadFile(ctx context.Context, path string, file *requests.File
 		ContentType: file.ContentType,
 	})
 	if err != nil {
-		return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, fmt.Sprintln("Failed to upload file to storage : ", err.Error()))
+		return nil, cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: fmt.Sprintf("Failed to upload file to storage : %s", err.Error())})
 	}
 
 	return &models.UploadedFile{
@@ -76,7 +77,7 @@ func (m *minIO) UploadMultipleFiles(ctx context.Context, path string, files []re
 	for i := range len(files) {
 		file, err := m.UploadFile(ctx, fmt.Sprintf("%s/%s", path, files[i].Name), &files[i])
 		if err != nil {
-			return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, fmt.Sprintf("Failed to upload file %s: %v", files[i].Name, err))
+			return nil, cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: fmt.Sprintf("Failed to upload file %s: %v", files[i].Name, err)})
 		}
 		uploadedFiles[i] = *file
 	}
@@ -91,7 +92,7 @@ func (m *minIO) DeleteManyFiles(ctx context.Context, paths []string) error {
 	for _, path := range paths {
 		err := m.DeleteFile(ctx, path)
 		if err != nil {
-			return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, fmt.Sprintf("Failed to delete file %s: %v", path, err))
+			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: fmt.Sprintf("Failed to delete file %s: %v", path, err)})
 		}
 	}
 	return nil

@@ -3,6 +3,7 @@ package sqlx
 import (
 	"context"
 	"database/sql"
+	"net/http"
 
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/cserrors"
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/repositories"
@@ -21,7 +22,7 @@ func (u *userPasswordRepository) GetPasswordByID(ctx context.Context, ID string)
 	err := u.db.GetContext(ctx, &password, "SELECT password FROM user_passwords WHERE user_id = $1", ID)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return "", cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "User not found")
+			return "", cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "User not found"})
 		}
 		return "", err
 	}

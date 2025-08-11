@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net/http"
 
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/cserrors"
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/models"
@@ -27,7 +28,7 @@ func (r *sqlxCourseRepository) Create(ctx context.Context, ID string, c *request
 
 	tx, err := r.db.BeginTxx(ctx, nil)
 	if err != nil {
-		return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Failed to begin transaction")
+		return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Failed to begin transaction"})
 	}
 
 	defer func() {
@@ -43,11 +44,11 @@ func (r *sqlxCourseRepository) Create(ctx context.Context, ID string, c *request
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) {
 			if pqErr.Code == "23505" {
-				return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Course already exists")
+				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Course already exists"})
 			}
 		}
 
-		return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Failed to create course")
+		return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Failed to create course"})
 	}
 
 	for order, creator := range c.Creators {
@@ -55,13 +56,13 @@ func (r *sqlxCourseRepository) Create(ctx context.Context, ID string, c *request
 		_, err := tx.ExecContext(ctx, query, ID, creator, order)
 		if err != nil {
 			log.Printf("Failed to insert course creator: %v", err)
-			return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Failed to set course creators")
+			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Failed to set course creators"})
 		}
 	}
 
 	if err = tx.Commit(); err != nil {
 		log.Printf("Failed to commit transaction: %v", err)
-		return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Failed to commit transaction")
+		return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Failed to commit transaction"})
 	}
 
 	return nil
@@ -70,7 +71,7 @@ func (r *sqlxCourseRepository) Create(ctx context.Context, ID string, c *request
 func (r *sqlxCourseRepository) SetCreators(ctx context.Context, ID string, creators []string) error {
 	tx, err := r.db.BeginTxx(ctx, nil)
 	if err != nil {
-		return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Failed to begin transaction")
+		return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Failed to begin transaction"})
 	}
 
 	defer func() {
@@ -85,7 +86,7 @@ func (r *sqlxCourseRepository) SetCreators(ctx context.Context, ID string, creat
 	_, err = tx.ExecContext(ctx, query, ID)
 	if err != nil {
 		log.Printf("Failed to delete existing course creators: %v", err)
-		return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Failed to delete existing course creators")
+		return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Failed to delete existing course creators"})
 	}
 
 	for order, creator := range creators {
@@ -93,13 +94,13 @@ func (r *sqlxCourseRepository) SetCreators(ctx context.Context, ID string, creat
 		_, err := tx.ExecContext(ctx, query, ID, creator, order)
 		if err != nil {
 			log.Printf("Failed to insert course creator: %v", err)
-			return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Failed to set course creators")
+			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Failed to set course creators"})
 		}
 	}
 
 	if err = tx.Commit(); err != nil {
 		log.Printf("Failed to commit transaction: %v", err)
-		return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Failed to commit transaction")
+		return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Failed to commit transaction"})
 	}
 
 	return nil
@@ -113,7 +114,7 @@ func (r *sqlxCourseRepository) GetCreators(ctx context.Context, ID string) ([]mo
 
 	rows, err := r.db.QueryxContext(ctx, query, ID)
 	if err != nil {
-		return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Failed to get course creators")
+		return nil, cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Failed to get course creators"})
 	}
 
 	creators := []models.CourseCreator{}
@@ -122,7 +123,7 @@ func (r *sqlxCourseRepository) GetCreators(ctx context.Context, ID string) ([]mo
 		var creator models.CourseCreator
 		err = rows.StructScan(&creator)
 		if err != nil {
-			return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Failed to scan course creator")
+			return nil, cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Failed to scan course creator"})
 		}
 		creators = append(creators, creator)
 	}
@@ -137,7 +138,7 @@ func (r *sqlxCourseRepository) GetByID(ctx context.Context, ID string) (*reposit
 	var course repositories.Course
 	err := row.StructScan(&course)
 	if err != nil {
-		return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Course not found")
+		return nil, cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Course not found"})
 	}
 
 	return &course, nil
@@ -241,7 +242,10 @@ func (r *sqlxCourseRepository) UpdateByID(ctx context.Context, ID string, c *req
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) {
 			if pqErr.Code == "22P02" {
-				return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Course not found")
+				return cserrors.New(&cserrors.Option{
+					HttpStatus: http.StatusInternalServerError,
+					Message:    "course not found",
+				})
 			}
 		}
 		return err

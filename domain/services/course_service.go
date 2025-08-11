@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"net/http"
 
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/cserrors"
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/models"
@@ -32,7 +33,11 @@ func NewCourseService(repo repositories.CourseRepository) CourseService {
 func (s *courseService) Create(ctx context.Context, c *requests.Course, userID string) (*models.Course, error) {
 	id, err := uuid.NewV7()
 	if err != nil {
-		return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Cannot generate user ID")
+		return nil, cserrors.New(
+			&cserrors.Option{
+				HttpStatus: http.StatusInternalServerError,
+				Message:    "Cannot generate user ID",
+			})
 	}
 
 	err = s.repo.Create(ctx, id.String(), c)
@@ -68,16 +73,26 @@ func (s *courseService) GetByID(ctx context.Context, ID string) (*models.Course,
 func (s *courseService) GetPagination(ctx context.Context, page int, pageSize int, search string, sortBy string, sortOrder string, show string) ([]models.Course, error) {
 	sanitizedSortBy, err := sanitizeSortBy(sortBy, &models.Course{})
 	if err != nil {
-		return nil, cserrors.New(cserrors.BAD_REQUEST, "Invalid sort by field")
+		return nil, cserrors.New(&cserrors.Option{
+			HttpStatus: http.StatusBadRequest,
+			Message:    "Invalid sort by field",
+		})
 	}
 
 	sanitizedSortOrder, err := sanitizeSortOrder(sortOrder)
 	if err != nil {
-		return nil, cserrors.New(cserrors.BAD_REQUEST, "Invalid sort order")
+		return nil, cserrors.New(&cserrors.Option{
+			HttpStatus: http.StatusBadRequest,
+			Message:    "Invalid sort order",
+		})
 	}
 
 	if show != "all" && show != "active" && show != "archived" {
-		return nil, cserrors.New(cserrors.BAD_REQUEST, "Invalid show value. Must be 'all', 'active', or 'archived'")
+		return nil, cserrors.New(
+			&cserrors.Option{
+				HttpStatus: http.StatusBadRequest,
+				Message:    "Invalid show value. Must be 'all', 'active', or 'archived'",
+			})
 	}
 
 	return s.repo.GetPagination(ctx, page, pageSize, search, sanitizedSortBy, sanitizedSortOrder, show)
@@ -86,7 +101,11 @@ func (s *courseService) GetPagination(ctx context.Context, page int, pageSize in
 
 func (s *courseService) Count(ctx context.Context, search string, show string) (int, error) {
 	if show != "all" && show != "active" && show != "archived" {
-		return 0, cserrors.New(cserrors.BAD_REQUEST, "Invalid show value. Must be 'all', 'active', or 'archived'")
+		return 0, cserrors.New(
+			&cserrors.Option{
+				HttpStatus: http.StatusBadRequest,
+				Message:    "Invalid show value. Must be 'all', 'active', or 'archived'",
+			})
 	}
 
 	return s.repo.Count(ctx, search, show)
@@ -94,7 +113,10 @@ func (s *courseService) Count(ctx context.Context, search string, show string) (
 
 func (s *courseService) UpdateByID(ctx context.Context, ID string, c *requests.Course) (*models.Course, error) {
 	if c.Creators != nil && len(c.Creators) == 0 {
-		return nil, cserrors.New(cserrors.BAD_REQUEST, "At least one creator is required")
+		return nil, cserrors.New(&cserrors.Option{
+			HttpStatus: http.StatusBadRequest,
+			Message:    "At least one creator is required",
+		})
 	}
 
 	if c.Creators != nil {

@@ -3,6 +3,7 @@ package sqlx
 import (
 	"context"
 	"errors"
+	"net/http"
 
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/cserrors"
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/models"
@@ -33,7 +34,7 @@ func (r *userGroupRepository) Create(ctx context.Context, ID string, name string
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) {
 			if pqErr.Code == "23505" {
-				return cserrors.New(cserrors.ALREADY_EXISTS, "user group already exists")
+				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusConflict, Message: "user group already exists"})
 			}
 		}
 		return err
@@ -118,7 +119,7 @@ func (r *userGroupRepository) AddUserToGroup(ctx context.Context, groupID string
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) {
 			if pqErr.Code == "23505" {
-				return cserrors.New(cserrors.ALREADY_EXISTS, "user already in group")
+				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusConflict, Message: "user already in group"})
 			}
 		}
 		return err

@@ -2,8 +2,8 @@ package routes
 
 import (
 	"errors"
-	"log"
 	"math"
+	"net/http"
 	"strconv"
 
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/cserrors"
@@ -29,12 +29,18 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 
 		page, err := strconv.Atoi(pageQuery)
 		if err != nil {
-			return cserrors.New(cserrors.BAD_REQUEST, "Invalid page")
+			return cserrors.New(&cserrors.Option{
+				HttpStatus: http.StatusBadRequest,
+				Message:    "Invalid page",
+			})
 		}
 
 		pageSize, err := strconv.Atoi(pageSizeQuery)
 		if err != nil {
-			return cserrors.New(cserrors.BAD_REQUEST, "Invalid page size")
+			return cserrors.New(&cserrors.Option{
+				HttpStatus: http.StatusBadRequest,
+				Message:    "Invalid page size",
+			})
 		}
 
 		users, err := userService.GetPagination(c.Context(), page, pageSize, search, sortBy, sortOrder)
@@ -44,7 +50,11 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 
 		count, err := userService.Count(c.Context(), search)
 		if err != nil {
-			return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Error getting users count")
+			return cserrors.New(
+				&cserrors.Option{
+					HttpStatus: http.StatusInternalServerError,
+					Message:    "Error getting users count",
+				})
 		}
 
 		return c.JSON(fiber.Map{
@@ -62,7 +72,10 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 
 		err := c.BodyParser(&userRequest)
 		if err != nil {
-			return cserrors.New(cserrors.BAD_REQUEST, "Error parsing request")
+			return cserrors.New(
+				&cserrors.Option{
+					HttpStatus: http.StatusBadRequest,
+					Message:    "Error parsing request"})
 		}
 
 		user, err := userService.Create(c.Context(), &userRequest)
@@ -71,7 +84,10 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 			if errors.As(err, &e) {
 				return e
 			}
-			return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Error creating user")
+			return cserrors.New(&cserrors.Option{
+				HttpStatus: http.StatusInternalServerError,
+				Message:    "Error creating user",
+			})
 		}
 
 		return c.Status(fiber.StatusCreated).JSON(user)
@@ -82,7 +98,10 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 
 		err := c.BodyParser(&createManyUsers)
 		if err != nil {
-			return cserrors.New(cserrors.BAD_REQUEST, "Error parsing request")
+			return cserrors.New(&cserrors.Option{
+				HttpStatus: http.StatusBadRequest,
+				Message:    "Error parsing request",
+			})
 		}
 
 		users, err := userService.CreateMany(c.Context(), &createManyUsers)
@@ -91,7 +110,10 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 			if errors.As(err, &e) {
 				return e
 			}
-			return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Error creating users")
+			return cserrors.New(&cserrors.Option{
+				HttpStatus: http.StatusInternalServerError,
+				Message:    "Error creating user",
+			})
 		}
 
 		return c.Status(fiber.StatusCreated).JSON(users)
@@ -106,7 +128,10 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 			if errors.As(err, &e) {
 				return e
 			}
-			return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Error getting user")
+			return cserrors.New(&cserrors.Option{
+				HttpStatus: http.StatusInternalServerError,
+				Message:    "Error getting user",
+			})
 		}
 
 		return c.JSON(user)
@@ -117,7 +142,10 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 		var updateUser requests.UpdateUser
 		err := c.BodyParser(&updateUser)
 		if err != nil {
-			return cserrors.New(cserrors.BAD_REQUEST, "Invalid request body")
+			return cserrors.New(&cserrors.Option{
+				HttpStatus: http.StatusBadRequest,
+				Message:    "Invalid request body",
+			})
 		}
 
 		user, err := userService.Update(c.Context(), c.Params("userID"), &updateUser)
@@ -126,7 +154,10 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 			if errors.As(err, &e) {
 				return e
 			}
-			return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Error updating user")
+			return cserrors.New(&cserrors.Option{
+				HttpStatus: http.StatusInternalServerError,
+				Message:    "Error updating user",
+			})
 		}
 
 		return c.JSON(user)
@@ -135,7 +166,10 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 	adminUserRouter.Delete("/:userID", func(c *fiber.Ctx) error {
 		err := userService.Delete(c.Context(), c.Params("userID"))
 		if err != nil {
-			return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Error deleting user")
+			return cserrors.New(&cserrors.Option{
+				HttpStatus: http.StatusInternalServerError,
+				Message:    "Error deleting uesr",
+			})
 		}
 
 		return c.SendStatus(fiber.StatusNoContent)
@@ -146,13 +180,18 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 
 		err := c.BodyParser(&deleteManyUser)
 		if err != nil {
-			return cserrors.New(cserrors.BAD_REQUEST, "Error parsing request")
+			return cserrors.New(&cserrors.Option{
+				HttpStatus: http.StatusBadRequest,
+				Message:    "Error cannot parse body",
+			})
 		}
 
 		err = userService.DeleteMany(c.Context(), deleteManyUser.IDs)
 		if err != nil {
-			log.Println(err)
-			return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Error deleting users")
+			return cserrors.New(&cserrors.Option{
+				HttpStatus: http.StatusInternalServerError,
+				Message:    "Error deleting uesr",
+			})
 		}
 
 		return c.SendStatus(fiber.StatusNoContent)

@@ -2,33 +2,34 @@ package cserrors
 
 import (
 	"net/http"
-	"strconv"
-)
-
-type ErrorCode int
-
-func (c *ErrorCode) String() string {
-	return strconv.Itoa(int(*c))
-}
-
-const (
-	BAD_REQUEST           ErrorCode = http.StatusBadRequest
-	UNAUTHORIZED          ErrorCode = http.StatusUnauthorized
-	ALREADY_EXISTS        ErrorCode = http.StatusConflict
-	INTERNAL_SERVER_ERROR ErrorCode = http.StatusInternalServerError
 )
 
 type Error struct {
-	Code    ErrorCode
-	Message string
+	HttpStatus int
+	Code       string
+	Message    string
 }
 
-func New(code ErrorCode, message string) *Error {
-	return &Error{Code: code, Message: message}
+type Option struct {
+	HttpStatus int
+	Code       string
+	Message    string
+}
+
+func New(opt *Option) *Error {
+	if opt.HttpStatus == 0 {
+		opt.HttpStatus = http.StatusOK
+	}
+
+	return &Error{
+		HttpStatus: opt.HttpStatus,
+		Code:       opt.Code,
+		Message:    opt.Message,
+	}
 }
 
 func (c *Error) Error() string {
-	return c.Code.String() + "=" + c.Message
+	return c.Code + "=" + c.Message
 }
 
 type RedirectCode string

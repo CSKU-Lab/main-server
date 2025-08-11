@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/cserrors"
 	"github.com/SornchaiTheDev/cs-lab-backend/domain/models"
@@ -61,12 +62,18 @@ func (s *userService) GetPasswordByID(ctx context.Context, ID string) (string, e
 func (s *userService) GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string) ([]models.User, error) {
 	sanitizedSortBy, err := sanitizeSortBy(sortBy, &models.User{})
 	if err != nil {
-		return nil, cserrors.New(cserrors.BAD_REQUEST, "Invalid sort by field")
+		return nil, cserrors.New(&cserrors.Option{
+			HttpStatus: http.StatusBadRequest,
+			Message:    "Invalid sort by field",
+		})
 	}
 
 	sanitizedSortOrder, err := sanitizeSortOrder(sortOrder)
 	if err != nil {
-		return nil, cserrors.New(cserrors.BAD_REQUEST, "Invalid sort order")
+		return nil, cserrors.New(&cserrors.Option{
+			HttpStatus: http.StatusBadRequest,
+			Message:    "Invalid sort order",
+		})
 	}
 
 	return s.userRepository.GetPagination(ctx, page, limit, search, sanitizedSortBy, sanitizedSortOrder)
@@ -79,19 +86,31 @@ func (s *userService) Count(ctx context.Context, search string) (int, error) {
 
 func (s *userService) Create(ctx context.Context, req *requests.CreateMultiTypeUser) (*models.User, error) {
 	if req.Type == models.UserTypeCredential.String() && req.Email != nil {
-		return nil, cserrors.New(cserrors.BAD_REQUEST, "Credential user cannot have email")
+		return nil, cserrors.New(&cserrors.Option{
+			HttpStatus: http.StatusBadRequest,
+			Message:    "Credential user cannot have email",
+		})
 	}
 
 	if req.Type == models.UserTypeOauth.String() && req.Password != nil {
-		return nil, cserrors.New(cserrors.BAD_REQUEST, "Oauth user cannot have password")
+		return nil, cserrors.New(&cserrors.Option{
+			HttpStatus: http.StatusBadRequest,
+			Message:    "Oauth user cannot have password",
+		})
 	}
 
 	if req.Type == models.UserTypeCredential.String() && req.Password == nil {
-		return nil, cserrors.New(cserrors.BAD_REQUEST, "Credential user must have password")
+		return nil, cserrors.New(&cserrors.Option{
+			HttpStatus: http.StatusBadRequest,
+			Message:    "Credential user must have password",
+		})
 	}
 
 	if req.Type == models.UserTypeCredential.String() && req.GroupID == nil {
-		return nil, cserrors.New(cserrors.BAD_REQUEST, "Credential user must have group")
+		return nil, cserrors.New(&cserrors.Option{
+			HttpStatus: http.StatusBadRequest,
+			Message:    "Credential user must have group",
+		})
 	}
 
 	repoUser := repositories.CreateMultiTypeUser{
@@ -100,7 +119,10 @@ func (s *userService) Create(ctx context.Context, req *requests.CreateMultiTypeU
 
 	id, err := uuid.NewV7()
 	if err != nil {
-		return nil, cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Cannot generate user ID")
+		return nil, cserrors.New(&cserrors.Option{
+			HttpStatus: http.StatusInternalServerError,
+			Message:    "Cannot generate user ID",
+		})
 	}
 
 	repoUser.ID = id.String()
@@ -129,7 +151,10 @@ func (s *userService) Create(ctx context.Context, req *requests.CreateMultiTypeU
 
 func (s *userService) CreateMany(ctx context.Context, req *requests.CreateManyUsers) ([]models.User, error) {
 	if len(req.Users) == 0 {
-		return nil, cserrors.New(cserrors.BAD_REQUEST, "No users to create")
+		return nil, cserrors.New(&cserrors.Option{
+			HttpStatus: http.StatusBadRequest,
+			Message:    "No users to create",
+		})
 	}
 
 	users := make([]models.User, len(req.Users))

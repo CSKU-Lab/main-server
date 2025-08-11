@@ -2,6 +2,7 @@ package rest
 
 import (
 	"context"
+	"net/http"
 	"time"
 
 	"github.com/SornchaiTheDev/cs-lab-backend/configs"
@@ -27,7 +28,7 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 		url, err := googleAuth.GenerateAuthURL()
 		if err != nil {
 			if appConfig.DEV_MODE {
-				return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Error generating auth url")
+				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Error generating auth url"})
 			}
 			return cserrors.NewRedirect(cserrors.REDIRECT_SOMETHING_WENT_WRONG)
 		}
@@ -39,7 +40,7 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 		state := c.Query("state")
 		if !googleAuth.VerifyState(state) {
 			if appConfig.DEV_MODE {
-				return cserrors.New(cserrors.BAD_REQUEST, "Invalid State")
+				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusBadRequest, Message: "Invalid State"})
 			}
 			return cserrors.NewRedirect(cserrors.REDIRECT_SOMETHING_WENT_WRONG)
 		}
@@ -51,7 +52,7 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 		userInfo, err := googleAuth.GetUserInfo(ctx, code)
 		if err != nil {
 			if appConfig.DEV_MODE {
-				return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Error getting user info")
+				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Error getting user info"})
 			}
 			return cserrors.NewRedirect(cserrors.REDIRECT_SOMETHING_WENT_WRONG)
 		}
@@ -59,7 +60,7 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 		user, err := userService.GetByEmail(c.Context(), userInfo.Email)
 		if err != nil {
 			if appConfig.DEV_MODE {
-				return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Error getting user")
+				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Error getting user"})
 			}
 			return c.Redirect(appConfig.FRONTEND_URL + "/auth/sign-in?error=UNAUTHORIZED")
 		}
@@ -70,7 +71,7 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 			})
 			if err != nil {
 				if appConfig.DEV_MODE {
-					return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Error updating user profile image")
+					return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Error updating user profile image"})
 				}
 				return cserrors.NewRedirect(cserrors.REDIRECT_SOMETHING_WENT_WRONG)
 			}
@@ -79,7 +80,7 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 		newAccessToken, err := auth.SignAccessToken(user, appConfig.JWTSecret)
 		if err != nil {
 			if appConfig.DEV_MODE {
-				return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Something went wrong")
+				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Something went wrong"})
 			}
 			return cserrors.NewRedirect(cserrors.REDIRECT_SOMETHING_WENT_WRONG)
 		}
@@ -87,7 +88,7 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 		newRefreshToken, err := auth.SignRefreshToken(user.ID, appConfig.JWTRefreshSecret)
 		if err != nil {
 			if appConfig.DEV_MODE {
-				return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Something went wrong")
+				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Something went wrong"})
 			}
 			return cserrors.NewRedirect(cserrors.REDIRECT_SOMETHING_WENT_WRONG)
 		}
@@ -95,7 +96,7 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 		err = refreshTokenService.Set(c.Context(), user.ID, newRefreshToken)
 		if err != nil {
 			if appConfig.DEV_MODE {
-				return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Something went wrong")
+				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Something went wrong"})
 			}
 			return cserrors.NewRedirect(cserrors.REDIRECT_SOMETHING_WENT_WRONG)
 		}
@@ -136,32 +137,32 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 
 		user, err := userService.GetByUsername(c.Context(), credential.Username)
 		if err != nil {
-			return cserrors.New(cserrors.UNAUTHORIZED, "Unauthorized")
+			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusUnauthorized, Message: "Unauthorized"})
 		}
 
 		password, err := userService.GetPasswordByID(c.Context(), user.ID)
 		if err != nil {
-			return cserrors.New(cserrors.UNAUTHORIZED, "Unauthorized")
+			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusUnauthorized, Message: "Unauthorized"})
 		}
 
 		err = bcrypt.CompareHashAndPassword([]byte(password), []byte(credential.Password))
 		if err != nil {
-			return cserrors.New(cserrors.UNAUTHORIZED, "Unauthorized")
+			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusUnauthorized, Message: "Unauthorized"})
 		}
 
 		newAccessToken, err := auth.SignAccessToken(user, appConfig.JWTSecret)
 		if err != nil {
-			return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Something went wrong")
+			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Something went wrong"})
 		}
 
 		newRefreshToken, err := auth.SignRefreshToken(user.ID, appConfig.JWTRefreshSecret)
 		if err != nil {
-			return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Something went wrong")
+			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Something went wrong"})
 		}
 
 		err = refreshTokenService.Set(c.Context(), user.ID, newRefreshToken)
 		if err != nil {
-			return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Something went wrong")
+			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Something went wrong"})
 		}
 
 		c.Cookie(&fiber.Cookie{
@@ -203,17 +204,17 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 		if !auth.IsExpired(accessToken, appConfig.JWTSecret) {
 			err := auth.VerifyToken(accessToken, appConfig.JWTSecret)
 			if err != nil {
-				return cserrors.New(cserrors.UNAUTHORIZED, "Unauthorized")
+				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusUnauthorized, Message: "Unauthorized"})
 			}
 
 			claims, err := auth.GetClaims(accessToken, appConfig.JWTSecret)
 			if err != nil {
-				return cserrors.New(cserrors.UNAUTHORIZED, "Unauthorized")
+				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusUnauthorized, Message: "Unauthorized"})
 			}
 
 			roles, err := converter.ToStringSlice(claims.Roles)
 			if err != nil {
-				return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Something went wrong")
+				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Something went wrong"})
 			}
 
 			user = &models.User{
@@ -232,38 +233,38 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 		} else {
 			claims, err := auth.GetClaims(refreshToken, appConfig.JWTRefreshSecret)
 			if err != nil {
-				return cserrors.New(cserrors.UNAUTHORIZED, "Unauthorized")
+				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusUnauthorized, Message: "Unauthorized"})
 			}
 
 			user, err = userService.GetByID(c.Context(), claims.Subject)
 			if err != nil {
-				return cserrors.New(cserrors.UNAUTHORIZED, "Unauthorized")
+				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusUnauthorized, Message: "Unauthorized"})
 			}
 		}
 
 		dbRefreshToken, err := refreshTokenService.Get(c.Context(), user.ID)
 		if err != nil {
-			return cserrors.New(cserrors.UNAUTHORIZED, "Unauthorized")
+			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusUnauthorized, Message: "Unauthorized"})
 		}
 
 		// check for replay attack
 		if dbRefreshToken != refreshToken {
-			return cserrors.New(cserrors.UNAUTHORIZED, "Unauthorized")
+			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusUnauthorized, Message: "Unauthorized"})
 		}
 
 		newAccessToken, err := auth.SignAccessToken(user, appConfig.JWTSecret)
 		if err != nil {
-			return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Something went wrong")
+			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Something went wrong"})
 		}
 
 		newRefreshToken, err := auth.SignRefreshToken(user.ID, appConfig.JWTRefreshSecret)
 		if err != nil {
-			return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Something went wrong")
+			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Something went wrong"})
 		}
 
 		err = refreshTokenService.Set(c.Context(), user.ID, newRefreshToken)
 		if err != nil {
-			return cserrors.New(cserrors.INTERNAL_SERVER_ERROR, "Something went wrong")
+			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Something went wrong"})
 		}
 
 		c.Cookie(&fiber.Cookie{
