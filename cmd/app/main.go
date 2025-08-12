@@ -28,9 +28,10 @@ func main() {
 
 	userRepo := sqlx.NewSqlxUserRepository(db)
 	userPasswordRepo := sqlx.NewUserPasswordRepository(db)
-	userService := services.NewUserService(userRepo, userPasswordRepo, userUoWRepo)
-
 	userGroupRepo := sqlx.NewUserGroupRepository(db)
+
+	userService := services.NewUserService(userRepo, userPasswordRepo, userGroupRepo, userUoWRepo)
+
 	userGroupService := services.NewUserGroupService(userGroupRepo)
 
 	refreshTokenRepo := sqlx.NewSQLxRefreshTokenRepository(db)

@@ -2,6 +2,7 @@ package sqlx
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"net/http"
 
@@ -47,6 +48,12 @@ func (r *userGroupRepository) GetByID(ctx context.Context, ID string) (*models.U
 	var userGroup userGroup
 	err := r.db.GetContext(ctx, &userGroup, query, ID)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, cserrors.New(&cserrors.Option{
+				HttpStatus: http.StatusInternalServerError,
+				Message:    "User not found",
+			})
+		}
 		return nil, err
 	}
 
@@ -54,6 +61,29 @@ func (r *userGroupRepository) GetByID(ctx context.Context, ID string) (*models.U
 		ID:   userGroup.ID,
 		Name: userGroup.Name,
 	}, nil
+}
+
+func (r *userGroupRepository) GetByUserID(ctx context.Context, userID string) (string, error) {
+	query := `SELECT name
+		  FROM user_group_members ugb
+		  JOIN user_groups ug
+		  ON  ug.id = ugb.group_id
+		  WHERE user_id = $1`
+
+	var name string
+	err := r.db.GetContext(ctx, &name, query, userID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return "", cserrors.New(&cserrors.Option{
+				HttpStatus: http.StatusInternalServerError,
+				Message:    "group not found",
+			})
+		}
+		return "", err
+	}
+
+	return name, nil
+
 }
 
 func (r *userGroupRepository) GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string) ([]models.UserGroup, error) {

@@ -9,6 +9,7 @@ import (
 type UserGroupRepository interface {
 	Create(ctx context.Context, ID string, name string) error
 	GetByID(ctx context.Context, ID string) (*models.UserGroup, error)
+	GetByUserID(ctx context.Context, userID string) (string, error)
 	GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string) ([]models.UserGroup, error)
 	Count(ctx context.Context, search string) (int, error)
 	Update(ctx context.Context, ID string, name string) error

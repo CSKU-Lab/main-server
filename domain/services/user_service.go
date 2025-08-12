@@ -32,27 +32,65 @@ type UserService interface {
 type userService struct {
 	userRepository         repositories.UserRepository
 	userPasswordRepository repositories.UserPasswordRepository
+	userGroupRepository    repositories.UserGroupRepository
 	uowRepository          repositories.UserUoWRepository
 }
 
-func NewUserService(userRepository repositories.UserRepository, userPasswordRepository repositories.UserPasswordRepository, uowRepository repositories.UserUoWRepository) UserService {
+func NewUserService(user repositories.UserRepository, userPassword repositories.UserPasswordRepository, userGroup repositories.UserGroupRepository, uow repositories.UserUoWRepository) UserService {
 	return &userService{
-		userRepository:         userRepository,
-		userPasswordRepository: userPasswordRepository,
-		uowRepository:          uowRepository,
+		userRepository:         user,
+		userPasswordRepository: userPassword,
+		uowRepository:          uow,
+		userGroupRepository:    userGroup,
 	}
 }
 
 func (s *userService) GetByEmail(ctx context.Context, email string) (*models.User, error) {
-	return s.userRepository.GetByEmail(ctx, email)
+	user, err := s.userRepository.GetByEmail(ctx, email)
+	if err != nil {
+		return nil, err
+	}
+
+	group, err := s.userGroupRepository.GetByUserID(ctx, user.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	user.Group = &group
+
+	return user, nil
 }
 
 func (s *userService) GetByUsername(ctx context.Context, username string) (*models.User, error) {
-	return s.userRepository.GetByUsername(ctx, username)
+	user, err := s.userRepository.GetByUsername(ctx, username)
+	if err != nil {
+		return nil, err
+	}
+
+	group, err := s.userGroupRepository.GetByUserID(ctx, user.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	user.Group = &group
+
+	return user, nil
 }
 
 func (s *userService) GetByID(ctx context.Context, ID string) (*models.User, error) {
-	return s.userRepository.GetByID(ctx, ID)
+	user, err := s.userRepository.GetByID(ctx, ID)
+	if err != nil {
+		return nil, err
+	}
+
+	group, err := s.userGroupRepository.GetByUserID(ctx, user.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	user.Group = &group
+
+	return user, nil
 }
 
 func (s *userService) GetPasswordByID(ctx context.Context, ID string) (string, error) {
@@ -76,8 +114,21 @@ func (s *userService) GetPagination(ctx context.Context, page int, limit int, se
 		})
 	}
 
-	return s.userRepository.GetPagination(ctx, page, limit, search, sanitizedSortBy, sanitizedSortOrder)
+	users, err := s.userRepository.GetPagination(ctx, page, limit, search, sanitizedSortBy, sanitizedSortOrder)
+	if err != nil {
+		return nil, err
+	}
 
+	for i, user := range users {
+		group, err := s.userGroupRepository.GetByUserID(ctx, user.ID)
+		if err != nil {
+			continue
+		}
+
+		users[i].Group = &group
+	}
+
+	return users, nil
 }
 
 func (s *userService) Count(ctx context.Context, search string) (int, error) {
@@ -212,6 +263,13 @@ func (s *userService) Update(ctx context.Context, ID string, user *requests.Upda
 	if updatedUser == nil {
 		return dbUser, nil
 	}
+
+	group, err := s.userGroupRepository.GetByUserID(ctx, ID)
+	if err != nil {
+		return nil, err
+	}
+
+	updatedUser.Group = &group
 
 	return updatedUser, nil
 }
