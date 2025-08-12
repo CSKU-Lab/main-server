@@ -6,13 +6,13 @@ import (
 
 type Error struct {
 	HttpStatus int
-	Code       string
+	Code       error
 	Message    string
 }
 
 type Option struct {
 	HttpStatus int
-	Code       string
+	Code       error
 	Message    string
 }
 
@@ -29,7 +29,7 @@ func New(opt *Option) *Error {
 }
 
 func (c *Error) Error() string {
-	return c.Code + "=" + c.Message
+	return c.Code.Error()
 }
 
 type RedirectCode string

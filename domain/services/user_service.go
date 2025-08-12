@@ -53,10 +53,15 @@ func (s *userService) GetByEmail(ctx context.Context, email string) (*models.Use
 
 	group, err := s.userGroupRepository.GetByUserID(ctx, user.ID)
 	if err != nil {
-		return nil, err
+		var csErr *cserrors.Error
+		if errors.As(err, &csErr) && csErr.Code != cserrors.GroupNotFound {
+			return nil, err
+		}
 	}
 
-	user.Group = &group
+	if group != "" {
+		user.Group = &group
+	}
 
 	return user, nil
 }
@@ -69,10 +74,15 @@ func (s *userService) GetByUsername(ctx context.Context, username string) (*mode
 
 	group, err := s.userGroupRepository.GetByUserID(ctx, user.ID)
 	if err != nil {
-		return nil, err
+		var csErr *cserrors.Error
+		if errors.As(err, &csErr) && csErr.Code != cserrors.GroupNotFound {
+			return nil, err
+		}
 	}
 
-	user.Group = &group
+	if group != "" {
+		user.Group = &group
+	}
 
 	return user, nil
 }
@@ -85,10 +95,15 @@ func (s *userService) GetByID(ctx context.Context, ID string) (*models.User, err
 
 	group, err := s.userGroupRepository.GetByUserID(ctx, user.ID)
 	if err != nil {
-		return nil, err
+		var csErr *cserrors.Error
+		if errors.As(err, &csErr) && csErr.Code != cserrors.GroupNotFound {
+			return nil, err
+		}
 	}
 
-	user.Group = &group
+	if group != "" {
+		user.Group = &group
+	}
 
 	return user, nil
 }
@@ -122,7 +137,11 @@ func (s *userService) GetPagination(ctx context.Context, page int, limit int, se
 	for i, user := range users {
 		group, err := s.userGroupRepository.GetByUserID(ctx, user.ID)
 		if err != nil {
-			continue
+			var csErr *cserrors.Error
+			if errors.As(err, &csErr) && csErr.Code == cserrors.GroupNotFound {
+				continue
+			}
+			return nil, err
 		}
 
 		users[i].Group = &group
@@ -266,10 +285,15 @@ func (s *userService) Update(ctx context.Context, ID string, user *requests.Upda
 
 	group, err := s.userGroupRepository.GetByUserID(ctx, ID)
 	if err != nil {
-		return nil, err
+		var csErr *cserrors.Error
+		if errors.As(err, &csErr) && csErr.Code != cserrors.GroupNotFound {
+			return nil, err
+		}
 	}
 
-	updatedUser.Group = &group
+	if group != "" {
+		updatedUser.Group = &group
+	}
 
 	return updatedUser, nil
 }

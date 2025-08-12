@@ -76,6 +76,7 @@ func (r *userGroupRepository) GetByUserID(ctx context.Context, userID string) (s
 		if err == sql.ErrNoRows {
 			return "", cserrors.New(&cserrors.Option{
 				HttpStatus: http.StatusInternalServerError,
+				Code:       cserrors.GroupNotFound,
 				Message:    "group not found",
 			})
 		}
