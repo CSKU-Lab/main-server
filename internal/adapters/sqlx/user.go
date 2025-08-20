@@ -200,7 +200,12 @@ func (r *sqlxUserRepository) Create(ctx context.Context, req repositories.Create
 	var dbUser user
 	err = r.db.GetContext(ctx, &dbUser, query, args...)
 	if err != nil {
-		return nil, err
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) {
+			if pqErr.Code == "23505" {
+				return nil, cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "User already exists"})
+			}
+		}
 	}
 
 	return &models.User{
