@@ -7,5 +7,5 @@ type UserUoWInstance interface {
 }
 
 type UserUoWRepository interface {
-	Execute(cb func(u UserUoWInstance)) error
+	Execute(cb func(u UserUoWInstance) error) error
 }

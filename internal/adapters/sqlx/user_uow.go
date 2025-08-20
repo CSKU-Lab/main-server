@@ -36,18 +36,22 @@ func (u *uowInstance) UserGroup() repositories.UserGroupRepository {
 	return NewUserGroupRepository(u.tx)
 }
 
-func (u *uowImpl) Execute(cb func(u repositories.UserUoWInstance)) error {
+func (u *uowImpl) Execute(cb func(u repositories.UserUoWInstance) error) error {
 	tx, err := u.db.BeginTxx(u.ctx, &sql.TxOptions{})
 	if err != nil {
 		log.Fatalln("Cannot start transaction in sqlx UowRepository")
 	}
+	defer tx.Rollback()
 
 	uow := &uowInstance{tx: tx}
-	cb(uow)
+	err = cb(uow)
+	if err != nil {
+		return err
+	}
 
 	err = tx.Commit()
 	if err != nil {
-		return tx.Rollback()
+		return err
 	}
 	return nil
 }

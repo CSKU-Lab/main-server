@@ -206,19 +206,26 @@ func (s *userService) Create(ctx context.Context, req *requests.CreateMultiTypeU
 	repoUser.ID = id.String()
 
 	var user *models.User
-	err = s.uowRepository.Execute(func(u repositories.UserUoWInstance) {
-		user, _ = u.User().Create(ctx, repoUser)
+	err = s.uowRepository.Execute(func(u repositories.UserUoWInstance) error {
+		user, err = u.User().Create(ctx, repoUser)
+		if err != nil {
+			return err
+		}
 
 		if req.GroupID != nil {
 			u.UserGroup().AddUserToGroup(ctx, *req.GroupID, user.ID)
 
-			group, _ := u.UserGroup().GetByID(ctx, *req.GroupID)
+			group, err := u.UserGroup().GetByID(ctx, *req.GroupID)
+			if err != nil {
+				return err
+			}
 			user.Group = &group.Name
 		}
 
 		if req.Password != nil {
 			u.UserPassword().SetPassword(ctx, user.ID, *req.Password)
 		}
+		return nil
 	})
 	if err != nil {
 		return nil, err
