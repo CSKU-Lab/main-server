@@ -183,6 +183,14 @@ func (s *userService) Create(ctx context.Context, req *requests.CreateMultiTypeU
 		})
 	}
 
+	if req.Type == models.UserTypeCredential.String() {
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(*req.Password), 10)
+		if err != nil {
+			return nil, fmt.Errorf("Cannot generate password")
+		}
+		*req.Password = string(hashedPassword)
+	}
+
 	repoUser := repositories.CreateMultiTypeUser{
 		CreateMultiTypeUser: *req,
 	}

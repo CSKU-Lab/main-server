@@ -19,17 +19,23 @@ func main() {
 
 	userRepo := sqlx.NewSqlxUserRepository(db)
 	userPasswordRepo := sqlx.NewUserPasswordRepository(db)
-	userService := services.NewUserService(userRepo, userPasswordRepo)
+	userGroupRepo := sqlx.NewUserGroupRepository(db)
+	uowRepo := sqlx.NewUserUoWRepository(context.Background(), db)
+	userService := services.NewUserService(userRepo, userPasswordRepo, userGroupRepo, uowRepo)
 
 	user, err := userService.Create(context.Background(), &requests.CreateMultiTypeUser{
 		BaseUser: requests.BaseUser{
-			Username:    "test_user_1",
-			DisplayName: "Test user",
-			Roles:       []string{"student"},
+			Username:    "postman_admin",
+			DisplayName: "Postman Admin",
+			Roles:       []string{"admin"},
 		},
+		GroupID: func() *string {
+			groupID := "0198b246-1023-7486-a358-3a24ea6c3435"
+			return &groupID
+		}(),
 		Type: models.UserTypeCredential.String(),
 		Password: func() *string {
-			password := "test_user_1_password"
+			password := "postman_admin"
 			return &password
 		}(),
 	})
