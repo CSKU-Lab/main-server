@@ -29,7 +29,7 @@ func New(opt *Option) *Error {
 }
 
 func (c *Error) Error() string {
-	return c.Code.Error()
+	return c.Message
 }
 
 type RedirectCode string
