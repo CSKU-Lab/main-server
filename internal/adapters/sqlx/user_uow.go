@@ -28,7 +28,7 @@ func (u *uowInstance) User() repositories.User {
 	return NewUserRepository(u.tx)
 }
 
-func (u *uowInstance) UserPassword() repositories.UserPasswordRepository {
+func (u *uowInstance) UserPassword() repositories.UserPassword {
 	return NewUserPasswordRepository(u.tx)
 }
 

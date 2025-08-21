@@ -31,12 +31,12 @@ type UserService interface {
 
 type userService struct {
 	userRepository         repositories.User
-	userPasswordRepository repositories.UserPasswordRepository
+	userPasswordRepository repositories.UserPassword
 	userGroupRepository    repositories.UserGroupRepository
 	uowRepository          repositories.UserUoWRepository
 }
 
-func NewUserService(user repositories.User, userPassword repositories.UserPasswordRepository, userGroup repositories.UserGroupRepository, uow repositories.UserUoWRepository) UserService {
+func NewUserService(user repositories.User, userPassword repositories.UserPassword, userGroup repositories.UserGroupRepository, uow repositories.UserUoWRepository) UserService {
 	return &userService{
 		userRepository:         user,
 		userPasswordRepository: userPassword,

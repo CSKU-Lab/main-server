@@ -13,7 +13,7 @@ type userPasswordRepository struct {
 	db instance
 }
 
-func NewUserPasswordRepository(db instance) repositories.UserPasswordRepository {
+func NewUserPasswordRepository(db instance) repositories.UserPassword {
 	return &userPasswordRepository{db: db}
 }
 
