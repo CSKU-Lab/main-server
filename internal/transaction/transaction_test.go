@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/SornchaiTheDev/cs-lab-backend/domain/cserrors"
-	"github.com/SornchaiTheDev/cs-lab-backend/internal/transaction"
+	"github.com/CSKU-Lab/main-server/domain/cserrors"
+	"github.com/CSKU-Lab/main-server/internal/transaction"
 	"github.com/stretchr/testify/assert"
 )
 

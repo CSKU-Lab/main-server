@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"net/http"
 
-	"github.com/SornchaiTheDev/cs-lab-backend/domain/cserrors"
-	"github.com/SornchaiTheDev/cs-lab-backend/domain/repositories"
+	"github.com/CSKU-Lab/main-server/domain/cserrors"
+	"github.com/CSKU-Lab/main-server/domain/repositories"
 )
 
 type userPasswordRepository struct {

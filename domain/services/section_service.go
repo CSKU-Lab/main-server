@@ -6,12 +6,12 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/SornchaiTheDev/cs-lab-backend/constants"
-	"github.com/SornchaiTheDev/cs-lab-backend/domain/cserrors"
-	"github.com/SornchaiTheDev/cs-lab-backend/domain/models"
-	"github.com/SornchaiTheDev/cs-lab-backend/domain/repositories"
-	"github.com/SornchaiTheDev/cs-lab-backend/internal/requests"
-	"github.com/SornchaiTheDev/cs-lab-backend/internal/transaction"
+	"github.com/CSKU-Lab/main-server/constants"
+	"github.com/CSKU-Lab/main-server/domain/cserrors"
+	"github.com/CSKU-Lab/main-server/domain/models"
+	"github.com/CSKU-Lab/main-server/domain/repositories"
+	"github.com/CSKU-Lab/main-server/internal/requests"
+	"github.com/CSKU-Lab/main-server/internal/transaction"
 	"github.com/google/uuid"
 )
 

@@ -3,7 +3,7 @@ package models
 import (
 	"time"
 
-	"github.com/SornchaiTheDev/cs-lab-backend/constants"
+	"github.com/CSKU-Lab/main-server/constants"
 )
 
 type Semester struct {

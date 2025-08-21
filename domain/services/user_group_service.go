@@ -3,8 +3,8 @@ package services
 import (
 	"context"
 
-	"github.com/SornchaiTheDev/cs-lab-backend/domain/models"
-	"github.com/SornchaiTheDev/cs-lab-backend/domain/repositories"
+	"github.com/CSKU-Lab/main-server/domain/models"
+	"github.com/CSKU-Lab/main-server/domain/repositories"
 	"github.com/google/uuid"
 )
 

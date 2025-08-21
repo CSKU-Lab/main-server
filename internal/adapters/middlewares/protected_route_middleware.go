@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/SornchaiTheDev/cs-lab-backend/domain/cserrors"
-	"github.com/SornchaiTheDev/cs-lab-backend/domain/models"
-	"github.com/SornchaiTheDev/cs-lab-backend/infrastructure/auth"
+	"github.com/CSKU-Lab/main-server/domain/cserrors"
+	"github.com/CSKU-Lab/main-server/domain/models"
+	"github.com/CSKU-Lab/main-server/infrastructure/auth"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 )

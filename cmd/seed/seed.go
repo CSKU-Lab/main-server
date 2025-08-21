@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/SornchaiTheDev/cs-lab-backend/configs"
-	"github.com/SornchaiTheDev/cs-lab-backend/domain/models"
-	"github.com/SornchaiTheDev/cs-lab-backend/domain/services"
-	"github.com/SornchaiTheDev/cs-lab-backend/internal/adapters/sqlx"
-	"github.com/SornchaiTheDev/cs-lab-backend/internal/requests"
+	"github.com/CSKU-Lab/main-server/configs"
+	"github.com/CSKU-Lab/main-server/domain/models"
+	"github.com/CSKU-Lab/main-server/domain/services"
+	"github.com/CSKU-Lab/main-server/internal/adapters/sqlx"
+	"github.com/CSKU-Lab/main-server/internal/requests"
 )
 
 func main() {
@@ -17,7 +17,7 @@ func main() {
 
 	db := configs.NewDB(config)
 
-	userRepo := sqlx.NewSqlxUserRepository(db)
+	userRepo := sqlx.NewUserRepository(db)
 	userPasswordRepo := sqlx.NewUserPasswordRepository(db)
 	userGroupRepo := sqlx.NewUserGroupRepository(db)
 	uowRepo := sqlx.NewUserUoWRepository(context.Background(), db)

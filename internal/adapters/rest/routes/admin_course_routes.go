@@ -6,11 +6,11 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/SornchaiTheDev/cs-lab-backend/domain/cserrors"
-	"github.com/SornchaiTheDev/cs-lab-backend/domain/models"
-	"github.com/SornchaiTheDev/cs-lab-backend/domain/services"
-	"github.com/SornchaiTheDev/cs-lab-backend/internal/adapters/middlewares"
-	"github.com/SornchaiTheDev/cs-lab-backend/internal/requests"
+	"github.com/CSKU-Lab/main-server/domain/cserrors"
+	"github.com/CSKU-Lab/main-server/domain/models"
+	"github.com/CSKU-Lab/main-server/domain/services"
+	"github.com/CSKU-Lab/main-server/internal/adapters/middlewares"
+	"github.com/CSKU-Lab/main-server/internal/requests"
 	"github.com/gofiber/fiber/v2"
 )
 

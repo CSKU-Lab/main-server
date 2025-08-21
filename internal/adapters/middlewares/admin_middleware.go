@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"slices"
 
-	"github.com/SornchaiTheDev/cs-lab-backend/constants"
-	"github.com/SornchaiTheDev/cs-lab-backend/domain/cserrors"
-	"github.com/SornchaiTheDev/cs-lab-backend/domain/models"
+	"github.com/CSKU-Lab/main-server/constants"
+	"github.com/CSKU-Lab/main-server/domain/cserrors"
+	"github.com/CSKU-Lab/main-server/domain/models"
 	"github.com/gofiber/fiber/v2"
 )
 

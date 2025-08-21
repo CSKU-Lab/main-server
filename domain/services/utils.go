@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"slices"
 
-	"github.com/SornchaiTheDev/cs-lab-backend/domain/cserrors"
+	"github.com/CSKU-Lab/main-server/domain/cserrors"
 )
 
 func sanitizeSortOrder(sortOrder string) (string, error) {

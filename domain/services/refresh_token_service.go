@@ -3,7 +3,7 @@ package services
 import (
 	"context"
 
-	"github.com/SornchaiTheDev/cs-lab-backend/domain/repositories"
+	"github.com/CSKU-Lab/main-server/domain/repositories"
 )
 
 type RefreshTokenService interface {

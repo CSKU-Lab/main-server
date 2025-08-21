@@ -4,7 +4,7 @@ import (
 	"errors"
 	"reflect"
 
-	"github.com/SornchaiTheDev/cs-lab-backend/internal/validator"
+	"github.com/CSKU-Lab/main-server/internal/validator"
 	"github.com/gofiber/fiber/v2"
 )
 

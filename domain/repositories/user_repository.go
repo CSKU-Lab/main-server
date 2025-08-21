@@ -3,11 +3,11 @@ package repositories
 import (
 	"context"
 
-	"github.com/SornchaiTheDev/cs-lab-backend/domain/models"
-	"github.com/SornchaiTheDev/cs-lab-backend/internal/requests"
+	"github.com/CSKU-Lab/main-server/domain/models"
+	"github.com/CSKU-Lab/main-server/internal/requests"
 )
 
-type UserRepository interface {
+type User interface {
 	GetByEmail(ctx context.Context, email string) (*models.User, error)
 	GetByUsername(ctx context.Context, username string) (*models.User, error)
 	GetByID(ctx context.Context, ID string) (*models.User, error)

@@ -1,4 +1,4 @@
-module github.com/SornchaiTheDev/cs-lab-backend
+module github.com/CSKU-Lab/main-server
 
 go 1.23.0
 

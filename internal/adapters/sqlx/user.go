@@ -8,20 +8,20 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/SornchaiTheDev/cs-lab-backend/domain/cserrors"
-	"github.com/SornchaiTheDev/cs-lab-backend/domain/models"
-	"github.com/SornchaiTheDev/cs-lab-backend/domain/repositories"
-	"github.com/SornchaiTheDev/cs-lab-backend/internal/requests"
+	"github.com/CSKU-Lab/main-server/domain/cserrors"
+	"github.com/CSKU-Lab/main-server/domain/models"
+	"github.com/CSKU-Lab/main-server/domain/repositories"
+	"github.com/CSKU-Lab/main-server/internal/requests"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 )
 
-type sqlxUserRepository struct {
+type userRepository struct {
 	db instance
 }
 
-func NewSqlxUserRepository(db instance) repositories.UserRepository {
-	return &sqlxUserRepository{db: db}
+func NewUserRepository(db instance) repositories.User {
+	return &userRepository{db: db}
 }
 
 type user struct {
@@ -36,7 +36,7 @@ type user struct {
 	Roles        pq.StringArray `db:"roles"`
 }
 
-func (r *sqlxUserRepository) GetByEmail(ctx context.Context, email string) (*models.User, error) {
+func (r *userRepository) GetByEmail(ctx context.Context, email string) (*models.User, error) {
 	var user user
 	query := `SELECT  id, email, username,display_name,profile_image,
 	roles, type, created_at, updated_at FROM users WHERE email = $1 AND is_deleted = false`
@@ -61,7 +61,7 @@ func (r *sqlxUserRepository) GetByEmail(ctx context.Context, email string) (*mod
 	}, nil
 }
 
-func (r *sqlxUserRepository) GetByUsername(ctx context.Context, username string) (*models.User, error) {
+func (r *userRepository) GetByUsername(ctx context.Context, username string) (*models.User, error) {
 	var user user
 	query := `SELECT id, email, username,display_name,profile_image,
 	roles, type, created_at, updated_at 
@@ -89,7 +89,7 @@ func (r *sqlxUserRepository) GetByUsername(ctx context.Context, username string)
 	}, nil
 }
 
-func (r *sqlxUserRepository) GetByID(ctx context.Context, ID string) (*models.User, error) {
+func (r *userRepository) GetByID(ctx context.Context, ID string) (*models.User, error) {
 	var user user
 	query := `SELECT id, email, username,display_name,profile_image,
 	roles, type, created_at, updated_at 
@@ -117,7 +117,7 @@ func (r *sqlxUserRepository) GetByID(ctx context.Context, ID string) (*models.Us
 	}, nil
 }
 
-func (r *sqlxUserRepository) GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string) ([]models.User, error) {
+func (r *userRepository) GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string) ([]models.User, error) {
 	query := fmt.Sprintf(`SELECT id, email, username,display_name,profile_image,
 		roles, type, created_at, updated_at
 		FROM users 
@@ -154,7 +154,7 @@ func (r *sqlxUserRepository) GetPagination(ctx context.Context, page int, limit 
 	return users, nil
 }
 
-func (r *sqlxUserRepository) Count(ctx context.Context, search string) (int, error) {
+func (r *userRepository) Count(ctx context.Context, search string) (int, error) {
 	query := `
 		SELECT COUNT(*) FROM users 
 		WHERE (username LIKE $1 
@@ -171,7 +171,7 @@ func (r *sqlxUserRepository) Count(ctx context.Context, search string) (int, err
 	return count, nil
 }
 
-func (r *sqlxUserRepository) Create(ctx context.Context, req repositories.CreateMultiTypeUser) (*models.User, error) {
+func (r *userRepository) Create(ctx context.Context, req repositories.CreateMultiTypeUser) (*models.User, error) {
 	pgUser := user{
 		ID:          req.ID,
 		Username:    req.Username,
@@ -221,7 +221,7 @@ func (r *sqlxUserRepository) Create(ctx context.Context, req repositories.Create
 	}, nil
 }
 
-func (r *sqlxUserRepository) Update(ctx context.Context, ID string, req *requests.UpdateUser) (*models.User, error) {
+func (r *userRepository) Update(ctx context.Context, ID string, req *requests.UpdateUser) (*models.User, error) {
 	fields := &user{
 		ID:           ID,
 		Username:     req.Username,
@@ -276,7 +276,7 @@ func (r *sqlxUserRepository) Update(ctx context.Context, ID string, req *request
 	}, nil
 }
 
-func (r *sqlxUserRepository) Delete(ctx context.Context, ID string) error {
+func (r *userRepository) Delete(ctx context.Context, ID string) error {
 	_, err := r.db.ExecContext(ctx, "UPDATE users SET is_deleted = true, deleted_at = NOW() WHERE id = $1", ID)
 	if err != nil {
 		return err
@@ -285,7 +285,7 @@ func (r *sqlxUserRepository) Delete(ctx context.Context, ID string) error {
 	return nil
 }
 
-func (r *sqlxUserRepository) DeleteMany(ctx context.Context, IDs []string) error {
+func (r *userRepository) DeleteMany(ctx context.Context, IDs []string) error {
 	query, args, err := sqlx.In("UPDATE users SET is_deleted = true, deleted_at = NOW() WHERE id IN (?)", IDs)
 	if err != nil {
 		return err

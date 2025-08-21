@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/SornchaiTheDev/cs-lab-backend/domain/models"
+	"github.com/CSKU-Lab/main-server/domain/models"
 	"github.com/golang-jwt/jwt/v5"
 )
 

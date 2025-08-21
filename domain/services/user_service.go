@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/SornchaiTheDev/cs-lab-backend/domain/cserrors"
-	"github.com/SornchaiTheDev/cs-lab-backend/domain/models"
-	"github.com/SornchaiTheDev/cs-lab-backend/domain/repositories"
-	"github.com/SornchaiTheDev/cs-lab-backend/internal/requests"
+	"github.com/CSKU-Lab/main-server/domain/cserrors"
+	"github.com/CSKU-Lab/main-server/domain/models"
+	"github.com/CSKU-Lab/main-server/domain/repositories"
+	"github.com/CSKU-Lab/main-server/internal/requests"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -30,13 +30,13 @@ type UserService interface {
 }
 
 type userService struct {
-	userRepository         repositories.UserRepository
+	userRepository         repositories.User
 	userPasswordRepository repositories.UserPasswordRepository
 	userGroupRepository    repositories.UserGroupRepository
 	uowRepository          repositories.UserUoWRepository
 }
 
-func NewUserService(user repositories.UserRepository, userPassword repositories.UserPasswordRepository, userGroup repositories.UserGroupRepository, uow repositories.UserUoWRepository) UserService {
+func NewUserService(user repositories.User, userPassword repositories.UserPasswordRepository, userGroup repositories.UserGroupRepository, uow repositories.UserUoWRepository) UserService {
 	return &userService{
 		userRepository:         user,
 		userPasswordRepository: userPassword,

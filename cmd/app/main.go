@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/SornchaiTheDev/cs-lab-backend/configs"
-	"github.com/SornchaiTheDev/cs-lab-backend/domain/services"
-	"github.com/SornchaiTheDev/cs-lab-backend/internal/adapters/middlewares"
-	"github.com/SornchaiTheDev/cs-lab-backend/internal/adapters/rest"
-	"github.com/SornchaiTheDev/cs-lab-backend/internal/adapters/sqlx"
-	"github.com/SornchaiTheDev/cs-lab-backend/internal/adapters/storage"
+	"github.com/CSKU-Lab/main-server/configs"
+	"github.com/CSKU-Lab/main-server/domain/services"
+	"github.com/CSKU-Lab/main-server/internal/adapters/middlewares"
+	"github.com/CSKU-Lab/main-server/internal/adapters/rest"
+	"github.com/CSKU-Lab/main-server/internal/adapters/sqlx"
+	"github.com/CSKU-Lab/main-server/internal/adapters/storage"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -26,7 +26,7 @@ func main() {
 
 	userUoWRepo := sqlx.NewUserUoWRepository(ctx, db)
 
-	userRepo := sqlx.NewSqlxUserRepository(db)
+	userRepo := sqlx.NewUserRepository(db)
 	userPasswordRepo := sqlx.NewUserPasswordRepository(db)
 	userGroupRepo := sqlx.NewUserGroupRepository(db)
 

@@ -1,7 +1,7 @@
 package repositories
 
 type UserUoWInstance interface {
-	User() UserRepository
+	User() User
 	UserPassword() UserPasswordRepository
 	UserGroup() UserGroupRepository
 }

@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/SornchaiTheDev/cs-lab-backend/configs"
-	"github.com/SornchaiTheDev/cs-lab-backend/domain/cserrors"
+	"github.com/CSKU-Lab/main-server/configs"
+	"github.com/CSKU-Lab/main-server/domain/cserrors"
 	"github.com/gofiber/fiber/v2"
 )
 

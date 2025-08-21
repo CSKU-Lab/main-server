@@ -3,7 +3,7 @@ package repositories
 import (
 	"context"
 
-	"github.com/SornchaiTheDev/cs-lab-backend/domain/models"
+	"github.com/CSKU-Lab/main-server/domain/models"
 )
 
 type SectionRepository interface {

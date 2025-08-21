@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"log"
 
-	"github.com/SornchaiTheDev/cs-lab-backend/domain/repositories"
+	"github.com/CSKU-Lab/main-server/domain/repositories"
 	"github.com/jmoiron/sqlx"
 	"golang.org/x/net/context"
 )
@@ -24,8 +24,8 @@ func NewUserUoWRepository(ctx context.Context, db *sqlx.DB) repositories.UserUoW
 	}
 }
 
-func (u *uowInstance) User() repositories.UserRepository {
-	return NewSqlxUserRepository(u.tx)
+func (u *uowInstance) User() repositories.User {
+	return NewUserRepository(u.tx)
 }
 
 func (u *uowInstance) UserPassword() repositories.UserPasswordRepository {

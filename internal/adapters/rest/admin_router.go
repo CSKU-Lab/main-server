@@ -1,9 +1,9 @@
 package rest
 
 import (
-	"github.com/SornchaiTheDev/cs-lab-backend/domain/services"
-	"github.com/SornchaiTheDev/cs-lab-backend/internal/adapters/middlewares"
-	"github.com/SornchaiTheDev/cs-lab-backend/internal/adapters/rest/routes"
+	"github.com/CSKU-Lab/main-server/domain/services"
+	"github.com/CSKU-Lab/main-server/internal/adapters/middlewares"
+	"github.com/CSKU-Lab/main-server/internal/adapters/rest/routes"
 	"github.com/gofiber/fiber/v2"
 )
 
