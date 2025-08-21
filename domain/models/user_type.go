@@ -1,16 +1,18 @@
 package models
 
+import "errors"
+
 type UserType string
 
-func (u *UserType) New(str string) UserType {
+func (u UserType) New(str string) (UserType, error) {
 	switch str {
 	case "oauth":
-		return UserTypeOauth
+		return UserTypeOauth, nil
 	case "credential":
-		return UserTypeCredential
+		return UserTypeCredential, nil
 	}
 
-	panic("wrong user type")
+	return "", errors.New("unknown user type")
 }
 
 func (u *UserType) String() string {
