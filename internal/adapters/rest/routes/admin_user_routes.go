@@ -12,11 +12,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-type userRoutes struct {
-	router      fiber.Router
-	userService services.UserService
-}
-
 func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 	adminUserRouter := router.Group("/users")
 
