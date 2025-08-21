@@ -17,13 +17,3 @@ type User struct {
 	UpdatedAt    time.Time `json:"updated_at" sort_field:"updated_at"`
 }
 
-type UserType string
-
-func (u *UserType) String() string {
-	return string(*u)
-}
-
-var (
-	UserTypeOauth      UserType = "oauth"
-	UserTypeCredential UserType = "credential"
-)
