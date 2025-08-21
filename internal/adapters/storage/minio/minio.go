@@ -1,4 +1,4 @@
-package storage
+package minio
 
 import (
 	"context"
@@ -22,7 +22,7 @@ type minIO struct {
 	client *minio.Client
 }
 
-func NewMinIOStorage(ctx context.Context, config *configs.Config) repositories.FileRepository {
+func New(ctx context.Context, config *configs.Config) repositories.FileRepository {
 	client, err := minio.New(config.MinIO_Endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(config.MinIO_AccessKeyID, config.MinIO_SecretAccessKey, ""),
 		Secure: config.MinIO_UseSSL,

@@ -10,7 +10,7 @@ import (
 	"github.com/CSKU-Lab/main-server/internal/adapters/middlewares"
 	"github.com/CSKU-Lab/main-server/internal/adapters/rest"
 	"github.com/CSKU-Lab/main-server/internal/adapters/sqlx"
-	"github.com/CSKU-Lab/main-server/internal/adapters/storage"
+	"github.com/CSKU-Lab/main-server/internal/adapters/storage/minio"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -22,7 +22,7 @@ func main() {
 	// will be implemented in graceful shutdown
 	ctx := context.TODO()
 
-	minio := storage.NewMinIOStorage(ctx, config)
+	minio := minio.New(ctx, config)
 
 	userUoWRepo := sqlx.NewUserUoWRepository(ctx, db)
 
