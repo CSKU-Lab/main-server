@@ -21,7 +21,7 @@ type userGroup struct {
 	Name string `db:"name"`
 }
 
-func NewUserGroupRepository(db instance) repositories.UserGroupRepository {
+func NewUserGroupRepository(db instance) repositories.UserGroup {
 	return &userGroupRepository{
 		db: db,
 	}

@@ -17,10 +17,10 @@ type UserGroupService interface {
 }
 
 type userGroupService struct {
-	repo repositories.UserGroupRepository
+	repo repositories.UserGroup
 }
 
-func NewUserGroupService(repo repositories.UserGroupRepository) *userGroupService {
+func NewUserGroupService(repo repositories.UserGroup) *userGroupService {
 	return &userGroupService{
 		repo: repo,
 	}

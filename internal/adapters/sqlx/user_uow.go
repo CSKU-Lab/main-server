@@ -32,7 +32,7 @@ func (u *uowInstance) UserPassword() repositories.UserPassword {
 	return NewUserPasswordRepository(u.tx)
 }
 
-func (u *uowInstance) UserGroup() repositories.UserGroupRepository {
+func (u *uowInstance) UserGroup() repositories.UserGroup {
 	return NewUserGroupRepository(u.tx)
 }
 

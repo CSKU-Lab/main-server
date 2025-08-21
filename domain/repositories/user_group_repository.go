@@ -6,7 +6,7 @@ import (
 	"github.com/CSKU-Lab/main-server/domain/models"
 )
 
-type UserGroupRepository interface {
+type UserGroup interface {
 	Create(ctx context.Context, ID string, name string) error
 	GetByID(ctx context.Context, ID string) (*models.UserGroup, error)
 	GetByUserID(ctx context.Context, userID string) (string, error)
@@ -15,9 +15,4 @@ type UserGroupRepository interface {
 	Update(ctx context.Context, ID string, name string) error
 	Delete(ctx context.Context, ID string) error
 	AddUserToGroup(ctx context.Context, groupID string, userID string) error
-}
-
-type UserGroup struct {
-	ID   string `db:"id"`
-	Name string `db:"name"`
 }
