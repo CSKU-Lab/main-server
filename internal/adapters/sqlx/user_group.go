@@ -63,30 +63,6 @@ func (r *userGroupRepository) GetByID(ctx context.Context, ID string) (*models.U
 	}, nil
 }
 
-func (r *userGroupRepository) GetByUserID(ctx context.Context, userID string) (string, error) {
-	query := `SELECT name
-		  FROM user_group_members ugb
-		  JOIN user_groups ug
-		  ON  ug.id = ugb.group_id
-		  WHERE user_id = $1`
-
-	var name string
-	err := r.db.GetContext(ctx, &name, query, userID)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return "", cserrors.New(&cserrors.Option{
-				HttpStatus: http.StatusInternalServerError,
-				Code:       cserrors.GroupNotFound,
-				Message:    "group not found",
-			})
-		}
-		return "", err
-	}
-
-	return name, nil
-
-}
-
 func (r *userGroupRepository) GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string) ([]models.UserGroup, error) {
 	query := `SELECT * FROM user_groups WHERE name ILIKE $1 ORDER BY ` + sortBy + ` ` + sortOrder + ` LIMIT $2 OFFSET $3`
 	searchPattern := "%" + search + "%"

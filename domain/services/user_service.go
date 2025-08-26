@@ -46,63 +46,57 @@ func NewUserService(user repositories.User, userPassword repositories.UserPasswo
 }
 
 func (s *userService) GetByEmail(ctx context.Context, email string) (*models.User, error) {
-	user, err := s.userRepository.GetByEmail(ctx, email)
+	dbUser, err := s.userRepository.GetByEmail(ctx, email)
 	if err != nil {
 		return nil, err
 	}
 
-	group, err := s.userGroupRepository.GetByUserID(ctx, user.ID)
-	if err != nil {
-		var csErr *cserrors.Error
-		if errors.As(err, &csErr) && csErr.Code != cserrors.GroupNotFound {
+	user := dbUser.Model()
+
+	if dbUser.GroupID != nil {
+		group, err := s.userGroupRepository.GetByID(ctx, *dbUser.GroupID)
+		if err != nil {
 			return nil, err
 		}
-	}
-
-	if group != "" {
-		user.Group = &group
+		user.Group = group
 	}
 
 	return user, nil
 }
 
 func (s *userService) GetByUsername(ctx context.Context, username string) (*models.User, error) {
-	user, err := s.userRepository.GetByUsername(ctx, username)
+	dbUser, err := s.userRepository.GetByUsername(ctx, username)
 	if err != nil {
 		return nil, err
 	}
 
-	group, err := s.userGroupRepository.GetByUserID(ctx, user.ID)
-	if err != nil {
-		var csErr *cserrors.Error
-		if errors.As(err, &csErr) && csErr.Code != cserrors.GroupNotFound {
+	user := dbUser.Model()
+
+	if dbUser.GroupID != nil {
+		group, err := s.userGroupRepository.GetByID(ctx, *dbUser.GroupID)
+		if err != nil {
 			return nil, err
 		}
-	}
-
-	if group != "" {
-		user.Group = &group
+		user.Group = group
 	}
 
 	return user, nil
 }
 
 func (s *userService) GetByID(ctx context.Context, ID string) (*models.User, error) {
-	user, err := s.userRepository.GetByID(ctx, ID)
+	dbUser, err := s.userRepository.GetByID(ctx, ID)
 	if err != nil {
 		return nil, err
 	}
 
-	group, err := s.userGroupRepository.GetByUserID(ctx, user.ID)
-	if err != nil {
-		var csErr *cserrors.Error
-		if errors.As(err, &csErr) && csErr.Code != cserrors.GroupNotFound {
+	user := dbUser.Model()
+
+	if dbUser.GroupID != nil {
+		group, err := s.userGroupRepository.GetByID(ctx, *dbUser.GroupID)
+		if err != nil {
 			return nil, err
 		}
-	}
-
-	if group != "" {
-		user.Group = &group
+		user.Group = group
 	}
 
 	return user, nil
@@ -129,22 +123,23 @@ func (s *userService) GetPagination(ctx context.Context, page int, limit int, se
 		})
 	}
 
-	users, err := s.userRepository.GetPagination(ctx, page, limit, search, sanitizedSortBy, sanitizedSortOrder)
+	dbUsers, err := s.userRepository.GetPagination(ctx, page, limit, search, sanitizedSortBy, sanitizedSortOrder)
 	if err != nil {
 		return nil, err
 	}
 
-	for i, user := range users {
-		group, err := s.userGroupRepository.GetByUserID(ctx, user.ID)
-		if err != nil {
-			var csErr *cserrors.Error
-			if errors.As(err, &csErr) && csErr.Code == cserrors.GroupNotFound {
-				continue
-			}
-			return nil, err
-		}
+	users := make([]models.User, len(dbUsers))
+	for i, dbUser := range dbUsers {
+		user := dbUser.Model()
 
-		users[i].Group = &group
+		if dbUser.GroupID != nil {
+			group, err := s.userGroupRepository.GetByID(ctx, *dbUser.GroupID)
+			if err != nil {
+				return nil, err
+			}
+			user.Group = group
+		}
+		users[i] = *user
 	}
 
 	return users, nil
@@ -206,21 +201,15 @@ func (s *userService) Create(ctx context.Context, req *requests.CreateMultiTypeU
 	repoUser.ID = id.String()
 
 	var user *models.User
+	var groupID *string
 	err = s.uowRepository.Execute(func(u repositories.UserUoWInstance) error {
-		user, err = u.User().Create(ctx, repoUser)
+		dbUser, err := u.User().Create(ctx, repoUser)
 		if err != nil {
 			return err
 		}
 
-		if req.GroupID != nil {
-			u.UserGroup().AddUserToGroup(ctx, *req.GroupID, user.ID)
-
-			group, err := u.UserGroup().GetByID(ctx, *req.GroupID)
-			if err != nil {
-				return err
-			}
-			user.Group = &group.Name
-		}
+		groupID = dbUser.GroupID
+		user = dbUser.Model()
 
 		if req.Password != nil {
 			u.UserPassword().SetPassword(ctx, user.ID, *req.Password)
@@ -229,6 +218,15 @@ func (s *userService) Create(ctx context.Context, req *requests.CreateMultiTypeU
 	})
 	if err != nil {
 		return nil, err
+	}
+
+	if groupID != nil {
+		group, err := s.userGroupRepository.GetByID(ctx, *groupID)
+		if err != nil {
+			return nil, err
+		}
+
+		user.Group = group
 	}
 
 	return user, nil
@@ -264,53 +262,53 @@ func (s *userService) SetPassword(ctx context.Context, ID string, password strin
 	return s.userPasswordRepository.SetPassword(ctx, ID, string(hashedPassword))
 }
 
-func (s *userService) Update(ctx context.Context, ID string, user *requests.UpdateUser) (*models.User, error) {
-	dbUser, err := s.userRepository.GetByID(ctx, ID)
+func (s *userService) Update(ctx context.Context, ID string, req *requests.UpdateUser) (*models.User, error) {
+	dbUser, err := s.GetByID(ctx, ID)
 	if err != nil {
 		return nil, err
 	}
 
 	if dbUser.Type == string(models.UserTypeCredential) {
-		if user.Email != nil {
+		if req.Email != nil {
 			return nil, errors.New("credential user cannot update email")
 		}
 	}
 
-	updatedUser, err := s.userRepository.Update(ctx, ID, user)
-	if err != nil {
-		return nil, err
-	}
-
 	if dbUser.Type == string(models.UserTypeOauth) {
-		if user.Password != nil {
+		if req.Password != nil {
 			return nil, errors.New("oauth user cannot update password")
 		}
 	}
 
-	if user.Password != nil {
-		err := s.SetPassword(ctx, ID, *user.Password)
+	if req.Password != nil {
+		err := s.SetPassword(ctx, ID, *req.Password)
 		if err != nil {
 			return nil, err
 		}
 	}
 
+	updatedUser, err := s.userRepository.Update(ctx, ID, req)
+	if err != nil {
+		return nil, err
+	}
+
+	// in case no updated Fields
 	if updatedUser == nil {
 		return dbUser, nil
 	}
 
-	group, err := s.userGroupRepository.GetByUserID(ctx, ID)
-	if err != nil {
-		var csErr *cserrors.Error
-		if errors.As(err, &csErr) && csErr.Code != cserrors.GroupNotFound {
+	user := updatedUser.Model()
+
+	if updatedUser.GroupID != nil {
+		group, err := s.userGroupRepository.GetByID(ctx, *updatedUser.GroupID)
+		if err != nil {
 			return nil, err
 		}
+
+		user.Group = group
 	}
 
-	if group != "" {
-		updatedUser.Group = &group
-	}
-
-	return updatedUser, nil
+	return user, nil
 }
 
 func (s *userService) Delete(ctx context.Context, ID string) error {

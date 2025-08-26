@@ -17,6 +17,7 @@ type UpdateUser struct {
 	Email        *string `json:"email" db:"email"`
 	Password     *string `json:"password" db:"password"`
 	ProfileImage *string `json:"profile_image" db:"profile_image"`
+	GroupID      *string `json:"group_id,omitempty" db:"group"`
 }
 
 type DeleteManyUser struct {

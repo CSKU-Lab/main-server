@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
-	"github.com/CSKU-Lab/main-server/domain/models"
 	"github.com/CSKU-Lab/main-server/domain/repositories"
 	"github.com/CSKU-Lab/main-server/internal/requests"
 	"github.com/jmoiron/sqlx"
@@ -34,12 +33,13 @@ type user struct {
 	CreatedAt    time.Time      `db:"created_at"`
 	UpdatedAt    time.Time      `db:"updated_at"`
 	Roles        pq.StringArray `db:"roles"`
+	GroupID      *string        `db:"group_id"`
 }
 
-func (r *userRepository) GetByEmail(ctx context.Context, email string) (*models.User, error) {
+func (r *userRepository) GetByEmail(ctx context.Context, email string) (*repositories.UserData, error) {
 	var user user
 	query := `SELECT  id, email, username,display_name,profile_image,
-	roles, type, created_at, updated_at FROM users WHERE email = $1 AND is_deleted = false`
+	roles, group_id, type, created_at, updated_at FROM users WHERE email = $1 AND is_deleted = false`
 	err := r.db.GetContext(ctx, &user, query, email)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -48,7 +48,7 @@ func (r *userRepository) GetByEmail(ctx context.Context, email string) (*models.
 		return nil, err
 	}
 
-	return &models.User{
+	return &repositories.UserData{
 		ID:           user.ID,
 		Email:        user.Email,
 		Username:     user.Username,
@@ -58,13 +58,14 @@ func (r *userRepository) GetByEmail(ctx context.Context, email string) (*models.
 		Type:         user.Type,
 		CreatedAt:    user.CreatedAt,
 		UpdatedAt:    user.UpdatedAt,
+		GroupID:      user.GroupID,
 	}, nil
 }
 
-func (r *userRepository) GetByUsername(ctx context.Context, username string) (*models.User, error) {
+func (r *userRepository) GetByUsername(ctx context.Context, username string) (*repositories.UserData, error) {
 	var user user
 	query := `SELECT id, email, username,display_name,profile_image,
-	roles, type, created_at, updated_at 
+	roles, group_id, type, created_at, updated_at 
 	FROM users 
 	WHERE username = $1 AND is_deleted = false`
 
@@ -76,7 +77,7 @@ func (r *userRepository) GetByUsername(ctx context.Context, username string) (*m
 		return nil, err
 	}
 
-	return &models.User{
+	return &repositories.UserData{
 		ID:           user.ID,
 		Email:        user.Email,
 		Username:     user.Username,
@@ -86,13 +87,14 @@ func (r *userRepository) GetByUsername(ctx context.Context, username string) (*m
 		Type:         user.Type,
 		CreatedAt:    user.CreatedAt,
 		UpdatedAt:    user.UpdatedAt,
+		GroupID:      user.GroupID,
 	}, nil
 }
 
-func (r *userRepository) GetByID(ctx context.Context, ID string) (*models.User, error) {
+func (r *userRepository) GetByID(ctx context.Context, ID string) (*repositories.UserData, error) {
 	var user user
 	query := `SELECT id, email, username,display_name,profile_image,
-	roles, type, created_at, updated_at 
+	roles, group_id, type, created_at, updated_at 
 	FROM users 
 	WHERE id = $1 AND is_deleted = false`
 
@@ -104,7 +106,7 @@ func (r *userRepository) GetByID(ctx context.Context, ID string) (*models.User, 
 		return nil, err
 	}
 
-	return &models.User{
+	return &repositories.UserData{
 		ID:           user.ID,
 		Email:        user.Email,
 		Username:     user.Username,
@@ -114,12 +116,13 @@ func (r *userRepository) GetByID(ctx context.Context, ID string) (*models.User, 
 		Type:         user.Type,
 		CreatedAt:    user.CreatedAt,
 		UpdatedAt:    user.UpdatedAt,
+		GroupID:      user.GroupID,
 	}, nil
 }
 
-func (r *userRepository) GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string) ([]models.User, error) {
+func (r *userRepository) GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string) ([]repositories.UserData, error) {
 	query := fmt.Sprintf(`SELECT id, email, username,display_name,profile_image,
-		roles, type, created_at, updated_at
+		roles, group_id, type, created_at, updated_at
 		FROM users 
 		WHERE ( username ILIKE $1
 		OR display_name ILIKE $1
@@ -136,9 +139,9 @@ func (r *userRepository) GetPagination(ctx context.Context, page int, limit int,
 		return nil, err
 	}
 
-	users := make([]models.User, len(pgUsers))
+	users := make([]repositories.UserData, len(pgUsers))
 	for i, pgUser := range pgUsers {
-		users[i] = models.User{
+		users[i] = repositories.UserData{
 			ID:           pgUser.ID,
 			Email:        pgUser.Email,
 			Username:     pgUser.Username,
@@ -148,6 +151,7 @@ func (r *userRepository) GetPagination(ctx context.Context, page int, limit int,
 			Type:         pgUser.Type,
 			CreatedAt:    pgUser.CreatedAt,
 			UpdatedAt:    pgUser.UpdatedAt,
+			GroupID:      pgUser.GroupID,
 		}
 	}
 
@@ -171,7 +175,7 @@ func (r *userRepository) Count(ctx context.Context, search string) (int, error) 
 	return count, nil
 }
 
-func (r *userRepository) Create(ctx context.Context, req repositories.CreateMultiTypeUser) (*models.User, error) {
+func (r *userRepository) Create(ctx context.Context, req repositories.CreateMultiTypeUser) (*repositories.UserData, error) {
 	pgUser := user{
 		ID:          req.ID,
 		Username:    req.Username,
@@ -179,6 +183,7 @@ func (r *userRepository) Create(ctx context.Context, req repositories.CreateMult
 		Email:       req.Email,
 		DisplayName: req.DisplayName,
 		Roles:       req.Roles,
+		GroupID:     req.GroupID,
 	}
 
 	query, args, err := sqlx.Named(`INSERT INTO users (
@@ -187,10 +192,11 @@ func (r *userRepository) Create(ctx context.Context, req repositories.CreateMult
 			display_name,
 			email,
 			roles,
-			type
-			) VALUES (:id,:username,:display_name,:email,:roles,:type)
+			type,
+			group_id
+			) VALUES (:id,:username,:display_name,:email,:roles,:type,:group_id)
 			RETURNING id, email, username,display_name,profile_image,
-		roles, type, created_at, updated_at`, pgUser)
+			roles, group_id, type, created_at, updated_at`, pgUser)
 	if err != nil {
 		return nil, err
 	}
@@ -208,7 +214,7 @@ func (r *userRepository) Create(ctx context.Context, req repositories.CreateMult
 		}
 	}
 
-	return &models.User{
+	return &repositories.UserData{
 		ID:           dbUser.ID,
 		Email:        dbUser.Email,
 		Username:     dbUser.Username,
@@ -218,10 +224,11 @@ func (r *userRepository) Create(ctx context.Context, req repositories.CreateMult
 		Type:         dbUser.Type,
 		CreatedAt:    dbUser.CreatedAt,
 		UpdatedAt:    dbUser.UpdatedAt,
+		GroupID:      dbUser.GroupID,
 	}, nil
 }
 
-func (r *userRepository) Update(ctx context.Context, ID string, req *requests.UpdateUser) (*models.User, error) {
+func (r *userRepository) Update(ctx context.Context, ID string, req *requests.UpdateUser) (*repositories.UserData, error) {
 	fields := &user{
 		ID:           ID,
 		Username:     req.Username,
@@ -229,6 +236,7 @@ func (r *userRepository) Update(ctx context.Context, ID string, req *requests.Up
 		Roles:        pq.StringArray(req.Roles),
 		Email:        req.Email,
 		ProfileImage: req.ProfileImage,
+		GroupID:      req.GroupID,
 	}
 
 	updateFields := getUpdateFields(fields)
@@ -241,7 +249,7 @@ func (r *userRepository) Update(ctx context.Context, ID string, req *requests.Up
 	SET %s, updated_at = NOW()
 	WHERE id = :id
 	RETURNING id, email, username,display_name,profile_image,
-	roles, type, created_at, updated_at
+	roles, group_id, type, created_at, updated_at
 	`, updateFields)
 
 	query, args, err := sqlx.Named(query, fields)
@@ -263,7 +271,7 @@ func (r *userRepository) Update(ctx context.Context, ID string, req *requests.Up
 		return nil, err
 	}
 
-	return &models.User{
+	return &repositories.UserData{
 		ID:           updatedUser.ID,
 		Email:        updatedUser.Email,
 		Username:     updatedUser.Username,
@@ -273,6 +281,7 @@ func (r *userRepository) Update(ctx context.Context, ID string, req *requests.Up
 		Type:         updatedUser.Type,
 		CreatedAt:    updatedUser.CreatedAt,
 		UpdatedAt:    updatedUser.UpdatedAt,
+		GroupID:      updatedUser.GroupID,
 	}, nil
 }
 
