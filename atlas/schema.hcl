@@ -37,6 +37,10 @@ table "users" {
   column "roles" {
     type = sql("role[]")
   }
+  column "group_id" {
+    type = uuid
+    null = true
+  }
   column "created_at" {
     type = timestamp
     default = sql("CURRENT_TIMESTAMP")
@@ -117,29 +121,6 @@ table "user_groups" {
   }
   primary_key {
     columns = [ column.id ]
-  }
-}
-
-table "user_group_members" {
-  schema = schema.public
-  column "user_id" {
-    type = uuid
-  }
-  column "group_id" {
-    type = uuid
-  }
-  primary_key {
-    columns = [ column.user_id ]
-  }
-  foreign_key "fk_user_id" {
-    columns = [ column.user_id ]
-    ref_columns = [ table.users.column.id ]
-    on_delete = CASCADE
-  }
-  foreign_key "fk_group_id" {
-    columns = [ column.group_id ]
-    ref_columns = [ table.user_groups.column.id ]
-    on_delete = CASCADE
   }
 }
 
