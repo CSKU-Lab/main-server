@@ -60,6 +60,11 @@ table "users" {
   primary_key  {
     columns = [ column.id ]
   }
+  foreign_key "fk_group_id" {
+    columns = [ column.group_id ]
+    ref_columns = [ table.user_groups.column.id ]
+    on_delete = SET_NULL
+  }
   index "unique_active_username" {
     columns = [ column.username ]
     where = "is_deleted = false"
