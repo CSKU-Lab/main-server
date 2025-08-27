@@ -12,62 +12,58 @@ import (
 )
 
 type CourseService interface {
-	Create(ctx context.Context, c *requests.Course, userID string) (*models.Course, error)
+	Create(ctx context.Context, c *requests.Course) (*models.Course, error)
 	GetByID(ctx context.Context, ID string) (*models.Course, error)
 	GetPagination(ctx context.Context, page int, pageSize int, search string, sortBy string, sortOrder string, show string) ([]models.Course, error)
 	Count(ctx context.Context, search string, show string) (int, error)
-	UpdateByID(ctx context.Context, ID string, c *requests.Course) (*models.Course, error)
+	UpdateByID(ctx context.Context, ID string, c *requests.Course) error
 	DeleteByID(ctx context.Context, ID string) error
 }
 
 type courseService struct {
-	repo repositories.CourseRepository
+	courseRepo        repositories.CourseRepository
+	courseCreatorRepo repositories.CourseCreatorRepository
 }
 
-func NewCourseService(repo repositories.CourseRepository) CourseService {
+func NewCourseService(courseRepo repositories.CourseRepository, courseCreatorRepo repositories.CourseCreatorRepository) CourseService {
 	return &courseService{
-		repo: repo,
+		courseRepo:        courseRepo,
+		courseCreatorRepo: courseCreatorRepo,
 	}
 }
 
-func (s *courseService) Create(ctx context.Context, c *requests.Course, userID string) (*models.Course, error) {
+func (s *courseService) Create(ctx context.Context, c *requests.Course) (*models.Course, error) {
 	id, err := uuid.NewV7()
 	if err != nil {
 		return nil, cserrors.New(
 			&cserrors.Option{
 				HttpStatus: http.StatusInternalServerError,
-				Message:    "Cannot generate user ID",
+				Message:    "Cannot generate course ID",
 			})
 	}
 
-	err = s.repo.Create(ctx, id.String(), c)
+	err = s.courseRepo.Create(ctx, id.String(), c)
 	if err != nil {
 		return nil, err
 	}
 
-	course, err := s.GetByID(ctx, id.String())
-	if err != nil {
-		return nil, err
-	}
-
-	return course, nil
+	return s.GetByID(ctx, id.String())
 }
 
 func (s *courseService) GetByID(ctx context.Context, ID string) (*models.Course, error) {
-	course, err := s.repo.GetByID(ctx, ID)
+	course, err := s.courseRepo.GetByID(ctx, ID)
 	if err != nil {
 		return nil, err
 	}
 
-	creators, err := s.repo.GetCreators(ctx, ID)
+	creators, err := s.courseCreatorRepo.GetCreators(ctx, ID)
 	if err != nil {
 		return nil, err
 	}
 
-	courseModel := course.Model()
-	courseModel.Creators = creators
+	course.Creators = creators
 
-	return courseModel, nil
+	return course, nil
 }
 
 func (s *courseService) GetPagination(ctx context.Context, page int, pageSize int, search string, sortBy string, sortOrder string, show string) ([]models.Course, error) {
@@ -95,8 +91,20 @@ func (s *courseService) GetPagination(ctx context.Context, page int, pageSize in
 			})
 	}
 
-	return s.repo.GetPagination(ctx, page, pageSize, search, sanitizedSortBy, sanitizedSortOrder, show)
+	courses, err := s.courseRepo.GetPagination(ctx, page, pageSize, search, sanitizedSortBy, sanitizedSortOrder, show)
+	if err != nil {
+		return nil, err
+	}
 
+	for i, course := range courses {
+		creators, err := s.courseCreatorRepo.GetCreators(ctx, course.ID)
+		if err != nil {
+			return nil, err
+		}
+		courses[i].Creators = creators
+	}
+
+	return courses, nil
 }
 
 func (s *courseService) Count(ctx context.Context, search string, show string) (int, error) {
@@ -108,35 +116,35 @@ func (s *courseService) Count(ctx context.Context, search string, show string) (
 			})
 	}
 
-	return s.repo.Count(ctx, search, show)
+	return s.courseRepo.Count(ctx, search, show)
 }
 
-func (s *courseService) UpdateByID(ctx context.Context, ID string, c *requests.Course) (*models.Course, error) {
+func (s *courseService) UpdateByID(ctx context.Context, ID string, c *requests.Course) error {
 	if c.Creators != nil && len(c.Creators) == 0 {
-		return nil, cserrors.New(&cserrors.Option{
+		return cserrors.New(&cserrors.Option{
 			HttpStatus: http.StatusBadRequest,
 			Message:    "At least one creator is required",
 		})
 	}
 
 	if c.Creators != nil {
-		err := s.repo.SetCreators(ctx, ID, c.Creators)
+		err := s.courseCreatorRepo.SetCreators(ctx, ID, c.Creators)
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
 
 	if c.Name != "" {
-		err := s.repo.UpdateByID(ctx, ID, c)
+		err := s.courseRepo.UpdateByID(ctx, ID, c)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 	}
 
-	return s.GetByID(ctx, ID)
+	return nil
 }
 
 func (s *courseService) DeleteByID(ctx context.Context, ID string) error {
-	return s.repo.DeleteByID(ctx, ID)
+	return s.courseRepo.DeleteByID(ctx, ID)
 }

@@ -4,18 +4,38 @@ import (
 	"reflect"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 )
 
 type AppValidator interface {
-	Validate(data interface{}) []ErrorResponse
+	Validate(data any) []ErrorResponse
 }
 
 type appValidator struct {
-	validator *validator.Validate
+	validate *validator.Validate
+}
+
+func isUUIDSlice(fl validator.FieldLevel) bool {
+	slice, ok := fl.Field().Interface().([]string)
+	if !ok {
+		return false
+	}
+
+	for _, s := range slice {
+		if _, err := uuid.Parse(s); err != nil {
+			return false
+		}
+	}
+
+	return true
 }
 
 func NewAppValidator() AppValidator {
-	return &appValidator{validator: validator.New()}
+	validate := validator.New()
+
+	validate.RegisterValidation("uuid_slice", isUUIDSlice)
+
+	return &appValidator{validate: validate}
 }
 
 type ErrorResponse struct {
@@ -23,10 +43,10 @@ type ErrorResponse struct {
 	Message string `json:"message"`
 }
 
-func (v *appValidator) Validate(data interface{}) []ErrorResponse {
+func (v *appValidator) Validate(data any) []ErrorResponse {
 	errors := []ErrorResponse{}
 
-	if errs := v.validator.Struct(data); errs != nil {
+	if errs := v.validate.Struct(data); errs != nil {
 
 		for _, err := range errs.(validator.ValidationErrors) {
 			fieldName := getJSONFieldName(data, err.Field())
@@ -41,7 +61,7 @@ func (v *appValidator) Validate(data interface{}) []ErrorResponse {
 }
 
 // Thanks ChatGPT
-func getJSONFieldName(obj interface{}, fieldName string) string {
+func getJSONFieldName(obj any, fieldName string) string {
 	t := reflect.TypeOf(obj)
 	if t.Kind() == reflect.Ptr {
 		t = t.Elem() // Dereference if it's a pointer

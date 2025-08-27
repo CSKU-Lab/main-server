@@ -7,7 +7,6 @@ import (
 	"strconv"
 
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
-	"github.com/CSKU-Lab/main-server/domain/models"
 	"github.com/CSKU-Lab/main-server/domain/services"
 	"github.com/CSKU-Lab/main-server/internal/adapters/middlewares"
 	"github.com/CSKU-Lab/main-server/internal/requests"
@@ -17,19 +16,10 @@ import (
 func NewAdminCourseRoutes(router fiber.Router, service services.CourseService) {
 	courseRouter := router.Group("/courses")
 
-	courseRouter.Post("/", middlewares.ValidateMiddleware(&models.Course{}), func(c *fiber.Ctx) error {
-		var courseRequest requests.Course
-		err := c.BodyParser(&courseRequest)
-		if err != nil {
-			return cserrors.New(&cserrors.Option{
-				HttpStatus: http.StatusBadRequest,
-				Message:    "Invalid request",
-			})
-		}
+	courseRouter.Post("/", middlewares.ValidateMiddleware(&requests.Course{}), func(c *fiber.Ctx) error {
+		req := c.Locals("request")
 
-		user := c.Locals("user").(*models.User)
-
-		createdCourse, err := service.Create(c.Context(), &courseRequest, user.ID)
+		course, err := service.Create(c.Context(), req.(*requests.Course))
 		if err != nil {
 			var csErr *cserrors.Error
 			if errors.As(err, &csErr) {
@@ -41,8 +31,7 @@ func NewAdminCourseRoutes(router fiber.Router, service services.CourseService) {
 			})
 		}
 
-		return c.Status(fiber.StatusCreated).JSON(createdCourse)
-
+		return c.Status(fiber.StatusCreated).JSON(course)
 	})
 
 	courseRouter.Get("/", func(c *fiber.Ctx) error {
@@ -118,7 +107,7 @@ func NewAdminCourseRoutes(router fiber.Router, service services.CourseService) {
 			})
 		}
 
-		updateCourse, err := service.UpdateByID(c.Context(), courseID, &course)
+		err = service.UpdateByID(c.Context(), courseID, &course)
 		if err != nil {
 			var csErr *cserrors.Error
 			if errors.As(err, &csErr) {
@@ -130,7 +119,7 @@ func NewAdminCourseRoutes(router fiber.Router, service services.CourseService) {
 			})
 		}
 
-		return c.JSON(updateCourse)
+		return c.SendStatus(fiber.StatusNoContent)
 	})
 
 	courseRouter.Delete("/:courseID", func(c *fiber.Ctx) error {

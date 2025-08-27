@@ -23,8 +23,14 @@ func NewSqlxCourseRepository(db *sqlx.DB) repositories.CourseRepository {
 	return &sqlxCourseRepository{db: db}
 }
 
+type course struct {
+	ID   string `db:"id"`
+	Name string `db:"name"`
+	Type string `db:"type"`
+}
+
 func (r *sqlxCourseRepository) Create(ctx context.Context, ID string, c *requests.Course) error {
-	query := `INSERT INTO courses (id, name) VALUES ($1, $2)`
+	query := `INSERT INTO courses (id, name, type) VALUES ($1, $2, $3)`
 
 	tx, err := r.db.BeginTxx(ctx, nil)
 	if err != nil {
@@ -39,12 +45,12 @@ func (r *sqlxCourseRepository) Create(ctx context.Context, ID string, c *request
 		}
 	}()
 
-	_, err = tx.ExecContext(ctx, query, ID, c.Name)
+	_, err = tx.ExecContext(ctx, query, ID, c.Name, c.Type)
 	if err != nil {
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) {
 			if pqErr.Code == "23505" {
-				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Course already exists"})
+				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "course with that name is already exists"})
 			}
 		}
 
@@ -68,80 +74,21 @@ func (r *sqlxCourseRepository) Create(ctx context.Context, ID string, c *request
 	return nil
 }
 
-func (r *sqlxCourseRepository) SetCreators(ctx context.Context, ID string, creators []string) error {
-	tx, err := r.db.BeginTxx(ctx, nil)
-	if err != nil {
-		return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Failed to begin transaction"})
-	}
-
-	defer func() {
-		if err != nil {
-			if rollbackErr := tx.Rollback(); rollbackErr != nil {
-				log.Printf("Failed to rollback transaction: %v", rollbackErr)
-			}
-		}
-	}()
-
-	query := `DELETE FROM course_creators WHERE course_id = $1`
-	_, err = tx.ExecContext(ctx, query, ID)
-	if err != nil {
-		log.Printf("Failed to delete existing course creators: %v", err)
-		return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Failed to delete existing course creators"})
-	}
-
-	for order, creator := range creators {
-		query := `INSERT INTO course_creators (course_id, creator_id, "order") VALUES ($1, $2, $3)`
-		_, err := tx.ExecContext(ctx, query, ID, creator, order)
-		if err != nil {
-			log.Printf("Failed to insert course creator: %v", err)
-			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Failed to set course creators"})
-		}
-	}
-
-	if err = tx.Commit(); err != nil {
-		log.Printf("Failed to commit transaction: %v", err)
-		return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Failed to commit transaction"})
-	}
-
-	return nil
-}
-
-func (r *sqlxCourseRepository) GetCreators(ctx context.Context, ID string) ([]models.CourseCreator, error) {
-	query := `SELECT id, username, display_name, profile_image FROM course_creators CA
-		  JOIN users ON users.id = CA.creator_id 
-		  WHERE course_id = $1
-		  ORDER BY "order" ASC`
-
-	rows, err := r.db.QueryxContext(ctx, query, ID)
-	if err != nil {
-		return nil, cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Failed to get course creators"})
-	}
-
-	creators := []models.CourseCreator{}
-
-	for rows.Next() {
-		var creator models.CourseCreator
-		err = rows.StructScan(&creator)
-		if err != nil {
-			return nil, cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Failed to scan course creator"})
-		}
-		creators = append(creators, creator)
-	}
-
-	return creators, nil
-}
-
-func (r *sqlxCourseRepository) GetByID(ctx context.Context, ID string) (*repositories.Course, error) {
-	query := `SELECT * FROM courses WHERE id = $1 AND is_deleted = false`
+func (r *sqlxCourseRepository) GetByID(ctx context.Context, ID string) (*models.Course, error) {
+	query := `SELECT id, name, type FROM courses WHERE id = $1 AND is_deleted = false`
 	row := r.db.QueryRowxContext(ctx, query, ID)
 
-	var course repositories.Course
+	var course course
 	err := row.StructScan(&course)
 	if err != nil {
 		return nil, cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Course not found"})
 	}
 
-	return &course, nil
+	return &models.Course{
+		ID:   course.ID,
+		Name: course.Name,
+		Type: course.Type,
+	}, nil
 }
 
 func (r *sqlxCourseRepository) GetPagination(ctx context.Context, page int, pageSize int, search string, sortBy string, sortOrder string, show string) ([]models.Course, error) {
@@ -155,7 +102,7 @@ func (r *sqlxCourseRepository) GetPagination(ctx context.Context, page int, page
 		archiveCondition = ""
 	}
 
-	query := fmt.Sprintf(`SELECT * FROM courses 
+	query := fmt.Sprintf(`SELECT id, name, type FROM courses 
 		WHERE LOWER(name) LIKE $1 
 		AND deleted_at IS NULL
 		%s
@@ -172,20 +119,18 @@ func (r *sqlxCourseRepository) GetPagination(ctx context.Context, page int, page
 	courses := []models.Course{}
 
 	for rows.Next() {
-		var course models.Course
+		var course course
 		err = rows.StructScan(&course)
 		if err != nil {
 			return nil, err
 		}
 
-		creators, err := r.GetCreators(ctx, course.ID)
-		if err != nil {
-			return nil, err
-		}
-
-		course.Creators = creators
-
-		courses = append(courses, course)
+		courses = append(courses, models.Course{
+			ID:       course.ID,
+			Name:     course.Name,
+			Type:     course.Type,
+			Creators: make([]models.CourseCreator, 0),
+		})
 	}
 
 	return courses, nil

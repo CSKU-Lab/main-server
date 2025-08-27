@@ -41,7 +41,8 @@ func main() {
 	semesterService := services.NewSemesterService(semesterRepo)
 
 	courseRepo := sqlx.NewSqlxCourseRepository(db)
-	courseService := services.NewCourseService(courseRepo)
+	courseCreatorRepo := sqlx.NewCourseCreatorRepository(db)
+	courseService := services.NewCourseService(courseRepo, courseCreatorRepo)
 
 	sectionRepo := sqlx.NewSectionRepository(db)
 	sectionService := services.NewSectionService(sectionRepo, courseRepo, minio)
