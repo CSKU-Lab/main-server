@@ -134,7 +134,7 @@ func (s *courseService) UpdateByID(ctx context.Context, ID string, c *requests.C
 		}
 	}
 
-	if c.Name != "" {
+	if c.Name != "" || c.Type != "" {
 		err := s.courseRepo.UpdateByID(ctx, ID, c)
 		if err != nil {
 			return err

@@ -95,19 +95,11 @@ func NewAdminCourseRoutes(router fiber.Router, service services.CourseService) {
 		return c.JSON(course)
 	})
 
-	courseRouter.Patch("/:courseID", func(c *fiber.Ctx) error {
+	courseRouter.Patch("/:courseID", middlewares.ValidateMiddleware(&requests.Course{}), func(c *fiber.Ctx) error {
 		courseID := c.Params("courseID")
-		var course requests.Course
+		course := c.Locals("request").(*requests.Course)
 
-		err := c.BodyParser(&course)
-		if err != nil {
-			return cserrors.New(&cserrors.Option{
-				HttpStatus: http.StatusBadRequest,
-				Message:    "Error parsing request",
-			})
-		}
-
-		err = service.UpdateByID(c.Context(), courseID, &course)
+		err := service.UpdateByID(c.Context(), courseID, course)
 		if err != nil {
 			var csErr *cserrors.Error
 			if errors.As(err, &csErr) {

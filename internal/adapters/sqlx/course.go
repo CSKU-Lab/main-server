@@ -169,18 +169,19 @@ func (r *sqlxCourseRepository) Count(ctx context.Context, search string, show st
 func (r *sqlxCourseRepository) UpdateByID(ctx context.Context, ID string, c *requests.Course) error {
 	updateFields := getUpdateFields(&models.Course{
 		Name: c.Name,
+		Type: c.Type,
 	})
 
 	query := fmt.Sprintf(`
 	UPDATE courses
 	SET %s , updated_at = NOW()
-	WHERE id = :id
-	RETURNING *
+	WHERE id = :id	
 	`, updateFields)
 
-	row, err := r.db.NamedQueryContext(ctx, query, &models.Course{
+	_, err := r.db.NamedExecContext(ctx, query, &models.Course{
 		ID:   ID,
 		Name: c.Name,
+		Type: c.Type,
 	})
 	if err != nil {
 		log.Println(err)
@@ -194,14 +195,6 @@ func (r *sqlxCourseRepository) UpdateByID(ctx context.Context, ID string, c *req
 			}
 		}
 		return err
-	}
-
-	var updatedCourse models.Course
-	for row.Next() {
-		err = row.StructScan(&updatedCourse)
-		if err != nil {
-			return err
-		}
 	}
 
 	return nil
