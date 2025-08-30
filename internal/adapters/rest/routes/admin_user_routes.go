@@ -8,6 +8,7 @@ import (
 
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
 	"github.com/CSKU-Lab/main-server/domain/services"
+	"github.com/CSKU-Lab/main-server/internal/adapters/middlewares"
 	"github.com/CSKU-Lab/main-server/internal/requests"
 	"github.com/gofiber/fiber/v2"
 )
@@ -62,18 +63,10 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 		})
 	})
 
-	adminUserRouter.Post("/", func(c *fiber.Ctx) error {
-		var userRequest requests.CreateMultiTypeUser
+	adminUserRouter.Post("/", middlewares.ValidateMiddleware(&requests.CreateMultiTypeUser{}), func(c *fiber.Ctx) error {
+		userRequest := c.Locals("request").(*requests.CreateMultiTypeUser)
 
-		err := c.BodyParser(&userRequest)
-		if err != nil {
-			return cserrors.New(
-				&cserrors.Option{
-					HttpStatus: http.StatusBadRequest,
-					Message:    "Error parsing request"})
-		}
-
-		user, err := userService.Create(c.Context(), &userRequest)
+		user, err := userService.Create(c.Context(), userRequest)
 		if err != nil {
 			var e *cserrors.Error
 			if errors.As(err, &e) {
@@ -88,18 +81,10 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 		return c.Status(fiber.StatusCreated).JSON(user)
 	})
 
-	adminUserRouter.Post("/import", func(c *fiber.Ctx) error {
-		var createManyUsers requests.CreateManyUsers
+	adminUserRouter.Post("/import", middlewares.ValidateMiddleware(&requests.CreateManyUsers{}), func(c *fiber.Ctx) error {
+		createManyUsers := c.Locals("request").(*requests.CreateManyUsers)
 
-		err := c.BodyParser(&createManyUsers)
-		if err != nil {
-			return cserrors.New(&cserrors.Option{
-				HttpStatus: http.StatusBadRequest,
-				Message:    "Error parsing request",
-			})
-		}
-
-		users, err := userService.CreateMany(c.Context(), &createManyUsers)
+		users, err := userService.CreateMany(c.Context(), createManyUsers)
 		if err != nil {
 			var e *cserrors.Error
 			if errors.As(err, &e) {
@@ -132,18 +117,10 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 		return c.JSON(user)
 	})
 
-	// TODO: Add validation for user type
-	adminUserRouter.Patch("/:userID", func(c *fiber.Ctx) error {
-		var updateUser requests.UpdateUser
-		err := c.BodyParser(&updateUser)
-		if err != nil {
-			return cserrors.New(&cserrors.Option{
-				HttpStatus: http.StatusBadRequest,
-				Message:    "Invalid request body",
-			})
-		}
+	adminUserRouter.Patch("/:userID", middlewares.ValidateMiddleware(&requests.UpdateUser{}), func(c *fiber.Ctx) error {
+		updateUser := c.Locals("request").(*requests.UpdateUser)
 
-		user, err := userService.Update(c.Context(), c.Params("userID"), &updateUser)
+		user, err := userService.Update(c.Context(), c.Params("userID"), updateUser)
 		if err != nil {
 			var e *cserrors.Error
 			if errors.As(err, &e) {
@@ -170,18 +147,10 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 		return c.SendStatus(fiber.StatusNoContent)
 	})
 
-	adminUserRouter.Post("/deleteMany", func(c *fiber.Ctx) error {
-		var deleteManyUser requests.DeleteManyUser
+	adminUserRouter.Post("/deleteMany", middlewares.ValidateMiddleware(&requests.DeleteManyUser{}), func(c *fiber.Ctx) error {
+		deleteManyUser := c.Locals("request").(*requests.DeleteManyUser)
 
-		err := c.BodyParser(&deleteManyUser)
-		if err != nil {
-			return cserrors.New(&cserrors.Option{
-				HttpStatus: http.StatusBadRequest,
-				Message:    "Error cannot parse body",
-			})
-		}
-
-		err = userService.DeleteMany(c.Context(), deleteManyUser.IDs)
+		err := userService.DeleteMany(c.Context(), deleteManyUser.IDs)
 		if err != nil {
 			return cserrors.New(&cserrors.Option{
 				HttpStatus: http.StatusInternalServerError,
