@@ -3,33 +3,34 @@ package requests
 import (
 	"time"
 
+	"github.com/CSKU-Lab/main-server/domain/models"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
-type Semester struct {
-	Name        string    `json:"name"`
-	Type        string    `json:"type"`
-	StartedDate time.Time `json:"started_date"`
+type CreateSemester struct {
+	Name        string          `json:"name"`
+	Type        models.Semester `json:"type"`
+	StartedDate time.Time       `json:"started_date"`
 }
 
-func (s *Semester) Validate() error {
+func (s *CreateSemester) Validate() error {
 	return validation.ValidateStruct(s,
 		validation.Field(&s.Name, validation.Required),
-		validation.Field(&s.Type, validation.Required, validation.In("first", "second", "summer").Error("must be one of 'first', 'second', 'summer'")),
+		validation.Field(&s.Type),
 		validation.Field(&s.StartedDate, validation.Required),
 	)
 }
 
 type UpdateSemester struct {
-	Name        *string    `json:"name"`
-	Type        *string    `json:"type"`
-	StartedDate *time.Time `json:"started_date"`
+	Name        string              `json:"name"`
+	Type        models.SemesterType `json:"type"`
+	StartedDate time.Time           `json:"started_date"`
 }
 
 func (s *UpdateSemester) Validate() error {
 	return validation.ValidateStruct(s,
 		validation.Field(&s.Name, validation.NilOrNotEmpty),
-		validation.Field(&s.Type, validation.NilOrNotEmpty, validation.In("first", "second", "summer").Error("must be one of 'first', 'second', 'summer'")),
+		validation.Field(&s.Type),
 		validation.Field(&s.StartedDate, validation.NilOrNotEmpty),
 	)
 }

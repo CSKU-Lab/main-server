@@ -319,7 +319,7 @@ table "semesters" {
     type = enum.semester_type
   }
   column "started_date" {
-    type = timestamp
+    type = date
   }
   column "created_at" {
     type = timestamp
