@@ -16,8 +16,8 @@ import (
 func NewAdminSemesterRoutes(router fiber.Router, service services.SemesterService) {
 	semesterRouter := router.Group("/semesters")
 
-	semesterRouter.Post("/", middlewares.ValidateMiddleware(&requests.Semester{}), func(c *fiber.Ctx) error {
-		sem := c.Locals("request").(*requests.Semester)
+	semesterRouter.Post("/", middlewares.ValidateMiddleware[requests.Semester](), func(c *fiber.Ctx) error {
+		sem := c.Locals("body").(*requests.Semester)
 
 		createdSem, err := service.Create(c.Context(), sem)
 		if err != nil {
@@ -82,17 +82,17 @@ func NewAdminSemesterRoutes(router fiber.Router, service services.SemesterServic
 		return c.JSON(sem)
 	})
 
-	semesterRouter.Patch("/:semID", func(c *fiber.Ctx) error {
+	semesterRouter.Patch("/:semID", middlewares.ValidateMiddleware[requests.UpdateSemester](), func(c *fiber.Ctx) error {
 		ID := c.Params("semID")
 
-		var sem requests.Semester
+		sem := c.Locals("body").(*requests.UpdateSemester)
 
-		err := c.BodyParser(&sem)
+		err := c.BodyParser(sem)
 		if err != nil {
 			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusBadRequest, Message: "Error parsing request"})
 		}
 
-		updateSem, err := service.UpdateByID(c.Context(), ID, &sem)
+		updateSem, err := service.UpdateByID(c.Context(), ID, sem)
 		if err != nil {
 			var csErr *cserrors.Error
 			if errors.As(err, &csErr) {

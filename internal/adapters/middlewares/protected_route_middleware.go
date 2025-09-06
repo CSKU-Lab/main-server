@@ -7,6 +7,7 @@ import (
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
 	"github.com/CSKU-Lab/main-server/domain/models"
 	"github.com/CSKU-Lab/main-server/infrastructure/auth"
+	"github.com/CSKU-Lab/main-server/internal/converter"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -28,9 +29,14 @@ func ProtectedRouteMiddleware(secret string) func(*fiber.Ctx) error {
 		}
 
 		if claims, ok := token.Claims.(*auth.JWTClaims); ok && token.Valid {
-			roles := make([]string, len(claims.Roles))
-			for i, v := range claims.Roles {
-				roles[i] = v.(string)
+			roleStringSlice, err := converter.ToStringSlice(claims.Roles)
+			if err != nil {
+				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusUnauthorized, Message: "Something went wrong"})
+			}
+
+			roleSlice, err := converter.ToRoleSlice(roleStringSlice)
+			if err != nil {
+				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusUnauthorized, Message: "Something went wrong"})
 			}
 
 			c.Locals("user", &models.User{
@@ -38,7 +44,7 @@ func ProtectedRouteMiddleware(secret string) func(*fiber.Ctx) error {
 				Username:     claims.Username,
 				DisplayName:  claims.DisplayName,
 				ProfileImage: claims.ProfileImage,
-				Roles:        roles,
+				Roles:        roleSlice,
 			})
 
 			return c.Next()

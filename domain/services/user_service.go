@@ -150,34 +150,6 @@ func (s *userService) Count(ctx context.Context, search string) (int, error) {
 }
 
 func (s *userService) Create(ctx context.Context, req *requests.CreateMultiTypeUser) (*models.User, error) {
-	if models.UserType(req.Type) == models.UserTypeCredential && req.Email != nil {
-		return nil, cserrors.New(&cserrors.Option{
-			HttpStatus: http.StatusBadRequest,
-			Message:    "Credential user cannot have email",
-		})
-	}
-
-	if models.UserType(req.Type) == models.UserTypeOauth && req.Password != nil {
-		return nil, cserrors.New(&cserrors.Option{
-			HttpStatus: http.StatusBadRequest,
-			Message:    "Oauth user cannot have password",
-		})
-	}
-
-	if models.UserType(req.Type) == models.UserTypeCredential && req.Password == nil {
-		return nil, cserrors.New(&cserrors.Option{
-			HttpStatus: http.StatusBadRequest,
-			Message:    "Credential user must have password",
-		})
-	}
-
-	if models.UserType(req.Type) == models.UserTypeCredential && req.GroupID == nil {
-		return nil, cserrors.New(&cserrors.Option{
-			HttpStatus: http.StatusBadRequest,
-			Message:    "Credential user must have group",
-		})
-	}
-
 	if models.UserType(req.Type) == models.UserTypeCredential {
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(*req.Password), 10)
 		if err != nil {

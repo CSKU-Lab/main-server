@@ -11,7 +11,7 @@ type User struct {
 	Email        *string    `json:"email" sort_field:"email"`
 	DisplayName  string     `json:"display_name" sort_field:"display_name"`
 	ProfileImage *string    `json:"profile_image"`
-	Roles        []string   `json:"roles" sort_field:"roles"`
+	Roles        []Role     `json:"roles" sort_field:"roles"`
 	Group        *UserGroup `json:"group" sort_field:"group"`
 	CreatedAt    time.Time  `json:"created_at" sort_field:"created_at"`
 	UpdatedAt    time.Time  `json:"updated_at" sort_field:"updated_at"`

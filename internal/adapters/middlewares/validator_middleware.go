@@ -1,46 +1,34 @@
 package middlewares
 
 import (
-	"errors"
-	"reflect"
-
-	"github.com/CSKU-Lab/main-server/internal/validator"
+	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/gofiber/fiber/v2"
 )
 
-func ValidateMiddleware(r any) func(*fiber.Ctx) error {
-	if err := isStructPointer(r); err != nil {
-		return func(c *fiber.Ctx) error {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error":   "Internal Server Error",
-				"message": "Invalid using ValidateMiddleware need to pass struct pointer to the middlware",
+func ValidateMiddleware[T any, PT interface {
+	*T
+	validation.Validatable
+}]() func(*fiber.Ctx) error {
+	return func(c *fiber.Ctx) error {
+		body := new(T)
+		err := c.BodyParser(body)
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error":   "Bad Request",
+				"message": "Invalid request body",
 			})
 		}
-	}
 
-	appValidator := validator.NewAppValidator()
-
-	return func(c *fiber.Ctx) error {
-		c.BodyParser(&r)
-
-		if errs := appValidator.Validate(r); len(errs) > 0 {
+		var validator PT = body
+		if err := validator.Validate(); err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"error":  "Bad Request",
-				"fields": errs,
+				"fields": err,
 			})
 		}
 
-		c.Locals("request", r)
+		c.Locals("body", body)
 
 		return c.Next()
 	}
-}
-
-func isStructPointer(i any) error {
-	typ := reflect.TypeOf(i)
-	if typ.Kind() != reflect.Ptr {
-		return errors.New("not a pointer")
-	}
-
-	return nil
 }

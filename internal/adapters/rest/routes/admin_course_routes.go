@@ -8,7 +8,6 @@ import (
 
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
 	"github.com/CSKU-Lab/main-server/domain/services"
-	"github.com/CSKU-Lab/main-server/internal/adapters/middlewares"
 	"github.com/CSKU-Lab/main-server/internal/requests"
 	"github.com/gofiber/fiber/v2"
 )
@@ -16,7 +15,7 @@ import (
 func NewAdminCourseRoutes(router fiber.Router, service services.CourseService) {
 	courseRouter := router.Group("/courses")
 
-	courseRouter.Post("/", middlewares.ValidateMiddleware(&requests.Course{}), func(c *fiber.Ctx) error {
+	courseRouter.Post("/" /*middlewares.ValidateMiddleware(&requests.Course{}),*/, func(c *fiber.Ctx) error {
 		req := c.Locals("request")
 
 		course, err := service.Create(c.Context(), req.(*requests.Course))
@@ -95,7 +94,7 @@ func NewAdminCourseRoutes(router fiber.Router, service services.CourseService) {
 		return c.JSON(course)
 	})
 
-	courseRouter.Patch("/:courseID", middlewares.ValidateMiddleware(&requests.Course{}), func(c *fiber.Ctx) error {
+	courseRouter.Patch("/:courseID" /*middlewares.ValidateMiddleware(&requests.Course{}),*/, func(c *fiber.Ctx) error {
 		courseID := c.Params("courseID")
 		course := c.Locals("request").(*requests.Course)
 

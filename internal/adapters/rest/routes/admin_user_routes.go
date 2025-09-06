@@ -63,8 +63,8 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 		})
 	})
 
-	adminUserRouter.Post("/", middlewares.ValidateMiddleware(&requests.CreateMultiTypeUser{}), func(c *fiber.Ctx) error {
-		userRequest := c.Locals("request").(*requests.CreateMultiTypeUser)
+	adminUserRouter.Post("/", middlewares.ValidateMiddleware[requests.CreateMultiTypeUser](), func(c *fiber.Ctx) error {
+		userRequest := c.Locals("body").(*requests.CreateMultiTypeUser)
 
 		user, err := userService.Create(c.Context(), userRequest)
 		if err != nil {
@@ -81,8 +81,8 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 		return c.Status(fiber.StatusCreated).JSON(user)
 	})
 
-	adminUserRouter.Post("/import", middlewares.ValidateMiddleware(&requests.CreateManyUsers{}), func(c *fiber.Ctx) error {
-		createManyUsers := c.Locals("request").(*requests.CreateManyUsers)
+	adminUserRouter.Post("/import", middlewares.ValidateMiddleware[requests.CreateManyUsers](), func(c *fiber.Ctx) error {
+		createManyUsers := c.Locals("body").(*requests.CreateManyUsers)
 
 		users, err := userService.CreateMany(c.Context(), createManyUsers)
 		if err != nil {
@@ -117,8 +117,8 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 		return c.JSON(user)
 	})
 
-	adminUserRouter.Patch("/:userID", middlewares.ValidateMiddleware(&requests.UpdateUser{}), func(c *fiber.Ctx) error {
-		updateUser := c.Locals("request").(*requests.UpdateUser)
+	adminUserRouter.Patch("/:userID", middlewares.ValidateMiddleware[requests.UpdateUser](), func(c *fiber.Ctx) error {
+		updateUser := c.Locals("body").(*requests.UpdateUser)
 
 		user, err := userService.Update(c.Context(), c.Params("userID"), updateUser)
 		if err != nil {
@@ -147,8 +147,8 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 		return c.SendStatus(fiber.StatusNoContent)
 	})
 
-	adminUserRouter.Post("/deleteMany", middlewares.ValidateMiddleware(&requests.DeleteManyUser{}), func(c *fiber.Ctx) error {
-		deleteManyUser := c.Locals("request").(*requests.DeleteManyUser)
+	adminUserRouter.Post("/deleteMany", middlewares.ValidateMiddleware[requests.DeleteManyUser](), func(c *fiber.Ctx) error {
+		deleteManyUser := c.Locals("body").(*requests.DeleteManyUser)
 
 		err := userService.DeleteMany(c.Context(), deleteManyUser.IDs)
 		if err != nil {

@@ -1,6 +1,10 @@
 package models
 
-import "errors"
+import (
+	"errors"
+
+	validation "github.com/go-ozzo/ozzo-validation/v4"
+)
 
 type UserType string
 
@@ -15,8 +19,8 @@ func (u UserType) New(str string) (UserType, error) {
 	return "", errors.New("unknown user type")
 }
 
-func (u *UserType) String() string {
-	return string(*u)
+func (u UserType) Validate() error {
+	return validation.Validate(string(u), validation.Required, validation.In("oauth", "credential").Error("must be one of 'oauth', 'credential'"))
 }
 
 var (

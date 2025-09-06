@@ -46,8 +46,16 @@ func (u *UserData) Model() *models.User {
 		Type:         u.Type,
 		Email:        u.Email,
 		ProfileImage: u.ProfileImage,
-		Roles:        u.Roles,
+		Roles:        toRoleArray(u.Roles),
 		CreatedAt:    u.CreatedAt,
 		UpdatedAt:    u.CreatedAt,
 	}
+}
+
+func toRoleArray(roles []string) []models.Role {
+	result := make([]models.Role, len(roles))
+	for i, role := range roles {
+		result[i] = models.Role(role)
+	}
+	return result
 }

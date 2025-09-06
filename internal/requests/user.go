@@ -1,37 +1,76 @@
 package requests
 
-type BaseUser struct {
-	Username    string   `json:"username" db:"username"`
-	DisplayName string   `json:"display_name" db:"display_name"`
-	Roles       []string `json:"roles" db:"roles"`
+import (
+	"github.com/CSKU-Lab/main-server/domain/models"
+	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/go-ozzo/ozzo-validation/v4/is"
+)
+
+type CreateMultiTypeUser struct {
+	Username    string          `json:"username"`
+	DisplayName string          `json:"display_name"`
+	Roles       []string        `json:"roles"`
+	Type        models.UserType `json:"type"`
+	Email       *string         `json:"email"`
+	Password    *string         `json:"password"`
+	GroupID     *string         `json:"group_id"`
 }
 
-type CreateCredentialUser struct {
-	BaseUser
-	Password string `json:"password" db:"password"`
-	Group    string `json:"group"`
+func (c *CreateMultiTypeUser) Validate() error {
+	return validation.ValidateStruct(c,
+		validation.Field(&c.Username, validation.Required),
+		validation.Field(&c.DisplayName, validation.Required),
+		validation.Field(&c.Roles, validation.Required, validation.Each(validation.In("admin", "instructor", "student").Error("must be one of 'admin', 'instructor', 'student'"))),
+		validation.Field(&c.Type),
+		validation.Field(&c.Password, validation.When(c.Type == "credential", validation.Required).Else(validation.Nil), validation.Length(8, 0)),
+		validation.Field(&c.Email, validation.When(c.Type == "oauth", validation.Required.Error("required for oauth user")).Else(validation.Nil.Error("field must be null when user type is credential"), is.Email)),
+		validation.Field(&c.GroupID, validation.When(c.Type == "credential", validation.Required).Else(validation.NilOrNotEmpty), is.UUID),
+	)
 }
 
 type UpdateUser struct {
-	BaseUser
-	Email        *string `json:"email" db:"email"`
-	Password     *string `json:"password" db:"password"`
-	ProfileImage *string `json:"profile_image" db:"profile_image"`
-	GroupID      *string `json:"group_id,omitempty" db:"group"`
+	Username     string   `json:"username"`
+	DisplayName  string   `json:"display_name"`
+	Roles        []string `json:"roles"`
+	Email        *string  `json:"email"`
+	Password     *string  `json:"password"`
+	ProfileImage *string  `json:"profile_image"`
+	GroupID      *string  `json:"group_id"`
+}
+
+func (u *UpdateUser) Validate() error {
+	return validation.ValidateStruct(u,
+		validation.Field(&u.Username, validation.NilOrNotEmpty),
+		validation.Field(&u.DisplayName, validation.NilOrNotEmpty),
+		validation.Field(&u.Roles, validation.NilOrNotEmpty, validation.Each(validation.In("admin", "instructor", "student"))),
+		validation.Field(&u.Email, validation.NilOrNotEmpty, is.Email),
+		validation.Field(&u.Password, validation.NilOrNotEmpty, validation.Length(8, 0)),
+		validation.Field(&u.ProfileImage, validation.NilOrNotEmpty, is.URL),
+		validation.Field(&u.GroupID, validation.NilOrNotEmpty, is.UUID),
+	)
 }
 
 type DeleteManyUser struct {
-	IDs []string `json:"ids" db:"ids"`
+	IDs []string `json:"ids"`
 }
 
-type CreateMultiTypeUser struct {
-	BaseUser
-	Type     string  `json:"type" db:"type"`
-	Email    *string `json:"email,omitempty" db:"email"`
-	Password *string `json:"password,omitempty" db:"password"`
-	GroupID  *string `json:"group_id,omitempty" db:"group"`
+func (u *DeleteManyUser) Validate() error {
+	return validation.ValidateStruct(u,
+		validation.Field(&u.IDs, validation.Required, validation.Length(1, 0), validation.Each(is.UUID)),
+	)
 }
 
 type CreateManyUsers struct {
-	Users []CreateMultiTypeUser `json:"users" db:"users"`
+	Users []CreateMultiTypeUser `json:"users"`
+}
+
+func (c *CreateManyUsers) Validate() error {
+	return validation.ValidateStruct(c,
+		validation.Field(&c.Users, validation.Required, validation.Length(1, 0), validation.Each(validation.By(func(value any) error {
+			if user, ok := value.(CreateMultiTypeUser); ok {
+				return user.Validate()
+			}
+			return nil
+		}))),
+	)
 }

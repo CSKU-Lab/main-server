@@ -17,7 +17,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// TODO: redirect back to frontend and set cookie
 func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService services.UserService, refreshTokenService services.RefreshTokenService) {
 	authRouter := router.Group("/auth")
 
@@ -132,8 +131,8 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 		return c.Redirect(appConfig.FRONTEND_URL)
 	})
 
-	authRouter.Post("/sign-in/credential", middlewares.ValidateMiddleware(&requests.Credential{}), func(c *fiber.Ctx) error {
-		credential := c.Locals("request").(*requests.Credential)
+	authRouter.Post("/sign-in/credential", middlewares.ValidateMiddleware[requests.Credential](), func(c *fiber.Ctx) error {
+		credential := c.Locals("body").(*requests.Credential)
 
 		user, err := userService.GetByUsername(c.Context(), credential.Username)
 		if err != nil {
@@ -212,7 +211,12 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusUnauthorized, Message: "Unauthorized"})
 			}
 
-			roles, err := converter.ToStringSlice(claims.Roles)
+			roleStringSlice, err := converter.ToStringSlice(claims.Roles)
+			if err != nil {
+				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Something went wrong"})
+			}
+
+			roles, err := converter.ToRoleSlice(roleStringSlice)
 			if err != nil {
 				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Something went wrong"})
 			}

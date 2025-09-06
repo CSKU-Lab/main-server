@@ -179,7 +179,7 @@ func (r *userRepository) Create(ctx context.Context, req repositories.CreateMult
 	pgUser := user{
 		ID:          req.ID,
 		Username:    req.Username,
-		Type:        req.Type,
+		Type:        string(req.Type),
 		Email:       req.Email,
 		DisplayName: req.DisplayName,
 		Roles:       req.Roles,
