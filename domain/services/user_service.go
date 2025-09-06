@@ -51,7 +51,10 @@ func (s *userService) GetByEmail(ctx context.Context, email string) (*models.Use
 		return nil, err
 	}
 
-	user := dbUser.Model()
+	user, err := dbUser.Model()
+	if err != nil {
+		return nil, err
+	}
 
 	if dbUser.GroupID != nil {
 		group, err := s.userGroupRepository.GetByID(ctx, *dbUser.GroupID)
@@ -70,7 +73,10 @@ func (s *userService) GetByUsername(ctx context.Context, username string) (*mode
 		return nil, err
 	}
 
-	user := dbUser.Model()
+	user, err := dbUser.Model()
+	if err != nil {
+		return nil, err
+	}
 
 	if dbUser.GroupID != nil {
 		group, err := s.userGroupRepository.GetByID(ctx, *dbUser.GroupID)
@@ -89,7 +95,10 @@ func (s *userService) GetByID(ctx context.Context, ID string) (*models.User, err
 		return nil, err
 	}
 
-	user := dbUser.Model()
+	user, err := dbUser.Model()
+	if err != nil {
+		return nil, err
+	}
 
 	if dbUser.GroupID != nil {
 		group, err := s.userGroupRepository.GetByID(ctx, *dbUser.GroupID)
@@ -130,7 +139,10 @@ func (s *userService) GetPagination(ctx context.Context, page int, limit int, se
 
 	users := make([]models.User, len(dbUsers))
 	for i, dbUser := range dbUsers {
-		user := dbUser.Model()
+		user, err := dbUser.Model()
+		if err != nil {
+			return nil, err
+		}
 
 		if dbUser.GroupID != nil {
 			group, err := s.userGroupRepository.GetByID(ctx, *dbUser.GroupID)
@@ -181,7 +193,10 @@ func (s *userService) Create(ctx context.Context, req *requests.CreateMultiTypeU
 		}
 
 		groupID = dbUser.GroupID
-		user = dbUser.Model()
+		user, err = dbUser.Model()
+		if err != nil {
+			return err
+		}
 
 		if req.Password != nil {
 			u.UserPassword().SetPassword(ctx, user.ID, *req.Password)
@@ -269,7 +284,10 @@ func (s *userService) Update(ctx context.Context, ID string, req *requests.Updat
 		return dbUser, nil
 	}
 
-	user := updatedUser.Model()
+	user, err := updatedUser.Model()
+	if err != nil {
+		return nil, err
+	}
 
 	if updatedUser.GroupID != nil {
 		group, err := s.userGroupRepository.GetByID(ctx, *updatedUser.GroupID)

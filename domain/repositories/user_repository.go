@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/CSKU-Lab/main-server/domain/models"
+	"github.com/CSKU-Lab/main-server/internal/converter"
 	"github.com/CSKU-Lab/main-server/internal/requests"
 )
 
@@ -38,7 +39,12 @@ type UserData struct {
 	GroupID      *string
 }
 
-func (u *UserData) Model() *models.User {
+func (u *UserData) Model() (*models.User, error) {
+	userRoles, err := converter.ToRoleSlice(u.Roles)
+	if err != nil {
+		return nil, err
+	}
+
 	return &models.User{
 		ID:           u.ID,
 		Username:     u.Username,
@@ -46,16 +52,8 @@ func (u *UserData) Model() *models.User {
 		Type:         u.Type,
 		Email:        u.Email,
 		ProfileImage: u.ProfileImage,
-		Roles:        toRoleArray(u.Roles),
+		Roles:        userRoles,
 		CreatedAt:    u.CreatedAt,
 		UpdatedAt:    u.CreatedAt,
-	}
-}
-
-func toRoleArray(roles []string) []models.Role {
-	result := make([]models.Role, len(roles))
-	for i, role := range roles {
-		result[i] = models.Role(role)
-	}
-	return result
+	}, nil
 }
