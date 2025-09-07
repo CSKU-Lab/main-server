@@ -2,6 +2,7 @@ package sqlx
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"net/http"
@@ -44,7 +45,11 @@ func (r *sqlxSemesterRepository) Create(ctx context.Context, ID string, sem *req
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) {
 			if pqErr.Code == "23505" {
-				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Semester already exists"})
+				return cserrors.New(&cserrors.Option{
+					HttpStatus: http.StatusInternalServerError,
+					Code:       cserrors.SemesterAlreadyExists,
+					Message:    "Semester already exists",
+				})
 			}
 		}
 		return err
@@ -110,17 +115,18 @@ func (r *sqlxSemesterRepository) Count(ctx context.Context, search string) (int,
 }
 
 func (r *sqlxSemesterRepository) GetByID(ctx context.Context, ID string) (*models.Semester, error) {
-	row := r.db.QueryRowxContext(ctx, "SELECT * FROM semesters WHERE id = $1 AND is_deleted = false", ID)
+	row := r.db.QueryRowxContext(ctx, "SELECT id,name,type,started_date FROM semesters WHERE id = $1 AND is_deleted = false", ID)
 
 	var sem semester
 
 	err := row.StructScan(&sem)
 	if err != nil {
-		var pqErr *pq.Error
-		if errors.As(err, &pqErr) {
-			if pqErr.Code == "22P02" {
-				return nil, cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Semester not found"})
-			}
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, cserrors.New(&cserrors.Option{
+				HttpStatus: http.StatusInternalServerError,
+				Code:       cserrors.SemesterNotFound,
+				Message:    "Semester not found",
+			})
 		}
 		return nil, err
 	}
@@ -134,7 +140,19 @@ func (r *sqlxSemesterRepository) GetByID(ctx context.Context, ID string) (*model
 }
 
 func (r *sqlxSemesterRepository) UpdateByID(ctx context.Context, ID string, req *requests.UpdateSemester) error {
-	updateFields := getUpdateFields(req)
+	_, err := r.GetByID(ctx, ID)
+	if err != nil {
+		return err
+	}
+
+	sem := &semester{
+		ID:          ID,
+		Name:        req.Name,
+		StartedDate: req.StartedDate,
+		Type:        string(req.Type),
+	}
+
+	updateFields := getUpdateFields(sem)
 
 	query := fmt.Sprintf(`
 	UPDATE semesters
@@ -142,17 +160,15 @@ func (r *sqlxSemesterRepository) UpdateByID(ctx context.Context, ID string, req 
 	WHERE id = :id
 	`, updateFields)
 
-	_, err := r.db.NamedExecContext(ctx, query, &semester{
-		ID:          ID,
-		Name:        req.Name,
-		StartedDate: req.StartedDate,
-		Type:        string(req.Type),
-	})
+	_, err = r.db.NamedExecContext(ctx, query, sem)
 	if err != nil {
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) {
 			if pqErr.Code == "22P02" {
-				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Semester not found"})
+				return cserrors.New(&cserrors.Option{
+					HttpStatus: http.StatusInternalServerError,
+					Message:    "Semester not found",
+				})
 			}
 		}
 		return err

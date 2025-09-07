@@ -8,9 +8,9 @@ import (
 )
 
 type CreateSemester struct {
-	Name        string          `json:"name"`
-	Type        models.Semester `json:"type"`
-	StartedDate time.Time       `json:"started_date"`
+	Name        string              `json:"name"`
+	Type        models.SemesterType `json:"type"`
+	StartedDate time.Time           `json:"started_date"`
 }
 
 func (s *CreateSemester) Validate() error {
@@ -29,8 +29,8 @@ type UpdateSemester struct {
 
 func (s *UpdateSemester) Validate() error {
 	return validation.ValidateStruct(s,
-		validation.Field(&s.Name, validation.NilOrNotEmpty),
-		validation.Field(&s.Type),
-		validation.Field(&s.StartedDate, validation.NilOrNotEmpty),
+		validation.Field(&s.Name, validation.Skip.When(s.Name == "")),
+		validation.Field(&s.Type, validation.Skip.When(s.Type == "")),
+		validation.Field(&s.StartedDate, validation.Skip.When(s.StartedDate.IsZero())),
 	)
 }
