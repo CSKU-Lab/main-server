@@ -22,8 +22,13 @@ func NewErrorHandlerMiddleware(appConfig *configs.Config) *errorHandlerMiddlewar
 func (e *errorHandlerMiddleware) ErrorHandler(c *fiber.Ctx, err error) error {
 	var csErr *cserrors.Error
 	if errors.As(err, &csErr) {
+		var errString string
+		if csErr.Code != nil {
+			errString = csErr.Code.Error()
+		}
+
 		return c.Status(csErr.HttpStatus).JSON(fiber.Map{
-			"code":  csErr.Code.Error(),
+			"code":  errString,
 			"error": csErr.Message,
 		})
 	}
