@@ -16,10 +16,10 @@ import (
 func NewAdminSemesterRoutes(router fiber.Router, service services.SemesterService) {
 	semesterRouter := router.Group("/semesters")
 
-	semesterRouter.Post("/", middlewares.ValidateMiddleware[requests.Semester](), func(c *fiber.Ctx) error {
-		sem := c.Locals("body").(*requests.Semester)
+	semesterRouter.Post("/", middlewares.ValidateMiddleware[requests.CreateSemester](), func(c *fiber.Ctx) error {
+		sem := c.Locals("body").(*requests.CreateSemester)
 
-		createdSem, err := service.Create(c.Context(), sem)
+		err := service.Create(c.Context(), sem)
 		if err != nil {
 			var csErr *cserrors.Error
 			if errors.As(err, &csErr) {
@@ -28,14 +28,14 @@ func NewAdminSemesterRoutes(router fiber.Router, service services.SemesterServic
 			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Error creating semester"})
 		}
 
-		return c.Status(fiber.StatusCreated).JSON(createdSem)
+		return c.SendStatus(fiber.StatusCreated)
 	})
 
 	semesterRouter.Get("/", func(c *fiber.Ctx) error {
 		pageQuery := c.Query("page", "1")
 		pageSizeQuery := c.Query("pageSize", "10")
 		search := c.Query("search", "")
-		sortBy := c.Query("sort_by", "created_at")
+		sortBy := c.Query("sort_by", "name")
 		sortOrder := c.Query("sort_order", "desc")
 
 		page, err := strconv.Atoi(pageQuery)
@@ -50,7 +50,7 @@ func NewAdminSemesterRoutes(router fiber.Router, service services.SemesterServic
 
 		sems, err := service.GetPagination(c.Context(), page, pageSize, search, sortBy, sortOrder)
 		if err != nil {
-			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Error getting semesters"})
+			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: err.Error()})
 		}
 
 		count, err := service.Count(c.Context(), search)
@@ -92,7 +92,7 @@ func NewAdminSemesterRoutes(router fiber.Router, service services.SemesterServic
 			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusBadRequest, Message: "Error parsing request"})
 		}
 
-		updateSem, err := service.UpdateByID(c.Context(), ID, sem)
+		err = service.UpdateByID(c.Context(), ID, sem)
 		if err != nil {
 			var csErr *cserrors.Error
 			if errors.As(err, &csErr) {
@@ -101,7 +101,7 @@ func NewAdminSemesterRoutes(router fiber.Router, service services.SemesterServic
 			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Error updating semester"})
 		}
 
-		return c.JSON(updateSem)
+		return c.SendStatus(fiber.StatusAccepted)
 	})
 
 	semesterRouter.Delete("/:semID", func(c *fiber.Ctx) error {
