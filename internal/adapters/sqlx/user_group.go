@@ -63,6 +63,18 @@ func (r *userGroupRepository) GetByID(ctx context.Context, ID string) (*models.U
 	}, nil
 }
 
+func (r *userGroupRepository) GetUserAmount(ctx context.Context, ID string) (int, error) {
+	query := `SELECT COUNT(*) FROM users WHERE group_id = $1`
+
+	var count int
+	err := r.db.GetContext(ctx, &count, query, ID)
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
 func (r *userGroupRepository) GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string) ([]models.UserGroup, error) {
 	query := `SELECT * FROM user_groups WHERE name ILIKE $1 ORDER BY ` + sortBy + ` ` + sortOrder + ` LIMIT $2 OFFSET $3`
 	searchPattern := "%" + search + "%"

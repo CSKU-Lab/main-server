@@ -9,7 +9,6 @@ import (
 	"github.com/CSKU-Lab/main-server/domain/models"
 	"github.com/CSKU-Lab/main-server/domain/services"
 	"github.com/CSKU-Lab/main-server/internal/requests"
-	"github.com/CSKU-Lab/main-server/internal/responses"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -57,14 +56,6 @@ func NewAdminUserGroupRoutes(router fiber.Router, userGroupService services.User
 			return err
 		}
 
-		userGroupsResponse := make([]responses.UserGroup, len(userGroups))
-		for i, userGroup := range userGroups {
-			userGroupsResponse[i] = responses.UserGroup{
-				ID:   userGroup.ID,
-				Name: userGroup.Name,
-			}
-		}
-
 		count, err := userGroupService.Count(c.Context(), search)
 		if err != nil {
 			return err
@@ -76,7 +67,7 @@ func NewAdminUserGroupRoutes(router fiber.Router, userGroupService services.User
 				"total_page": math.Ceil(float64(count/pageSize) + 1),
 				"total_rows": count,
 			},
-			"data": userGroupsResponse,
+			"data": userGroups,
 		})
 	})
 

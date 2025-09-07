@@ -46,7 +46,21 @@ func (u *userGroupService) GetPagination(ctx context.Context, page int, limit in
 		return nil, err
 	}
 
-	return u.repo.GetPagination(ctx, page, limit, search, sanitizedSortBy, sanitizedSortOrder)
+	groups, err := u.repo.GetPagination(ctx, page, limit, search, sanitizedSortBy, sanitizedSortOrder)
+	if err != nil {
+		return nil, err
+	}
+
+	for i, group := range groups {
+		amount, err := u.repo.GetUserAmount(ctx, group.ID)
+		if err != nil {
+			return nil, err
+		}
+
+		groups[i].UserAmount = amount
+	}
+
+	return groups, nil
 }
 
 func (u *userGroupService) Count(ctx context.Context, search string) (int, error) {
@@ -59,7 +73,19 @@ func (u *userGroupService) Update(ctx context.Context, ID string, name string) (
 		return nil, err
 	}
 
-	return u.repo.GetByID(ctx, ID)
+	group, err := u.repo.GetByID(ctx, ID)
+	if err != nil {
+		return nil, err
+	}
+
+	amount, err := u.repo.GetUserAmount(ctx, ID)
+	if err != nil {
+		return nil, err
+	}
+
+	group.UserAmount = amount
+
+	return group, nil
 }
 
 func (u *userGroupService) Delete(ctx context.Context, ID string) error {

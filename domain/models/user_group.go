@@ -1,6 +1,7 @@
 package models
 
 type UserGroup struct {
-	ID   string `json:"id" sort_field:"id"`
-	Name string `json:"name" sort_field:"name"`
+	ID         string `json:"id"`
+	Name       string `json:"name"`
+	UserAmount int    `json:"user_amount"`
 }
