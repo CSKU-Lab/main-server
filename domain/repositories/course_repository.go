@@ -8,10 +8,10 @@ import (
 )
 
 type CourseRepository interface {
-	Create(ctx context.Context, ID string, c *requests.Course) error
+	Create(ctx context.Context, ID string, c *requests.CreateCourse) error
 	GetByID(ctx context.Context, ID string) (*models.Course, error)
 	GetPagination(ctx context.Context, page int, pageSize int, search string, sortBy string, sortOrder string, show string) ([]models.Course, error)
 	Count(ctx context.Context, search string, show string) (int, error)
-	UpdateByID(ctx context.Context, ID string, c *requests.Course) error
+	UpdateByID(ctx context.Context, ID string, c *requests.UpdateCourse) error
 	DeleteByID(ctx context.Context, ID string) error
 }

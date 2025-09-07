@@ -8,6 +8,7 @@ import (
 
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
 	"github.com/CSKU-Lab/main-server/domain/services"
+	"github.com/CSKU-Lab/main-server/internal/adapters/middlewares"
 	"github.com/CSKU-Lab/main-server/internal/requests"
 	"github.com/gofiber/fiber/v2"
 )
@@ -15,10 +16,10 @@ import (
 func NewAdminCourseRoutes(router fiber.Router, service services.CourseService) {
 	courseRouter := router.Group("/courses")
 
-	courseRouter.Post("/" /*middlewares.ValidateMiddleware(&requests.Course{}),*/, func(c *fiber.Ctx) error {
-		req := c.Locals("request")
+	courseRouter.Post("/", middlewares.ValidateMiddleware[requests.CreateCourse](), func(c *fiber.Ctx) error {
+		req := c.Locals("body").(*requests.CreateCourse)
 
-		course, err := service.Create(c.Context(), req.(*requests.Course))
+		course, err := service.Create(c.Context(), req)
 		if err != nil {
 			var csErr *cserrors.Error
 			if errors.As(err, &csErr) {
@@ -94,9 +95,9 @@ func NewAdminCourseRoutes(router fiber.Router, service services.CourseService) {
 		return c.JSON(course)
 	})
 
-	courseRouter.Patch("/:courseID" /*middlewares.ValidateMiddleware(&requests.Course{}),*/, func(c *fiber.Ctx) error {
+	courseRouter.Patch("/:courseID", middlewares.ValidateMiddleware[requests.UpdateCourse](), func(c *fiber.Ctx) error {
 		courseID := c.Params("courseID")
-		course := c.Locals("request").(*requests.Course)
+		course := c.Locals("request").(*requests.UpdateCourse)
 
 		err := service.UpdateByID(c.Context(), courseID, course)
 		if err != nil {

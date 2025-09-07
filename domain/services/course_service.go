@@ -12,11 +12,11 @@ import (
 )
 
 type CourseService interface {
-	Create(ctx context.Context, c *requests.Course) (*models.Course, error)
+	Create(ctx context.Context, c *requests.CreateCourse) (*models.Course, error)
 	GetByID(ctx context.Context, ID string) (*models.Course, error)
 	GetPagination(ctx context.Context, page int, pageSize int, search string, sortBy string, sortOrder string, show string) ([]models.Course, error)
 	Count(ctx context.Context, search string, show string) (int, error)
-	UpdateByID(ctx context.Context, ID string, c *requests.Course) error
+	UpdateByID(ctx context.Context, ID string, c *requests.UpdateCourse) error
 	DeleteByID(ctx context.Context, ID string) error
 }
 
@@ -32,7 +32,7 @@ func NewCourseService(courseRepo repositories.CourseRepository, courseCreatorRep
 	}
 }
 
-func (s *courseService) Create(ctx context.Context, c *requests.Course) (*models.Course, error) {
+func (s *courseService) Create(ctx context.Context, c *requests.CreateCourse) (*models.Course, error) {
 	id, err := uuid.NewV7()
 	if err != nil {
 		return nil, cserrors.New(
@@ -122,7 +122,7 @@ func (s *courseService) Count(ctx context.Context, search string, show string) (
 	return s.courseRepo.Count(ctx, search, show)
 }
 
-func (s *courseService) UpdateByID(ctx context.Context, ID string, c *requests.Course) error {
+func (s *courseService) UpdateByID(ctx context.Context, ID string, c *requests.UpdateCourse) error {
 	if c.Creators != nil && len(c.Creators) == 0 {
 		return cserrors.New(&cserrors.Option{
 			HttpStatus: http.StatusBadRequest,
@@ -137,7 +137,7 @@ func (s *courseService) UpdateByID(ctx context.Context, ID string, c *requests.C
 		}
 	}
 
-	if c.Name != "" || c.Type != "" {
+	if c.Name != "" {
 		err := s.courseRepo.UpdateByID(ctx, ID, c)
 		if err != nil {
 			return err

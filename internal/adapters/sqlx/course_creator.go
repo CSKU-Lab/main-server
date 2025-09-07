@@ -14,6 +14,13 @@ type courseCreatorRepository struct {
 	db *sqlx.DB
 }
 
+type courseCreator struct {
+	ID           string  `db:"id"`
+	Username     string  `db:"username"`
+	DisplayName  string  `db:"display_name"`
+	ProfileImage *string `db:"profile_image"`
+}
+
 func NewCourseCreatorRepository(db *sqlx.DB) repositories.CourseCreatorRepository {
 	return &courseCreatorRepository{db: db}
 }
@@ -32,12 +39,17 @@ func (c *courseCreatorRepository) GetCreators(ctx context.Context, ID string) ([
 	creators := []models.CourseCreator{}
 
 	for rows.Next() {
-		var creator models.CourseCreator
+		var creator courseCreator
 		err = rows.StructScan(&creator)
 		if err != nil {
 			return nil, cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Failed to scan course creator"})
 		}
-		creators = append(creators, creator)
+		creators = append(creators, models.CourseCreator{
+			ID:           creator.ID,
+			Username:     creator.Username,
+			DisplayName:  creator.DisplayName,
+			ProfileImage: creator.ProfileImage,
+		})
 	}
 
 	return creators, nil

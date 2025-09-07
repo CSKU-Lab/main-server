@@ -29,7 +29,7 @@ type course struct {
 	Type string `db:"type"`
 }
 
-func (r *sqlxCourseRepository) Create(ctx context.Context, ID string, c *requests.Course) error {
+func (r *sqlxCourseRepository) Create(ctx context.Context, ID string, c *requests.CreateCourse) error {
 	query := `INSERT INTO courses (id, name, type) VALUES ($1, $2, $3)`
 
 	tx, err := r.db.BeginTxx(ctx, nil)
@@ -166,22 +166,16 @@ func (r *sqlxCourseRepository) Count(ctx context.Context, search string, show st
 	return count, nil
 }
 
-func (r *sqlxCourseRepository) UpdateByID(ctx context.Context, ID string, c *requests.Course) error {
-	updateFields := getUpdateFields(&models.Course{
-		Name: c.Name,
-		Type: c.Type,
-	})
-
-	query := fmt.Sprintf(`
+func (r *sqlxCourseRepository) UpdateByID(ctx context.Context, ID string, c *requests.UpdateCourse) error {
+	query := `
 	UPDATE courses
-	SET %s , updated_at = NOW()
-	WHERE id = :id	
-	`, updateFields)
+	SET name = :name updated_at = NOW()
+	WHERE id = :id
+	`
 
-	_, err := r.db.NamedExecContext(ctx, query, &models.Course{
+	_, err := r.db.NamedExecContext(ctx, query, &course{
 		ID:   ID,
 		Name: c.Name,
-		Type: c.Type,
 	})
 	if err != nil {
 		log.Println(err)
