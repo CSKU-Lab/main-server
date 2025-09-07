@@ -12,11 +12,11 @@ import (
 )
 
 type SemesterService interface {
-	Create(ctx context.Context, sem *requests.Semester) (*models.Semester, error)
+	Create(ctx context.Context, sem *requests.CreateSemester) error
 	GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string) ([]models.Semester, error)
-	Count(ctx context.Context, search string) (int, error)
 	GetByID(ctx context.Context, ID string) (*models.Semester, error)
-	UpdateByID(ctx context.Context, ID string, sem *requests.UpdateSemester) (*models.Semester, error)
+	Count(ctx context.Context, search string) (int, error)
+	UpdateByID(ctx context.Context, ID string, sem *requests.UpdateSemester) error
 	DeleteByID(ctx context.Context, ID string) error
 }
 
@@ -30,10 +30,10 @@ func NewSemesterService(repo repositories.SemesterRepository) *semesterService {
 	}
 }
 
-func (s *semesterService) Create(ctx context.Context, sem *requests.Semester) (*models.Semester, error) {
+func (s *semesterService) Create(ctx context.Context, sem *requests.CreateSemester) error {
 	id, err := uuid.NewV7()
 	if err != nil {
-		return nil, cserrors.New(&cserrors.Option{
+		return cserrors.New(&cserrors.Option{
 			HttpStatus: http.StatusInternalServerError,
 			Message:    "Cannot generate user ID",
 		})
@@ -43,7 +43,7 @@ func (s *semesterService) Create(ctx context.Context, sem *requests.Semester) (*
 }
 
 func (s *semesterService) GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string) ([]models.Semester, error) {
-	sanitizedSortBy, err := sanitizeSortBy(sortBy, &models.Semester{})
+	sanitizedSortBy, err := sanitizeSortBy(sortBy, []string{"name", "type", "started_date"})
 	if err != nil {
 		return nil, cserrors.New(
 			&cserrors.Option{
@@ -73,7 +73,7 @@ func (s *semesterService) GetByID(ctx context.Context, ID string) (*models.Semes
 	return s.repo.GetByID(ctx, ID)
 }
 
-func (s *semesterService) UpdateByID(ctx context.Context, ID string, sem *requests.Semester) (*models.Semester, error) {
+func (s *semesterService) UpdateByID(ctx context.Context, ID string, sem *requests.UpdateSemester) error {
 	return s.repo.UpdateByID(ctx, ID, sem)
 }
 
