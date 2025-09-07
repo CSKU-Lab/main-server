@@ -21,10 +21,10 @@ type UserService interface {
 	GetPasswordByID(ctx context.Context, ID string) (string, error)
 	GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string) ([]models.User, error)
 	Count(ctx context.Context, search string) (int, error)
-	Create(ctx context.Context, user *requests.CreateMultiTypeUser) (*models.User, error)
-	CreateMany(ctx context.Context, users *requests.CreateManyUsers) ([]models.User, error)
+	Create(ctx context.Context, user *requests.CreateMultiTypeUser) error
+	CreateMany(ctx context.Context, users *requests.CreateManyUsers) error
 	SetPassword(ctx context.Context, ID string, password string) error
-	Update(ctx context.Context, ID string, user *requests.UpdateUser) (*models.User, error)
+	Update(ctx context.Context, ID string, user *requests.UpdateUser) error
 	Delete(ctx context.Context, ID string) error
 	DeleteMany(ctx context.Context, IDs []string) error
 }
@@ -170,11 +170,15 @@ func (s *userService) Count(ctx context.Context, search string) (int, error) {
 	return s.userRepository.Count(ctx, search)
 }
 
-func (s *userService) Create(ctx context.Context, req *requests.CreateMultiTypeUser) (*models.User, error) {
+func (s *userService) Create(ctx context.Context, req *requests.CreateMultiTypeUser) error {
 	if models.UserType(req.Type) == models.UserTypeCredential {
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(*req.Password), 10)
 		if err != nil {
-			return nil, fmt.Errorf("Cannot generate password")
+			return cserrors.New(&cserrors.Option{
+				HttpStatus: http.StatusInternalServerError,
+				Message:    "Cannot generate password",
+			})
+
 		}
 		*req.Password = string(hashedPassword)
 	}
@@ -185,7 +189,7 @@ func (s *userService) Create(ctx context.Context, req *requests.CreateMultiTypeU
 
 	id, err := uuid.NewV7()
 	if err != nil {
-		return nil, cserrors.New(&cserrors.Option{
+		return cserrors.New(&cserrors.Option{
 			HttpStatus: http.StatusInternalServerError,
 			Message:    "Cannot generate user ID",
 		})
@@ -193,60 +197,41 @@ func (s *userService) Create(ctx context.Context, req *requests.CreateMultiTypeU
 
 	repoUser.ID = id.String()
 
-	var user *models.User
-	var groupID *string
 	err = s.uowRepository.Execute(func(u repositories.UserUoWInstance) error {
-		dbUser, err := u.User().Create(ctx, repoUser)
-		if err != nil {
-			return err
-		}
-
-		groupID = dbUser.GroupID
-		user, err = dbUser.Model()
+		err := u.User().Create(ctx, repoUser)
 		if err != nil {
 			return err
 		}
 
 		if req.Password != nil {
-			u.UserPassword().SetPassword(ctx, user.ID, *req.Password)
+			u.UserPassword().SetPassword(ctx, id.String(), *req.Password)
 		}
 		return nil
 	})
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	if groupID != nil {
-		group, err := s.userGroupRepository.GetByID(ctx, *groupID)
-		if err != nil {
-			return nil, err
-		}
-
-		user.Group = group
-	}
-
-	return user, nil
+	return nil
 }
 
-func (s *userService) CreateMany(ctx context.Context, req *requests.CreateManyUsers) ([]models.User, error) {
+func (s *userService) CreateMany(ctx context.Context, req *requests.CreateManyUsers) error {
 	if len(req.Users) == 0 {
-		return nil, cserrors.New(&cserrors.Option{
+		return cserrors.New(&cserrors.Option{
 			HttpStatus: http.StatusBadRequest,
 			Message:    "No users to create",
 		})
 	}
 
-	users := make([]models.User, len(req.Users))
-	for i, user := range req.Users {
-		user, err := s.Create(ctx, &user)
+	for _, user := range req.Users {
+		err := s.Create(ctx, &user)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
-		users[i] = *user
 	}
 
-	return users, nil
+	return nil
 }
 
 func (s *userService) SetPassword(ctx context.Context, ID string, password string) error {
@@ -258,56 +243,32 @@ func (s *userService) SetPassword(ctx context.Context, ID string, password strin
 	return s.userPasswordRepository.SetPassword(ctx, ID, string(hashedPassword))
 }
 
-func (s *userService) Update(ctx context.Context, ID string, req *requests.UpdateUser) (*models.User, error) {
+func (s *userService) Update(ctx context.Context, ID string, req *requests.UpdateUser) error {
 	dbUser, err := s.GetByID(ctx, ID)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if dbUser.Type == string(models.UserTypeCredential) {
 		if req.Email != nil {
-			return nil, errors.New("credential user cannot update email")
+			return errors.New("credential user cannot update email")
 		}
 	}
 
 	if dbUser.Type == string(models.UserTypeOauth) {
 		if req.Password != nil {
-			return nil, errors.New("oauth user cannot update password")
+			return errors.New("oauth user cannot update password")
 		}
 	}
 
 	if req.Password != nil {
 		err := s.SetPassword(ctx, ID, *req.Password)
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
 
-	updatedUser, err := s.userRepository.Update(ctx, ID, req)
-	if err != nil {
-		return nil, err
-	}
-
-	// in case no updated Fields
-	if updatedUser == nil {
-		return dbUser, nil
-	}
-
-	user, err := updatedUser.Model()
-	if err != nil {
-		return nil, err
-	}
-
-	if updatedUser.GroupID != nil {
-		group, err := s.userGroupRepository.GetByID(ctx, *updatedUser.GroupID)
-		if err != nil {
-			return nil, err
-		}
-
-		user.Group = group
-	}
-
-	return user, nil
+	return s.userRepository.Update(ctx, ID, req)
 }
 
 func (s *userService) Delete(ctx context.Context, ID string) error {

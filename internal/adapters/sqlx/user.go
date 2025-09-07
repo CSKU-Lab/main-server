@@ -38,7 +38,7 @@ type user struct {
 
 func (r *userRepository) GetByEmail(ctx context.Context, email string) (*repositories.UserData, error) {
 	var user user
-	query := `SELECT  id, email, username,display_name,profile_image,
+	query := `SELECT id, email, username,display_name,profile_image,
 	roles, group_id, type, created_at, updated_at FROM users WHERE email = $1 AND is_deleted = false`
 	err := r.db.GetContext(ctx, &user, query, email)
 	if err != nil {
@@ -175,7 +175,7 @@ func (r *userRepository) Count(ctx context.Context, search string) (int, error) 
 	return count, nil
 }
 
-func (r *userRepository) Create(ctx context.Context, req repositories.CreateMultiTypeUser) (*repositories.UserData, error) {
+func (r *userRepository) Create(ctx context.Context, req repositories.CreateMultiTypeUser) error {
 	pgUser := user{
 		ID:          req.ID,
 		Username:    req.Username,
@@ -194,41 +194,28 @@ func (r *userRepository) Create(ctx context.Context, req repositories.CreateMult
 			roles,
 			type,
 			group_id
-			) VALUES (:id,:username,:display_name,:email,:roles,:type,:group_id)
-			RETURNING id, email, username,display_name,profile_image,
-			roles, group_id, type, created_at, updated_at`, pgUser)
+			) VALUES (:id,:username,:display_name,:email,:roles,:type,:group_id)`, pgUser)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	query = r.db.Rebind(query)
 
-	var dbUser user
-	err = r.db.GetContext(ctx, &dbUser, query, args...)
+	var id string
+	err = r.db.GetContext(ctx, &id, query, args...)
 	if err != nil {
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) {
 			if pqErr.Code == "23505" {
-				return nil, cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "User already exists"})
+				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "User already exists"})
 			}
 		}
 	}
 
-	return &repositories.UserData{
-		ID:           dbUser.ID,
-		Email:        dbUser.Email,
-		Username:     dbUser.Username,
-		DisplayName:  dbUser.DisplayName,
-		ProfileImage: dbUser.ProfileImage,
-		Roles:        dbUser.Roles,
-		Type:         dbUser.Type,
-		CreatedAt:    dbUser.CreatedAt,
-		UpdatedAt:    dbUser.UpdatedAt,
-		GroupID:      dbUser.GroupID,
-	}, nil
+	return nil
 }
 
-func (r *userRepository) Update(ctx context.Context, ID string, req *requests.UpdateUser) (*repositories.UserData, error) {
+func (r *userRepository) Update(ctx context.Context, ID string, req *requests.UpdateUser) error {
 	fields := &user{
 		ID:           ID,
 		Username:     req.Username,
@@ -241,7 +228,7 @@ func (r *userRepository) Update(ctx context.Context, ID string, req *requests.Up
 
 	updateFields := getUpdateFields(fields)
 	if len(updateFields) == 0 {
-		return nil, nil
+		return nil
 	}
 
 	query := fmt.Sprintf(`
@@ -254,7 +241,7 @@ func (r *userRepository) Update(ctx context.Context, ID string, req *requests.Up
 
 	query, args, err := sqlx.Named(query, fields)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	query = r.db.Rebind(query)
@@ -265,24 +252,13 @@ func (r *userRepository) Update(ctx context.Context, ID string, req *requests.Up
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) {
 			if pqErr.Code == "22P02" {
-				return nil, cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Invalid input for update"})
+				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Invalid input for update"})
 			}
 		}
-		return nil, err
+		return err
 	}
 
-	return &repositories.UserData{
-		ID:           updatedUser.ID,
-		Email:        updatedUser.Email,
-		Username:     updatedUser.Username,
-		DisplayName:  updatedUser.DisplayName,
-		ProfileImage: updatedUser.ProfileImage,
-		Roles:        updatedUser.Roles,
-		Type:         updatedUser.Type,
-		CreatedAt:    updatedUser.CreatedAt,
-		UpdatedAt:    updatedUser.UpdatedAt,
-		GroupID:      updatedUser.GroupID,
-	}, nil
+	return nil
 }
 
 func (r *userRepository) Delete(ctx context.Context, ID string) error {

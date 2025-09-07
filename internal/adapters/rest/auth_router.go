@@ -65,7 +65,7 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 		}
 
 		if user.ProfileImage == nil {
-			user, err = userService.Update(c.Context(), user.ID, &requests.UpdateUser{
+			err = userService.Update(c.Context(), user.ID, &requests.UpdateUser{
 				ProfileImage: &userInfo.ProfileImage,
 			})
 			if err != nil {

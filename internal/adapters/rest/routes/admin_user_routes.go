@@ -66,7 +66,7 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 	adminUserRouter.Post("/", middlewares.ValidateMiddleware[requests.CreateMultiTypeUser](), func(c *fiber.Ctx) error {
 		userRequest := c.Locals("body").(*requests.CreateMultiTypeUser)
 
-		user, err := userService.Create(c.Context(), userRequest)
+		err := userService.Create(c.Context(), userRequest)
 		if err != nil {
 			var e *cserrors.Error
 			if errors.As(err, &e) {
@@ -78,13 +78,13 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 			})
 		}
 
-		return c.Status(fiber.StatusCreated).JSON(user)
+		return c.SendStatus(fiber.StatusCreated)
 	})
 
 	adminUserRouter.Post("/import", middlewares.ValidateMiddleware[requests.CreateManyUsers](), func(c *fiber.Ctx) error {
 		createManyUsers := c.Locals("body").(*requests.CreateManyUsers)
 
-		users, err := userService.CreateMany(c.Context(), createManyUsers)
+		err := userService.CreateMany(c.Context(), createManyUsers)
 		if err != nil {
 			var e *cserrors.Error
 			if errors.As(err, &e) {
@@ -96,7 +96,7 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 			})
 		}
 
-		return c.Status(fiber.StatusCreated).JSON(users)
+		return c.SendStatus(fiber.StatusCreated)
 	})
 
 	router.Get("/users/:userID", func(c *fiber.Ctx) error {
@@ -120,7 +120,7 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 	adminUserRouter.Patch("/:userID", middlewares.ValidateMiddleware[requests.UpdateUser](), func(c *fiber.Ctx) error {
 		updateUser := c.Locals("body").(*requests.UpdateUser)
 
-		user, err := userService.Update(c.Context(), c.Params("userID"), updateUser)
+		err := userService.Update(c.Context(), c.Params("userID"), updateUser)
 		if err != nil {
 			var e *cserrors.Error
 			if errors.As(err, &e) {
@@ -132,7 +132,7 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 			})
 		}
 
-		return c.JSON(user)
+		return c.SendStatus(fiber.StatusAccepted)
 	})
 
 	adminUserRouter.Delete("/:userID", func(c *fiber.Ctx) error {

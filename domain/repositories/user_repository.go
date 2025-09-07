@@ -15,8 +15,8 @@ type User interface {
 	GetByID(ctx context.Context, ID string) (*UserData, error)
 	GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string) ([]UserData, error)
 	Count(ctx context.Context, search string) (int, error)
-	Create(ctx context.Context, user CreateMultiTypeUser) (*UserData, error)
-	Update(ctx context.Context, ID string, user *requests.UpdateUser) (*UserData, error)
+	Create(ctx context.Context, user CreateMultiTypeUser) error
+	Update(ctx context.Context, ID string, user *requests.UpdateUser) error
 	Delete(ctx context.Context, ID string) error
 	DeleteMany(ctx context.Context, IDs []string) error
 }
