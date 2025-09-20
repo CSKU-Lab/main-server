@@ -5,6 +5,7 @@ import (
 	"math"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
 	"github.com/CSKU-Lab/main-server/domain/services"
@@ -23,6 +24,13 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 		sortBy := c.Query("sort_by", "created_at")
 		sortOrder := c.Query("sort_order", "desc")
 
+		filterParams := make(map[string]string)
+		for key, value := range c.Queries() {
+			if strings.Contains(key, "__") {
+				filterParams[key] = value
+			}
+		}
+
 		page, err := strconv.Atoi(pageQuery)
 		if err != nil {
 			return cserrors.New(&cserrors.Option{
@@ -39,12 +47,12 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 			})
 		}
 
-		users, err := userService.GetPagination(c.Context(), page, pageSize, search, sortBy, sortOrder)
+		users, err := userService.GetPagination(c.Context(), page, pageSize, search, sortBy, sortOrder, filterParams)
 		if err != nil {
 			return err
 		}
 
-		count, err := userService.Count(c.Context(), search)
+		count, err := userService.Count(c.Context(), search, filterParams)
 		if err != nil {
 			return cserrors.New(
 				&cserrors.Option{

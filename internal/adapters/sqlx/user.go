@@ -6,11 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
 	"github.com/CSKU-Lab/main-server/domain/repositories"
 	"github.com/CSKU-Lab/main-server/internal/requests"
+	"github.com/CSKU-Lab/main-server/internal/sanitize"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 )
@@ -21,6 +23,31 @@ type userRepository struct {
 
 func NewUserRepository(db instance) repositories.User {
 	return &userRepository{db: db}
+}
+
+func buildFilterWhereClause(filters []sanitize.Filter, startingArgIndex int) (string, []interface{}) {
+	if len(filters) == 0 {
+		return "", nil
+	}
+
+	var conditions []string
+	var args []any
+	argIndex := startingArgIndex
+
+	for _, filter := range filters {
+		switch filter.Operator {
+		case "is":
+			conditions = append(conditions, fmt.Sprintf("%s = $%d", filter.Field, argIndex))
+			args = append(args, filter.Value)
+			argIndex++
+		}
+	}
+
+	if len(conditions) == 0 {
+		return "", nil
+	}
+
+	return " AND " + strings.Join(conditions, " AND "), args
 }
 
 type user struct {
@@ -120,21 +147,28 @@ func (r *userRepository) GetByID(ctx context.Context, ID string) (*repositories.
 	}, nil
 }
 
-func (r *userRepository) GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string) ([]repositories.UserData, error) {
-	query := fmt.Sprintf(`SELECT id, email, username,display_name,profile_image,
+func (r *userRepository) GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string, filters []sanitize.Filter) ([]repositories.UserData, error) {
+	filterWhereClause, filterArgs := buildFilterWhereClause(filters, 2)
+
+	baseQuery := `SELECT id, email, username,display_name,profile_image,
 		roles, group_id, type, created_at, updated_at
-		FROM users 
+		FROM users
 		WHERE ( username ILIKE $1
 		OR display_name ILIKE $1
 		OR email ILIKE $1 )
-		AND deleted_at IS NULL
+		AND deleted_at IS NULL`
+
+	query := fmt.Sprintf(`%s%s
 		ORDER BY %s %s
-		OFFSET $2
-		LIMIT $3
-		`, sortBy, sortOrder)
+		OFFSET $%d
+		LIMIT $%d`, baseQuery, filterWhereClause, sortBy, sortOrder, len(filterArgs)+2, len(filterArgs)+3)
+
+	args := []interface{}{"%"+search+"%"}
+	args = append(args, filterArgs...)
+	args = append(args, (page-1)*limit, limit)
 
 	pgUsers := []user{}
-	err := r.db.SelectContext(ctx, &pgUsers, query, "%"+search+"%", (page-1)*limit, limit)
+	err := r.db.SelectContext(ctx, &pgUsers, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -158,16 +192,22 @@ func (r *userRepository) GetPagination(ctx context.Context, page int, limit int,
 	return users, nil
 }
 
-func (r *userRepository) Count(ctx context.Context, search string) (int, error) {
-	query := `
-		SELECT COUNT(*) FROM users 
-		WHERE (username LIKE $1 
-		OR display_name LIKE $1 
+func (r *userRepository) Count(ctx context.Context, search string, filters []sanitize.Filter) (int, error) {
+	filterWhereClause, filterArgs := buildFilterWhereClause(filters, 2)
+
+	baseQuery := `SELECT COUNT(*) FROM users
+		WHERE (username LIKE $1
+		OR display_name LIKE $1
 		OR email LIKE $1) AND
 	        deleted_at IS NULL`
 
+	query := fmt.Sprintf(`%s%s`, baseQuery, filterWhereClause)
+
+	args := []interface{}{"%"+search+"%"}
+	args = append(args, filterArgs...)
+
 	var count int
-	err := r.db.GetContext(ctx, &count, query, "%"+search+"%")
+	err := r.db.GetContext(ctx, &count, query, args...)
 	if err != nil {
 		return 0, err
 	}

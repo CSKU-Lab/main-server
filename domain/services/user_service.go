@@ -10,6 +10,7 @@ import (
 	"github.com/CSKU-Lab/main-server/domain/models"
 	"github.com/CSKU-Lab/main-server/domain/repositories"
 	"github.com/CSKU-Lab/main-server/internal/requests"
+	"github.com/CSKU-Lab/main-server/internal/sanitize"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -19,8 +20,8 @@ type UserService interface {
 	GetByUsername(ctx context.Context, username string) (*models.User, error)
 	GetByID(ctx context.Context, ID string) (*models.User, error)
 	GetPasswordByID(ctx context.Context, ID string) (string, error)
-	GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string) ([]models.User, error)
-	Count(ctx context.Context, search string) (int, error)
+	GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string, filterParams map[string]string) ([]models.User, error)
+	Count(ctx context.Context, search string, filterParams map[string]string) (int, error)
 	Create(ctx context.Context, user *requests.CreateMultiTypeUser) error
 	CreateMany(ctx context.Context, users *requests.CreateManyUsers) error
 	SetPassword(ctx context.Context, ID string, password string) error
@@ -115,7 +116,7 @@ func (s *userService) GetPasswordByID(ctx context.Context, ID string) (string, e
 	return s.userPasswordRepository.GetPasswordByID(ctx, ID)
 }
 
-func (s *userService) GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string) ([]models.User, error) {
+func (s *userService) GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string, filterParams map[string]string) ([]models.User, error) {
 	allowedSortFields := map[string]bool{
 		"username":     true,
 		"type":         true,
@@ -125,7 +126,7 @@ func (s *userService) GetPagination(ctx context.Context, page int, limit int, se
 		"created_at":   true,
 		"updated_at":   true,
 	}
-	sanitizedSortBy, err := sanitizeSortBy(sortBy, allowedSortFields)
+	sanitizedSortBy, err := sanitize.SortBy(sortBy, allowedSortFields)
 	if err != nil {
 		return nil, cserrors.New(&cserrors.Option{
 			HttpStatus: http.StatusBadRequest,
@@ -133,7 +134,7 @@ func (s *userService) GetPagination(ctx context.Context, page int, limit int, se
 		})
 	}
 
-	sanitizedSortOrder, err := sanitizeSortOrder(sortOrder)
+	sanitizedSortOrder, err := sanitize.SortOrder(sortOrder)
 	if err != nil {
 		return nil, cserrors.New(&cserrors.Option{
 			HttpStatus: http.StatusBadRequest,
@@ -141,7 +142,18 @@ func (s *userService) GetPagination(ctx context.Context, page int, limit int, se
 		})
 	}
 
-	dbUsers, err := s.userRepository.GetPagination(ctx, page, limit, search, sanitizedSortBy, sanitizedSortOrder)
+	allowedFilterFields := map[string]bool{
+		"username":     true,
+		"type":         true,
+		"email":        true,
+		"display_name": true,
+	}
+	filters, err := sanitize.Filters(filterParams, allowedFilterFields)
+	if err != nil {
+		return nil, err
+	}
+
+	dbUsers, err := s.userRepository.GetPagination(ctx, page, limit, search, sanitizedSortBy, sanitizedSortOrder, filters)
 	if err != nil {
 		return nil, err
 	}
@@ -166,8 +178,19 @@ func (s *userService) GetPagination(ctx context.Context, page int, limit int, se
 	return users, nil
 }
 
-func (s *userService) Count(ctx context.Context, search string) (int, error) {
-	return s.userRepository.Count(ctx, search)
+func (s *userService) Count(ctx context.Context, search string, filterParams map[string]string) (int, error) {
+	allowedFilterFields := map[string]bool{
+		"username":     true,
+		"type":         true,
+		"email":        true,
+		"display_name": true,
+	}
+	filters, err := sanitize.Filters(filterParams, allowedFilterFields)
+	if err != nil {
+		return 0, err
+	}
+
+	return s.userRepository.Count(ctx, search, filters)
 }
 
 func (s *userService) Create(ctx context.Context, req *requests.CreateMultiTypeUser) error {

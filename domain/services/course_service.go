@@ -8,6 +8,7 @@ import (
 	"github.com/CSKU-Lab/main-server/domain/models"
 	"github.com/CSKU-Lab/main-server/domain/repositories"
 	"github.com/CSKU-Lab/main-server/internal/requests"
+	"github.com/CSKU-Lab/main-server/internal/sanitize"
 	"github.com/google/uuid"
 )
 
@@ -71,7 +72,7 @@ func (s *courseService) GetPagination(ctx context.Context, page int, pageSize in
 		"name": true,
 		"type": true,
 	}
-	sanitizedSortBy, err := sanitizeSortBy(sortBy, allowedSortFields)
+	sanitizedSortBy, err := sanitize.SortBy(sortBy, allowedSortFields)
 	if err != nil {
 		return nil, cserrors.New(&cserrors.Option{
 			HttpStatus: http.StatusBadRequest,
@@ -79,7 +80,7 @@ func (s *courseService) GetPagination(ctx context.Context, page int, pageSize in
 		})
 	}
 
-	sanitizedSortOrder, err := sanitizeSortOrder(sortOrder)
+	sanitizedSortOrder, err := sanitize.SortOrder(sortOrder)
 	if err != nil {
 		return nil, cserrors.New(&cserrors.Option{
 			HttpStatus: http.StatusBadRequest,

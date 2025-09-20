@@ -5,6 +5,7 @@ import (
 
 	"github.com/CSKU-Lab/main-server/domain/models"
 	"github.com/CSKU-Lab/main-server/domain/repositories"
+	"github.com/CSKU-Lab/main-server/internal/sanitize"
 	"github.com/google/uuid"
 )
 
@@ -39,12 +40,12 @@ func (u *userGroupService) GetPagination(ctx context.Context, page int, limit in
 	allowedSortFields := map[string]bool{
 		"name": true,
 	}
-	sanitizedSortBy, err := sanitizeSortBy(sortBy, allowedSortFields)
+	sanitizedSortBy, err := sanitize.SortBy(sortBy, allowedSortFields)
 	if err != nil {
 		return nil, err
 	}
 
-	sanitizedSortOrder, err := sanitizeSortOrder(sortOrder)
+	sanitizedSortOrder, err := sanitize.SortOrder(sortOrder)
 	if err != nil {
 		return nil, err
 	}

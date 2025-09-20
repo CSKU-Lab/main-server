@@ -7,14 +7,15 @@ import (
 	"github.com/CSKU-Lab/main-server/domain/models"
 	"github.com/CSKU-Lab/main-server/internal/converter"
 	"github.com/CSKU-Lab/main-server/internal/requests"
+	"github.com/CSKU-Lab/main-server/internal/sanitize"
 )
 
 type User interface {
 	GetByEmail(ctx context.Context, email string) (*UserData, error)
 	GetByUsername(ctx context.Context, username string) (*UserData, error)
 	GetByID(ctx context.Context, ID string) (*UserData, error)
-	GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string) ([]UserData, error)
-	Count(ctx context.Context, search string) (int, error)
+	GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string, filters []sanitize.Filter) ([]UserData, error)
+	Count(ctx context.Context, search string, filters []sanitize.Filter) (int, error)
 	Create(ctx context.Context, user CreateMultiTypeUser) error
 	Update(ctx context.Context, ID string, user *requests.UpdateUser) error
 	Delete(ctx context.Context, ID string) error
