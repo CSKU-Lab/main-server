@@ -2,7 +2,6 @@ package services
 
 import (
 	"net/http"
-	"slices"
 
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
 )
@@ -17,8 +16,8 @@ func sanitizeSortOrder(sortOrder string) (string, error) {
 	return sortOrder, nil
 }
 
-func sanitizeSortBy(sortBy string, fields []string) (string, error) {
-	if !slices.Contains(fields, sortBy) {
+func sanitizeSortBy(sortBy string, fields map[string]bool) (string, error) {
+	if !fields[sortBy] {
 		return "", cserrors.New(&cserrors.Option{
 			HttpStatus: http.StatusBadRequest,
 			Message:    "The field that you want to sort by is not exist",

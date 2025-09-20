@@ -116,15 +116,16 @@ func (s *userService) GetPasswordByID(ctx context.Context, ID string) (string, e
 }
 
 func (s *userService) GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string) ([]models.User, error) {
-	sanitizedSortBy, err := sanitizeSortBy(sortBy, []string{
-		"username",
-		"type",
-		"email",
-		"display_name",
-		"roles",
-		"created_at",
-		"updated_at",
-	})
+	allowedSortFields := map[string]bool{
+		"username":     true,
+		"type":         true,
+		"email":        true,
+		"display_name": true,
+		"roles":        true,
+		"created_at":   true,
+		"updated_at":   true,
+	}
+	sanitizedSortBy, err := sanitizeSortBy(sortBy, allowedSortFields)
 	if err != nil {
 		return nil, cserrors.New(&cserrors.Option{
 			HttpStatus: http.StatusBadRequest,

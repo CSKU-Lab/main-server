@@ -43,7 +43,12 @@ func (s *semesterService) Create(ctx context.Context, sem *requests.CreateSemest
 }
 
 func (s *semesterService) GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string) ([]models.Semester, error) {
-	sanitizedSortBy, err := sanitizeSortBy(sortBy, []string{"name", "type", "started_date"})
+	allowedSortFields := map[string]bool{
+		"name":         true,
+		"type":         true,
+		"started_date": true,
+	}
+	sanitizedSortBy, err := sanitizeSortBy(sortBy, allowedSortFields)
 	if err != nil {
 		return nil, cserrors.New(
 			&cserrors.Option{
