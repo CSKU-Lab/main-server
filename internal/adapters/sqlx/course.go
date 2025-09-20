@@ -103,7 +103,7 @@ func (r *sqlxCourseRepository) GetPagination(ctx context.Context, page int, page
 	}
 
 	query := fmt.Sprintf(`SELECT id, name, type FROM courses 
-		WHERE LOWER(name) LIKE $1 
+		WHERE LOWER(name) ILIKE $1 
 		AND deleted_at IS NULL
 		%s
 		ORDER BY %s %s
@@ -149,7 +149,7 @@ func (r *sqlxCourseRepository) Count(ctx context.Context, search string, show st
 
 	query := fmt.Sprintf(`
 		SELECT COUNT(*) FROM courses 
-		WHERE LOWER(name) LIKE $1 
+		WHERE LOWER(name) ILIKE $1 
 		AND deleted_at IS NULL
 		%s
 	`, archiveCondition)
