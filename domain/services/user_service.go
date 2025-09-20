@@ -122,7 +122,6 @@ func (s *userService) GetPagination(ctx context.Context, page int, limit int, se
 		"email",
 		"display_name",
 		"roles",
-		"group",
 		"created_at",
 		"updated_at",
 	})

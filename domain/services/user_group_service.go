@@ -12,7 +12,7 @@ type UserGroupService interface {
 	Create(ctx context.Context, name string) error
 	GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string) ([]models.UserGroup, error)
 	Count(ctx context.Context, search string) (int, error)
-	Update(ctx context.Context, ID string, name string) (*models.UserGroup, error)
+	Update(ctx context.Context, ID string, name string) error
 	Delete(ctx context.Context, ID string) error
 }
 
@@ -20,7 +20,7 @@ type userGroupService struct {
 	repo repositories.UserGroup
 }
 
-func NewUserGroupService(repo repositories.UserGroup) *userGroupService {
+func NewUserGroupService(repo repositories.UserGroup) UserGroupService {
 	return &userGroupService{
 		repo: repo,
 	}
@@ -67,25 +67,8 @@ func (u *userGroupService) Count(ctx context.Context, search string) (int, error
 	return u.repo.Count(ctx, search)
 }
 
-func (u *userGroupService) Update(ctx context.Context, ID string, name string) (*models.UserGroup, error) {
-	err := u.repo.Update(ctx, ID, name)
-	if err != nil {
-		return nil, err
-	}
-
-	group, err := u.repo.GetByID(ctx, ID)
-	if err != nil {
-		return nil, err
-	}
-
-	amount, err := u.repo.GetUserAmount(ctx, ID)
-	if err != nil {
-		return nil, err
-	}
-
-	group.UserAmount = amount
-
-	return group, nil
+func (u *userGroupService) Update(ctx context.Context, ID string, name string) error {
+	return u.repo.Update(ctx, ID, name)
 }
 
 func (u *userGroupService) Delete(ctx context.Context, ID string) error {
