@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
 	"github.com/CSKU-Lab/main-server/domain/models"
@@ -35,6 +36,7 @@ type userService struct {
 	userPasswordRepository repositories.UserPassword
 	userGroupRepository    repositories.UserGroup
 	uowRepository          repositories.UserUoWRepository
+	allowedFilterFields    map[string]bool
 }
 
 func NewUserService(user repositories.User, userPassword repositories.UserPassword, userGroup repositories.UserGroup, uow repositories.UserUoWRepository) UserService {
@@ -43,6 +45,16 @@ func NewUserService(user repositories.User, userPassword repositories.UserPasswo
 		userPasswordRepository: userPassword,
 		uowRepository:          uow,
 		userGroupRepository:    userGroup,
+		allowedFilterFields: map[string]bool{
+			"type":         true,
+			"username":     true,
+			"email":        true,
+			"display_name": true,
+			"group":        true,
+			"roles":        true,
+			"created_at":   true,
+			"updated_at":   true,
+		},
 	}
 }
 
@@ -142,15 +154,35 @@ func (s *userService) GetPagination(ctx context.Context, page int, limit int, se
 		})
 	}
 
-	allowedFilterFields := map[string]bool{
-		"username":     true,
-		"type":         true,
-		"email":        true,
-		"display_name": true,
-	}
-	filters, err := sanitize.Filters(filterParams, allowedFilterFields)
+	filters, err := sanitize.Filters(filterParams, s.allowedFilterFields)
 	if err != nil {
 		return nil, err
+	}
+
+	hasGroupFilter := slices.ContainsFunc(filters, func(filter sanitize.Filter) bool {
+		if filter.Field == "group" {
+			return true
+		}
+		return false
+	})
+
+	if hasGroupFilter {
+		groupFilterIndex := slices.IndexFunc(filters, func(filter sanitize.Filter) bool {
+			if filter.Field == "group" {
+				return true
+			}
+			return false
+		})
+
+		groupFilter := filters[groupFilterIndex]
+
+		groupID, err := s.userGroupRepository.GetByName(ctx, groupFilter.Value)
+		if err != nil {
+			return nil, err
+		}
+
+		filters[groupFilterIndex].Field = "group_id"
+		filters[groupFilterIndex].Value = groupID.ID
 	}
 
 	dbUsers, err := s.userRepository.GetPagination(ctx, page, limit, search, sanitizedSortBy, sanitizedSortOrder, filters)
@@ -174,20 +206,39 @@ func (s *userService) GetPagination(ctx context.Context, page int, limit int, se
 		}
 		users[i] = *user
 	}
-
 	return users, nil
 }
 
 func (s *userService) Count(ctx context.Context, search string, filterParams map[string]string) (int, error) {
-	allowedFilterFields := map[string]bool{
-		"username":     true,
-		"type":         true,
-		"email":        true,
-		"display_name": true,
-	}
-	filters, err := sanitize.Filters(filterParams, allowedFilterFields)
+	filters, err := sanitize.Filters(filterParams, s.allowedFilterFields)
 	if err != nil {
 		return 0, err
+	}
+
+	hasGroupFilter := slices.ContainsFunc(filters, func(filter sanitize.Filter) bool {
+		if filter.Field == "group" {
+			return true
+		}
+		return false
+	})
+
+	if hasGroupFilter {
+		groupFilterIndex := slices.IndexFunc(filters, func(filter sanitize.Filter) bool {
+			if filter.Field == "group" {
+				return true
+			}
+			return false
+		})
+
+		groupFilter := filters[groupFilterIndex]
+
+		groupID, err := s.userGroupRepository.GetByName(ctx, groupFilter.Value)
+		if err != nil {
+			return 0, err
+		}
+
+		filters[groupFilterIndex].Field = "group_id"
+		filters[groupFilterIndex].Value = groupID.ID
 	}
 
 	return s.userRepository.Count(ctx, search, filters)

@@ -63,6 +63,26 @@ func (r *userGroupRepository) GetByID(ctx context.Context, ID string) (*models.U
 	}, nil
 }
 
+func (r *userGroupRepository) GetByName(ctx context.Context, name string) (*models.UserGroup, error) {
+	query := `SELECT * FROM user_groups WHERE name = $1`
+	var userGroup userGroup
+	err := r.db.GetContext(ctx, &userGroup, query, name)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, cserrors.New(&cserrors.Option{
+				HttpStatus: http.StatusInternalServerError,
+				Message:    "User not found",
+			})
+		}
+		return nil, err
+	}
+
+	return &models.UserGroup{
+		ID:   userGroup.ID,
+		Name: userGroup.Name,
+	}, nil
+}
+
 func (r *userGroupRepository) GetUserAmount(ctx context.Context, ID string) (int, error) {
 	query := `SELECT COUNT(*) FROM users WHERE group_id = $1`
 

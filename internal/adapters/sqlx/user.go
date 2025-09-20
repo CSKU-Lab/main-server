@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
@@ -25,30 +24,6 @@ func NewUserRepository(db instance) repositories.User {
 	return &userRepository{db: db}
 }
 
-func buildFilterWhereClause(filters []sanitize.Filter, startingArgIndex int) (string, []interface{}) {
-	if len(filters) == 0 {
-		return "", nil
-	}
-
-	var conditions []string
-	var args []any
-	argIndex := startingArgIndex
-
-	for _, filter := range filters {
-		switch filter.Operator {
-		case "is":
-			conditions = append(conditions, fmt.Sprintf("%s = $%d", filter.Field, argIndex))
-			args = append(args, filter.Value)
-			argIndex++
-		}
-	}
-
-	if len(conditions) == 0 {
-		return "", nil
-	}
-
-	return " AND " + strings.Join(conditions, " AND "), args
-}
 
 type user struct {
 	ID           string         `db:"id"`
@@ -163,7 +138,7 @@ func (r *userRepository) GetPagination(ctx context.Context, page int, limit int,
 		OFFSET $%d
 		LIMIT $%d`, baseQuery, filterWhereClause, sortBy, sortOrder, len(filterArgs)+2, len(filterArgs)+3)
 
-	args := []interface{}{"%"+search+"%"}
+	args := []any{"%"+search+"%"}
 	args = append(args, filterArgs...)
 	args = append(args, (page-1)*limit, limit)
 
@@ -203,7 +178,7 @@ func (r *userRepository) Count(ctx context.Context, search string, filters []san
 
 	query := fmt.Sprintf(`%s%s`, baseQuery, filterWhereClause)
 
-	args := []interface{}{"%"+search+"%"}
+	args := []any{"%"+search+"%"}
 	args = append(args, filterArgs...)
 
 	var count int
