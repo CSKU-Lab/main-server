@@ -97,7 +97,7 @@ func NewAdminCourseRoutes(router fiber.Router, service services.CourseService) {
 
 	courseRouter.Patch("/:courseID", middlewares.ValidateMiddleware[requests.UpdateCourse](), func(c *fiber.Ctx) error {
 		courseID := c.Params("courseID")
-		course := c.Locals("request").(*requests.UpdateCourse)
+		course := c.Locals("body").(*requests.UpdateCourse)
 
 		err := service.UpdateByID(c.Context(), courseID, course)
 		if err != nil {
