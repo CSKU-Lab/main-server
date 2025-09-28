@@ -51,6 +51,10 @@ services:
       - 9000:9000
       - 9001:9001
     command: ["server", "/data", "--console-address", ":9001"]
+  s3-sidecar:
+    container_name: main-server-s3-sidecar
+    image: minio/mc
+    entrypoint: ["tail", "-f", "/dev/null"]
 
 volumes:
   postgres_data:
