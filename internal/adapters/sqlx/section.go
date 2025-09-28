@@ -14,30 +14,35 @@ import (
 )
 
 type sqlxSectionRepository struct {
-	db *sqlx.DB
+	db instance
 }
 
 type sectionSchema struct {
-	ID        string  `db:"id"`
-	Name      string  `db:"name"`
-	Image     *string `db:"image"`
-	StartedAt string  `db:"started_at"`
-	EndedAt   string  `db:"ended_at"`
+	ID     string  `db:"id"`
+	Name   string  `db:"name"`
+	Banner *string `db:"banner"`
 }
 
-func NewSectionRepository(db *sqlx.DB) repositories.SectionRepository {
+func NewSectionRepository(db instance) repositories.SectionRepository {
 	return &sqlxSectionRepository{db: db}
 }
 
-func (s *sqlxSectionRepository) Create(ctx context.Context, section *models.Section, courseID, semesterID string) error {
-	query := "INSERT INTO sections (id, name, image, started_at, ended_at, course_id, semester_id) VALUES ($1, $2, $3, $4, $5, $6, $7)"
+func (s *sqlxSectionRepository) Create(ctx context.Context, ID string, section *repositories.CreateSection) error {
+	query := "INSERT INTO sections (id, name, course_id, semester_id) VALUES ($1, $2, $3, $4)"
 
-	_, err := s.db.ExecContext(ctx, query, section.ID, section.Name, section.Image, section.StartedAt, section.EndedAt, courseID, semesterID)
+	_, err := s.db.ExecContext(ctx, query, ID, section.Name, section.CourseID, section.SemesterID)
 	if err != nil {
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) {
-			if pqErr.Code == "23505" {
+			if pqErr.Code.Name() == "unique_violation" {
 				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusConflict, Message: "Section already exists"})
+			}
+
+			if pqErr.Code.Name() == "foreign_key_violation" {
+				return cserrors.New(&cserrors.Option{
+					HttpStatus: http.StatusInternalServerError,
+					Message:    "Course ID or Section ID does not exists",
+				})
 			}
 		}
 		return err
@@ -46,25 +51,32 @@ func (s *sqlxSectionRepository) Create(ctx context.Context, section *models.Sect
 	return nil
 }
 
-func (s *sqlxSectionRepository) UpdateByID(ctx context.Context, section *models.Section) error {
+func (s *sqlxSectionRepository) UpdateByID(ctx context.Context, ID string, section *repositories.UpdateSection) error {
 	updatedSchema := &sectionSchema{
-		ID:        section.ID,
-		Name:      section.Name,
-		Image:     section.Image,
-		StartedAt: section.StartedAt,
-		EndedAt:   section.EndedAt,
+		ID:     ID,
+		Name:   section.Name,
+		Banner: section.Banner,
 	}
 
 	updateFields := getUpdateFields(updatedSchema)
+	if len(updateFields) == 0 {
+		return nil
+	}
 
 	query := fmt.Sprintf(`
 	UPDATE sections
 	SET %s , updated_at = NOW()
 	WHERE id = :id
-	RETURNING *
 	`, updateFields)
 
-	_, err := s.db.NamedExecContext(ctx, query, updatedSchema)
+	query, args, err := sqlx.Named(query, updatedSchema)
+	if err != nil {
+		return err
+	}
+
+	query = s.db.Rebind(query)
+
+	_, err = s.db.ExecContext(ctx, query, args...)
 	if err != nil {
 		return err
 	}
@@ -74,28 +86,36 @@ func (s *sqlxSectionRepository) UpdateByID(ctx context.Context, section *models.
 
 func (s *sqlxSectionRepository) GetByID(ctx context.Context, ID string) (*models.Section, error) {
 	var section sectionSchema
-	query := "SELECT id, name, image, started_at, ended_at FROM sections WHERE id = $1 AND is_deleted = false"
+	query := "SELECT id, name, banner FROM sections WHERE id = $1 AND is_deleted = false"
 	err := s.db.GetContext(ctx, &section, query, ID)
 	if err != nil {
 		return nil, cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Section not found"})
 	}
 
 	return &models.Section{
-		ID:        section.ID,
-		Name:      section.Name,
-		Image:     section.Image,
-		StartedAt: section.StartedAt,
-		EndedAt:   section.EndedAt,
+		ID:     section.ID,
+		Name:   section.Name,
+		Banner: section.Banner,
 	}, nil
 }
 
 func (s *sqlxSectionRepository) GetBySemesterID(ctx context.Context, ID string) ([]models.Section, error) {
-	var sections []models.Section
-	query := "SELECT * FROM sections WHERE section_id = $1 AND is_deleted = false"
-	err := s.db.SelectContext(ctx, &sections, query, ID)
+	var dbSections []sectionSchema
+	query := "SELECT id, name, banner FROM sections WHERE semester_id = $1 AND is_deleted = false"
+	err := s.db.SelectContext(ctx, &dbSections, query, ID)
 	if err != nil {
 		return nil, err
 	}
+
+	var sections []models.Section
+	for _, dbSection := range dbSections {
+		sections = append(sections, models.Section{
+			ID:     dbSection.ID,
+			Name:   dbSection.Name,
+			Banner: dbSection.Banner,
+		})
+	}
+
 	return sections, nil
 }
 

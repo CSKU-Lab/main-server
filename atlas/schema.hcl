@@ -209,13 +209,7 @@ table "sections" {
   column "name" {
     type = text
   }
-  column "started_at" {
-    type = time
-  }
-  column "ended_at" {
-    type = time
-  }
-  column "image" {
+  column "banner" {
     type = text
     null = true
   }
@@ -273,10 +267,12 @@ table "section_instructors" {
   foreign_key "fk_section_id" {
     columns = [ column.section_id ]
     ref_columns = [ table.sections.column.id ]
+    on_delete = CASCADE
   }
   foreign_key "fk_instructor_id" {
     columns = [ column.instructor_id ]
     ref_columns = [ table.users.column.id ]
+    on_delete = CASCADE
   }
 }
 

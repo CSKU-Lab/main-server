@@ -18,5 +18,5 @@ type CMSRouter struct {
 func NewCMSRouter(r *CMSRouter) {
 	cmsRouter := r.Router.Group("/cms", middlewares.AdminMiddleware)
 
-	routes.NewCmsSectionRoutes(cmsRouter, r.SectionService)
+	routes.NewCmsSectionRoutes(cmsRouter, r.SectionService, r.SemesterService)
 }

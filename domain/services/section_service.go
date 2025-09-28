@@ -2,169 +2,181 @@ package services
 
 import (
 	"context"
-	"errors"
 	"net/http"
-	"time"
 
+	"github.com/CSKU-Lab/main-server/configs"
 	"github.com/CSKU-Lab/main-server/constants"
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
 	"github.com/CSKU-Lab/main-server/domain/models"
 	"github.com/CSKU-Lab/main-server/domain/repositories"
+	"github.com/CSKU-Lab/main-server/internal/converter"
 	"github.com/CSKU-Lab/main-server/internal/requests"
-	"github.com/CSKU-Lab/main-server/internal/transaction"
 	"github.com/google/uuid"
 )
 
 type SectionService interface {
-	Create(ctx context.Context, req *requests.CreateSection) (*models.Section, error)
-	UpdateByID(ctx context.Context, ID string, req *requests.Section) (*models.Section, error)
+	Create(ctx context.Context, req *requests.CreateSection) error
+	UpdateByID(ctx context.Context, ID string, req *requests.UpdateSection) error
 	GetByID(ctx context.Context, ID string) (*models.Section, error)
 	GetBySemesterID(ctx context.Context, semesterID string) ([]models.Section, error)
 	DeleteByID(ctx context.Context, ID string) error
 }
 
 type sectionService struct {
-	repo       repositories.SectionRepository
-	courseRepo repositories.CourseRepository
-	storage    repositories.FileRepository
+	config                *configs.Config
+	uowRepo               repositories.SectionUoWRepository
+	repo                  repositories.SectionRepository
+	courseRepo            repositories.CourseRepository
+	storage               repositories.FileRepository
+	sectionInstructorRepo repositories.SectionInstructorRepository
 }
 
-func NewSectionService(repo repositories.SectionRepository, courseRepo repositories.CourseRepository, storage repositories.FileRepository) SectionService {
+func NewSectionService(config *configs.Config, repo repositories.SectionRepository, uowRepo repositories.SectionUoWRepository, courseRepo repositories.CourseRepository, sectionInstructorRepo repositories.SectionInstructorRepository, storage repositories.FileRepository) SectionService {
 	return &sectionService{
-		repo:       repo,
-		courseRepo: courseRepo,
-		storage:    storage,
+		config:                config,
+		repo:                  repo,
+		uowRepo:               uowRepo,
+		courseRepo:            courseRepo,
+		storage:               storage,
+		sectionInstructorRepo: sectionInstructorRepo,
 	}
 }
 
-func (s *sectionService) Create(ctx context.Context, req *requests.CreateSection) (*models.Section, error) {
+func (s *sectionService) Create(ctx context.Context, req *requests.CreateSection) error {
 	ID, err := uuid.NewV7()
 	if err != nil {
-		return nil, cserrors.New(&cserrors.Option{
+		return cserrors.New(&cserrors.Option{
 			HttpStatus: http.StatusInternalServerError,
 			Message:    "Cannot generate uuid",
 		})
 	}
 
-	section := &models.Section{
-		ID:        ID.String(),
-		Name:      req.Name,
-		Image:     nil,
-		StartedAt: req.StartedAt,
-		EndedAt:   req.EndedAt,
-	}
+	return s.uowRepo.Execute(ctx, func(suow repositories.SectionUoWInstance) error {
+		err = s.repo.Create(ctx, ID.String(), &repositories.CreateSection{
+			Name:       req.Name,
+			CourseID:   req.CourseID,
+			SemesterID: req.SemesterID,
+		})
+		if err != nil {
+			return err
+		}
 
-	tr := transaction.New(&transaction.Option{
-		RetryCount: 3,
-		RetryDelay: 1 * time.Second,
+		for _, instructorID := range req.Instructors {
+			err := s.sectionInstructorRepo.Add(ctx, ID.String(), instructorID)
+			if err != nil {
+				return err
+			}
+		}
+
+		if req.Banner == nil {
+			return nil
+		}
+
+		image, err := s.storage.UploadFile(ctx, constants.SECTION_BANNER, req.Banner)
+		if image == nil {
+			return nil
+		}
+
+		err = suow.Section().UpdateByID(ctx, ID.String(), &repositories.UpdateSection{
+			Banner: &image.Path,
+		})
+		if err != nil {
+			s.storage.DeleteFile(ctx, image.Name)
+			return err
+		}
+		return nil
 	})
 
-	var image *models.UploadedFile
-	err = tr.Execute(
-		tr.Step().CommitWith(func() error {
-			_, err := s.courseRepo.GetByID(ctx, req.CourseID)
-			if err != nil {
-				var csErr *cserrors.Error
-				if errors.As(err, &csErr) && csErr.HttpStatus == http.StatusInternalServerError {
-					return cserrors.New(&cserrors.Option{
-						HttpStatus: http.StatusInternalServerError,
-						Message:    "Cannot find course",
-					})
-				}
-			}
-			return s.repo.Create(ctx, section, req.CourseID, req.SemesterID)
-		}).RollbackWith(func() error {
-			return s.repo.DeleteByID(ctx, ID.String())
-		}),
-		tr.Step().CommitWith(func() error {
-			if req.Image == nil {
-				return nil
-			}
-
-			image, err = s.storage.UploadFile(ctx, constants.SECTION_BANNER, req.Image)
-			return err
-		}).RollbackWith(func() error {
-			return s.storage.DeleteFile(ctx, image.Name)
-		}),
-		tr.Step().CommitWith(func() error {
-			if image == nil {
-				return nil
-			}
-
-			return s.repo.UpdateByID(ctx, &models.Section{
-				ID:    ID.String(),
-				Image: &image.Path,
-			})
-		}),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return s.repo.GetByID(ctx, ID.String())
 }
 
-func (s *sectionService) UpdateByID(ctx context.Context, ID string, req *requests.Section) (*models.Section, error) {
-	tr := transaction.New(&transaction.Option{
-		RetryCount: 3,
-		RetryDelay: 1 * time.Second,
-	})
-
+func (s *sectionService) UpdateByID(ctx context.Context, ID string, req *requests.UpdateSection) error {
 	currentSection, err := s.repo.GetByID(ctx, ID)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	updatedSection := &models.Section{
-		ID:        ID,
-		Name:      req.Name,
-		StartedAt: req.StartedAt,
-		EndedAt:   req.EndedAt,
-	}
+	return s.uowRepo.Execute(ctx, func(suow repositories.SectionUoWInstance) error {
+		updatedSection := &repositories.UpdateSection{
+			Name:       req.Name,
+			SemesterID: req.SemesterID,
+		}
 
-	var image *models.UploadedFile
-	tr.Execute(
-		tr.Step().CommitWith(func() error {
-			if req.Image != nil {
-				image, err := s.storage.UploadFile(ctx, constants.SECTION_BANNER, req.Image)
-				if err != nil {
-					return cserrors.New(&cserrors.Option{
-						HttpStatus: http.StatusInternalServerError,
-						Message:    "Cannot upload image",
-					})
-				}
-				updatedSection.Image = &image.Path
+		if req.Banner != nil {
+			_imagePath, err := s.storage.UploadFile(ctx, constants.SECTION_BANNER, req.Banner)
+			if err != nil {
+				return cserrors.New(&cserrors.Option{
+					HttpStatus: http.StatusInternalServerError,
+					Message:    "Cannot upload image",
+				})
 			}
-			return nil
-		}).RollbackWith(func() error {
-			if image != nil {
-				if err := s.storage.DeleteFile(ctx, image.Name); err != nil {
+			updatedSection.Banner = &_imagePath.Path
+
+			if currentSection.Banner != nil {
+				if err := s.storage.DeleteFile(ctx, *currentSection.Banner); err != nil {
 					return err
 				}
 			}
-			return nil
-		}),
-		tr.Step().CommitWith(func() error {
-			return s.repo.UpdateByID(ctx, updatedSection)
-		}).RollbackWith(func() error {
-			return s.repo.UpdateByID(ctx, currentSection)
-		}),
-		tr.Step().CommitWith(func() error {
-			if currentSection.Image != nil {
-				return s.storage.DeleteFile(ctx, *currentSection.Image)
-			}
-			return nil
-		}),
-	)
+		}
 
-	return s.repo.GetByID(ctx, ID)
+		if len(req.Instructors) > 0 {
+			err := suow.SectionInstructor().DeleteBySectionID(ctx, ID)
+			if err != nil {
+				return err
+			}
+
+			for _, instructorID := range req.Instructors {
+				err := suow.SectionInstructor().Add(ctx, ID, instructorID)
+				if err != nil {
+					return err
+				}
+			}
+		}
+
+		return suow.Section().UpdateByID(ctx, ID, updatedSection)
+	})
 }
 
 func (s *sectionService) GetByID(ctx context.Context, ID string) (*models.Section, error) {
-	return s.repo.GetByID(ctx, ID)
+	section, err := s.repo.GetByID(ctx, ID)
+	if err != nil {
+		return nil, err
+	}
+
+	if section.Banner != nil {
+		bannerS3Path := converter.ToS3Path(s.config, *section.Banner)
+		section.Banner = &bannerS3Path
+	}
+
+	instructors, err := s.sectionInstructorRepo.Get(ctx, section.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	section.Instructors = instructors
+
+	return section, nil
 }
 func (s *sectionService) GetBySemesterID(ctx context.Context, semesterID string) ([]models.Section, error) {
-	return s.repo.GetBySemesterID(ctx, semesterID)
+	sections, err := s.repo.GetBySemesterID(ctx, semesterID)
+	if err != nil {
+		return nil, nil
+	}
+
+	for i, section := range sections {
+		if sections[i].Banner != nil {
+			bannerS3Path := converter.ToS3Path(s.config, *section.Banner)
+			sections[i].Banner = &bannerS3Path
+		}
+
+		instructors, err := s.sectionInstructorRepo.Get(ctx, section.ID)
+		if err != nil {
+			return nil, err
+		}
+
+		sections[i].Instructors = instructors
+	}
+
+	return sections, nil
 }
 func (s *sectionService) DeleteByID(ctx context.Context, ID string) error {
 	return s.repo.DeleteByID(ctx, ID)
