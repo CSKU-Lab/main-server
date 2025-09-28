@@ -23,29 +23,29 @@ type minIO struct {
 }
 
 func New(ctx context.Context, config *configs.Config) repositories.FileRepository {
-	client, err := minio.New(config.MinIO_Endpoint, &minio.Options{
-		Creds:  credentials.NewStaticV4(config.MinIO_AccessKeyID, config.MinIO_SecretAccessKey, ""),
-		Secure: config.MinIO_UseSSL,
+	client, err := minio.New(config.S3_Endpoint, &minio.Options{
+		Creds:  credentials.NewStaticV4(config.S3_AccessKeyID, config.S3_SecretAccessKey, ""),
+		Secure: config.S3_UseSSL,
 	})
 	if err != nil {
 		log.Fatalf("❌ Error creating MinIO client: %v", err)
 	}
 
-	err = client.MakeBucket(ctx, config.MinIO_Bucket, minio.MakeBucketOptions{})
+	err = client.MakeBucket(ctx, config.S3_Bucket, minio.MakeBucketOptions{})
 	if err != nil {
-		exists, errBucketExists := client.BucketExists(ctx, config.MinIO_Bucket)
+		exists, errBucketExists := client.BucketExists(ctx, config.S3_Bucket)
 		if errBucketExists != nil {
 			log.Fatalf("❌ Error checking if bucket exists: %v", errBucketExists)
 		}
 		if !exists {
-			log.Fatalf("❌ Bucket %s does not exist and could not be created: %v", config.MinIO_Bucket, err)
+			log.Fatalf("❌ Bucket %s does not exist and could not be created: %v", config.S3_Bucket, err)
 		}
 	} else {
-		log.Printf("✅ Bucket %s created successfully", config.MinIO_Bucket)
+		log.Printf("✅ Bucket %s created successfully", config.S3_Bucket)
 	}
 
 	return &minIO{
-		bucket: config.MinIO_Bucket,
+		bucket: config.S3_Bucket,
 		client: client,
 	}
 }

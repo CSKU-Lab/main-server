@@ -26,7 +26,7 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 	authRouter.Get("/sign-in/google", func(c *fiber.Ctx) error {
 		url, err := googleAuth.GenerateAuthURL()
 		if err != nil {
-			if appConfig.DEV_MODE {
+			if appConfig.DevMode {
 				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Error generating auth url"})
 			}
 			return cserrors.NewRedirect(cserrors.REDIRECT_SOMETHING_WENT_WRONG)
@@ -38,7 +38,7 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 	authRouter.Get("/sign-in/google/callback", func(c *fiber.Ctx) error {
 		state := c.Query("state")
 		if !googleAuth.VerifyState(state) {
-			if appConfig.DEV_MODE {
+			if appConfig.DevMode {
 				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusBadRequest, Message: "Invalid State"})
 			}
 			return cserrors.NewRedirect(cserrors.REDIRECT_SOMETHING_WENT_WRONG)
@@ -50,7 +50,7 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 
 		userInfo, err := googleAuth.GetUserInfo(ctx, code)
 		if err != nil {
-			if appConfig.DEV_MODE {
+			if appConfig.DevMode {
 				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Error getting user info"})
 			}
 			return cserrors.NewRedirect(cserrors.REDIRECT_SOMETHING_WENT_WRONG)
@@ -58,7 +58,7 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 
 		user, err := userService.GetByEmail(c.Context(), userInfo.Email)
 		if err != nil {
-			if appConfig.DEV_MODE {
+			if appConfig.DevMode {
 				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Error getting user"})
 			}
 			return c.Redirect(appConfig.FRONTEND_URL + "/auth/sign-in?error=UNAUTHORIZED")
@@ -69,7 +69,7 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 				ProfileImage: &userInfo.ProfileImage,
 			})
 			if err != nil {
-				if appConfig.DEV_MODE {
+				if appConfig.DevMode {
 					return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Error updating user profile image"})
 				}
 				return cserrors.NewRedirect(cserrors.REDIRECT_SOMETHING_WENT_WRONG)
@@ -78,7 +78,7 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 
 		newAccessToken, err := auth.SignAccessToken(user, appConfig.JWTSecret)
 		if err != nil {
-			if appConfig.DEV_MODE {
+			if appConfig.DevMode {
 				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Something went wrong"})
 			}
 			return cserrors.NewRedirect(cserrors.REDIRECT_SOMETHING_WENT_WRONG)
@@ -86,7 +86,7 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 
 		newRefreshToken, err := auth.SignRefreshToken(user.ID, appConfig.JWTRefreshSecret)
 		if err != nil {
-			if appConfig.DEV_MODE {
+			if appConfig.DevMode {
 				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Something went wrong"})
 			}
 			return cserrors.NewRedirect(cserrors.REDIRECT_SOMETHING_WENT_WRONG)
@@ -94,7 +94,7 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 
 		err = refreshTokenService.Set(c.Context(), user.ID, newRefreshToken)
 		if err != nil {
-			if appConfig.DEV_MODE {
+			if appConfig.DevMode {
 				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Something went wrong"})
 			}
 			return cserrors.NewRedirect(cserrors.REDIRECT_SOMETHING_WENT_WRONG)
@@ -120,7 +120,7 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 			Secure:   false,
 		})
 
-		if appConfig.DEV_MODE {
+		if appConfig.DevMode {
 			return c.JSON(fiber.Map{
 				"message":       "OK",
 				"access_token":  newAccessToken,
@@ -184,7 +184,7 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 			Secure:   false,
 		})
 
-		if appConfig.DEV_MODE {
+		if appConfig.DevMode {
 			return c.JSON(fiber.Map{
 				"message":       "OK",
 				"access_token":  newAccessToken,
@@ -291,7 +291,7 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 			Secure:   false,
 		})
 
-		if appConfig.DEV_MODE {
+		if appConfig.DevMode {
 			return c.JSON(fiber.Map{
 				"message":       "OK",
 				"access_token":  newAccessToken,
