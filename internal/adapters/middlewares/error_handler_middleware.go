@@ -44,6 +44,17 @@ func (e *errorHandlerMiddleware) ErrorHandler(c *fiber.Ctx, err error) error {
 		})
 	}
 
+	var fiberErr *fiber.Error
+	if errors.As(err, &fiberErr) {
+		if fiberErr.Code == 404 {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error":   "Route not found",
+				"message": fiberErr.Message,
+			})
+		}
+
+	}
+
 	return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 		"error": "Internal Server Error",
 	})
