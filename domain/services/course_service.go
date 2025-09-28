@@ -69,8 +69,9 @@ func (s *courseService) GetByID(ctx context.Context, ID string) (*models.Course,
 
 func (s *courseService) GetPagination(ctx context.Context, page int, pageSize int, search string, sortBy string, sortOrder string, show string) ([]models.Course, error) {
 	allowedSortFields := map[string]bool{
-		"name": true,
-		"type": true,
+		"name":       true,
+		"type":       true,
+		"created_at": true,
 	}
 	sanitizedSortBy, err := sanitize.SortBy(sortBy, allowedSortFields)
 	if err != nil {
