@@ -29,6 +29,7 @@ type UpdateSection struct {
 	Instructors []string `json:"instructors"`
 	SemesterID  string   `json:"semester_id"`
 	Banner      *File    `json:"banner"`
+	Students    []string `json:"students"`
 }
 
 func (req *UpdateSection) Validate() error {
@@ -37,5 +38,6 @@ func (req *UpdateSection) Validate() error {
 		validation.Field(&req.Instructors, validation.NilOrNotEmpty, validation.Length(1, 0)),
 		validation.Field(&req.SemesterID, validation.NilOrNotEmpty),
 		validation.Field(&req.Banner, validation.NilOrNotEmpty),
+		validation.Field(&req.Students, validation.NilOrNotEmpty, validation.Length(1, 0)),
 	)
 }

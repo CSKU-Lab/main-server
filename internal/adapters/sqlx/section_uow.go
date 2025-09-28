@@ -31,6 +31,10 @@ func (s *sectionUowInstance) SectionInstructor() repositories.SectionInstructorR
 	return NewSectionInstructorRepository(s.tx)
 }
 
+func (s *sectionUowInstance) SectionStudent() repositories.SectionStudentRepository {
+	return NewSectionStudentRepository(s.tx)
+}
+
 func (s *sectionUowImpl) Execute(ctx context.Context, cb func(s repositories.SectionUoWInstance) error) error {
 	tx, err := s.db.BeginTxx(ctx, &sql.TxOptions{})
 	if err != nil {
@@ -50,4 +54,3 @@ func (s *sectionUowImpl) Execute(ctx context.Context, cb func(s repositories.Sec
 	}
 	return nil
 }
-

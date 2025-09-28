@@ -47,7 +47,8 @@ func main() {
 	sectionRepo := sqlx.NewSectionRepository(db)
 	sectionUowRepo := sqlx.NewSectionUoWRepository(ctx, db)
 	sectionInstructorRepo := sqlx.NewSectionInstructorRepository(db)
-	sectionService := services.NewSectionService(config, sectionRepo, sectionUowRepo, courseRepo, sectionInstructorRepo, minio)
+	sectionStudentRepo := sqlx.NewSectionStudentRepository(db)
+	sectionService := services.NewSectionService(config, sectionRepo, sectionUowRepo, courseRepo, sectionInstructorRepo, sectionStudentRepo, minio)
 
 	errHandlerMiddleware := middlewares.NewErrorHandlerMiddleware(config)
 

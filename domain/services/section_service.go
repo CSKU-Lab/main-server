@@ -29,9 +29,10 @@ type sectionService struct {
 	courseRepo            repositories.CourseRepository
 	storage               repositories.FileRepository
 	sectionInstructorRepo repositories.SectionInstructorRepository
+	sectionStudentRepo    repositories.SectionStudentRepository
 }
 
-func NewSectionService(config *configs.Config, repo repositories.SectionRepository, uowRepo repositories.SectionUoWRepository, courseRepo repositories.CourseRepository, sectionInstructorRepo repositories.SectionInstructorRepository, storage repositories.FileRepository) SectionService {
+func NewSectionService(config *configs.Config, repo repositories.SectionRepository, uowRepo repositories.SectionUoWRepository, courseRepo repositories.CourseRepository, sectionInstructorRepo repositories.SectionInstructorRepository, sectionStudentRepo repositories.SectionStudentRepository, storage repositories.FileRepository) SectionService {
 	return &sectionService{
 		config:                config,
 		repo:                  repo,
@@ -39,6 +40,7 @@ func NewSectionService(config *configs.Config, repo repositories.SectionReposito
 		courseRepo:            courseRepo,
 		storage:               storage,
 		sectionInstructorRepo: sectionInstructorRepo,
+		sectionStudentRepo:    sectionStudentRepo,
 	}
 }
 
@@ -84,6 +86,13 @@ func (s *sectionService) Create(ctx context.Context, req *requests.CreateSection
 			s.storage.DeleteFile(ctx, image.Name)
 			return err
 		}
+
+		for _, studentID := range req.Students {
+			err := suow.SectionStudent().Add(ctx, ID.String(), studentID)
+			if err != nil {
+				return err
+			}
+		}
 		return nil
 	})
 
@@ -126,6 +135,20 @@ func (s *sectionService) UpdateByID(ctx context.Context, ID string, req *request
 
 			for _, instructorID := range req.Instructors {
 				err := suow.SectionInstructor().Add(ctx, ID, instructorID)
+				if err != nil {
+					return err
+				}
+			}
+		}
+
+		if len(req.Students) > 0 {
+			err := suow.SectionStudent().DeleteBySectionID(ctx, ID)
+			if err != nil {
+				return err
+			}
+
+			for _, studentID := range req.Students {
+				err := suow.SectionStudent().Add(ctx, ID, studentID)
 				if err != nil {
 					return err
 				}

@@ -17,24 +17,29 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 	cmsSectionRouter := router.Group("/sections")
 
 	cmsSectionRouter.Post("/", func(c *fiber.Ctx) error {
-		name := c.FormValue("name")
-		courseID := c.FormValue("course_id")
-		semesterID := c.FormValue("semester_id")
-		instructors := c.FormValue("instructors")
+		req := &requests.CreateSection{
+			Name:       c.FormValue("name"),
+			SemesterID: c.FormValue("semester_id"),
+			CourseID:   c.FormValue("course_id"),
+		}
 
 		instructorList := []string{}
+		instructors := c.FormValue("instructors")
 		if instructors != "" {
 			for _, instructor := range strings.Split(instructors, ",") {
 				instructorList = append(instructorList, strings.TrimSpace(instructor))
 			}
 		}
+		req.Instructors = instructorList
 
-		req := &requests.CreateSection{
-			Name:        name,
-			Instructors: instructorList,
-			SemesterID:  semesterID,
-			CourseID:    courseID,
+		students := c.FormValue("students")
+		studentList := []string{}
+		if students != "" {
+			for _, student := range strings.Split(students, ",") {
+				studentList = append(studentList, strings.TrimSpace(student))
+			}
 		}
+		req.Students = studentList
 
 		if err := req.Validate(); err != nil {
 			return c.Status(http.StatusBadRequest).JSON(fiber.Map{
@@ -86,6 +91,16 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 		}
 
 		req.Instructors = instructorList
+
+		students := c.FormValue("students")
+		studentList := []string{}
+		if students != "" {
+			for _, student := range strings.Split(students, ",") {
+				studentList = append(studentList, strings.TrimSpace(student))
+			}
+		}
+
+		req.Students = studentList
 
 		image, err := c.FormFile("banner")
 		if err == nil {

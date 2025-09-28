@@ -297,6 +297,26 @@ table "section_tas" {
   }
 }
 
+table "section_students" {
+  schema = schema.public
+  column "section_id" {
+    type = uuid
+  }
+  column "student_id" {
+    type = uuid
+  }
+  primary_key  {
+    columns = [ column.section_id,  column.student_id ]
+  }
+  foreign_key "fk_section_id" {
+    columns = [ column.section_id ]
+    ref_columns = [ table.sections.column.id ]
+  }
+  foreign_key "fk_student_id" {
+    columns = [ column.student_id ]
+    ref_columns = [ table.users.column.id ]
+  }
+}
 
 enum "semester_type" {
   schema = schema.public
