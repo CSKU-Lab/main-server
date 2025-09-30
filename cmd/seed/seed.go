@@ -23,17 +23,15 @@ func main() {
 	uowRepo := sqlx.NewUserUoWRepository(context.Background(), db)
 	userService := services.NewUserService(userRepo, userPasswordRepo, userGroupRepo, uowRepo)
 
-	user, err := userService.Create(context.Background(), &requests.CreateMultiTypeUser{
-		BaseUser: requests.BaseUser{
-			Username:    "postman_admin",
-			DisplayName: "Postman Admin",
-			Roles:       []string{"admin"},
-		},
+	err := userService.Create(context.Background(), &requests.CreateMultiTypeUser{
+		Username:    "postman_admin",
+		DisplayName: "Postman Admin",
+		Roles:       []string{"admin"},
 		GroupID: func() *string {
-			groupID := "0198b246-1023-7486-a358-3a24ea6c3435"
+			groupID := "01999af8-b648-75f7-8ec4-092354ee1af3"
 			return &groupID
 		}(),
-		Type: models.UserTypeCredential.String(),
+		Type: models.UserTypeCredential,
 		Password: func() *string {
 			password := "postman_admin"
 			return &password
@@ -45,5 +43,4 @@ func main() {
 	}
 
 	fmt.Println("✅ User created successfully")
-	fmt.Println(user)
 }
