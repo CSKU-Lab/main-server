@@ -34,7 +34,10 @@ func (r *sqlxCourseRepository) Create(ctx context.Context, ID string, c *request
 
 	tx, err := r.db.BeginTxx(ctx, nil)
 	if err != nil {
-		return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Failed to begin transaction"})
+		return cserrors.New(&cserrors.Option{
+			HttpStatus: http.StatusInternalServerError,
+			Message:    "Failed to begin transaction",
+		})
 	}
 
 	defer func() {
@@ -50,11 +53,18 @@ func (r *sqlxCourseRepository) Create(ctx context.Context, ID string, c *request
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) {
 			if pqErr.Code == "23505" {
-				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "course with that name is already exists"})
+				return cserrors.New(&cserrors.Option{
+					Code:       cserrors.CourseAlreadyExists,
+					HttpStatus: http.StatusInternalServerError,
+					Message:    "course with that name is already exists",
+				})
 			}
 		}
 
-		return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Failed to create course"})
+		return cserrors.New(&cserrors.Option{
+			HttpStatus: http.StatusInternalServerError,
+			Message:    "Failed to create course",
+		})
 	}
 
 	for order, creator := range c.Creators {
@@ -62,13 +72,19 @@ func (r *sqlxCourseRepository) Create(ctx context.Context, ID string, c *request
 		_, err := tx.ExecContext(ctx, query, ID, creator, order)
 		if err != nil {
 			log.Printf("Failed to insert course creator: %v", err)
-			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Failed to set course creators"})
+			return cserrors.New(&cserrors.Option{
+				HttpStatus: http.StatusInternalServerError,
+				Message:    "Failed to set course creators",
+			})
 		}
 	}
 
 	if err = tx.Commit(); err != nil {
 		log.Printf("Failed to commit transaction: %v", err)
-		return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Failed to commit transaction"})
+		return cserrors.New(&cserrors.Option{
+			HttpStatus: http.StatusInternalServerError,
+			Message:    "Failed to commit transaction",
+		})
 	}
 
 	return nil
@@ -81,7 +97,10 @@ func (r *sqlxCourseRepository) GetByID(ctx context.Context, ID string) (*models.
 	var course course
 	err := row.StructScan(&course)
 	if err != nil {
-		return nil, cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Course not found"})
+		return nil, cserrors.New(&cserrors.Option{
+			HttpStatus: http.StatusInternalServerError,
+			Message:    "Course not found",
+		})
 	}
 
 	return &models.Course{

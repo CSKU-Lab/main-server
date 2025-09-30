@@ -6,22 +6,22 @@ import (
 )
 
 type CreateCourse struct {
-	Name     string   `json:"name" validate:"required"`
-	Type     string   `json:"type" validate:"required,oneof=public private"`
-	Creators []string `json:"creators" validate:"required,uuid_slice"`
+	Name     string   `json:"name"`
+	Type     string   `json:"type"`
+	Creators []string `json:"creators"`
 }
 
 func (c *CreateCourse) Validate() error {
 	return validation.ValidateStruct(c,
 		validation.Field(&c.Name, validation.Required),
-		validation.Field(&c.Type, validation.Required, validation.Each(validation.In("public", "private"))),
+		validation.Field(&c.Type, validation.Required, validation.In("public", "private")),
 		validation.Field(&c.Creators, validation.Required, validation.Length(1, 0), validation.Each(is.UUID)),
 	)
 }
 
 type UpdateCourse struct {
-	Name     string   `json:"name" validate:"required"`
-	Creators []string `json:"creators" validate:"required,uuid_slice"`
+	Name     string   `json:"name"`
+	Creators []string `json:"creators"`
 }
 
 func (c *UpdateCourse) Validate() error {
