@@ -1,0 +1,40 @@
+services:
+  db:
+    container_name: main-server-db
+    image: postgres:latest # Use the desired PostgreSQL version
+    restart: always
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data # Persist data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+
+  s3:
+    container_name: main-server-s3
+    image: quay.io/minio/minio
+    restart: unless-stopped
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+    volumes:
+      - ./minio/data:/data
+    ports:
+      - 9000:9000
+      - 9001:9001
+    command: ["server", "/data", "--console-address", ":9001"]
+  s3-sidecar:
+    container_name: main-server-s3-sidecar
+    image: minio/mc
+    entrypoint: ["tail", "-f", "/dev/null"]
+
+volumes:
+  postgres_data:
