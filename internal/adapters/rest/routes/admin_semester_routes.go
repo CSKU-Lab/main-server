@@ -64,7 +64,7 @@ func NewAdminSemesterRoutes(router fiber.Router, service services.SemesterServic
 				"total_page": math.Ceil(float64(count/pageSize) + 1),
 				"total_rows": count,
 			},
-			"semesters": sems,
+			"data": sems,
 		})
 	})
 

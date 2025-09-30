@@ -19,4 +19,5 @@ func NewCMSRouter(r *CMSRouter) {
 	cmsRouter := r.Router.Group("/cms", middlewares.AdminMiddleware)
 
 	routes.NewCmsSectionRoutes(cmsRouter, r.SectionService, r.SemesterService)
+	routes.NewAdminSemesterRoutes(cmsRouter, r.SemesterService)
 }
