@@ -48,9 +48,5 @@ func (s *sectionUowImpl) Execute(ctx context.Context, cb func(s repositories.Sec
 		return err
 	}
 
-	err = tx.Commit()
-	if err != nil {
-		return err
-	}
-	return nil
+	return tx.Commit()
 }

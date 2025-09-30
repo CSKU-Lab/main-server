@@ -27,10 +27,10 @@ func NewSectionInstructorRepository(db instance) repositories.SectionInstructorR
 	}
 }
 
-func (s *sqlxSectionInstructorRepository) Add(ctx context.Context, sectionID string, id string) error {
+func (s *sqlxSectionInstructorRepository) Add(ctx context.Context, sectionID string, instructorID string) error {
 	query := `INSERT INTO section_instructors (section_id,instructor_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`
 
-	_, err := s.db.ExecContext(ctx, query, sectionID, id)
+	_, err := s.db.ExecContext(ctx, query, sectionID, instructorID)
 	if err != nil {
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) {
@@ -41,6 +41,7 @@ func (s *sqlxSectionInstructorRepository) Add(ctx context.Context, sectionID str
 				})
 			}
 		}
+		return err
 	}
 
 	return nil

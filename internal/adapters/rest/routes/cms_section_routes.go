@@ -23,31 +23,6 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 			CourseID:   c.FormValue("course_id"),
 		}
 
-		instructorList := []string{}
-		instructors := c.FormValue("instructors")
-		if instructors != "" {
-			for _, instructor := range strings.Split(instructors, ",") {
-				instructorList = append(instructorList, strings.TrimSpace(instructor))
-			}
-		}
-		req.Instructors = instructorList
-
-		students := c.FormValue("students")
-		studentList := []string{}
-		if students != "" {
-			for _, student := range strings.Split(students, ",") {
-				studentList = append(studentList, strings.TrimSpace(student))
-			}
-		}
-		req.Students = studentList
-
-		if err := req.Validate(); err != nil {
-			return c.Status(http.StatusBadRequest).JSON(fiber.Map{
-				"error":  "Bad Request",
-				"fields": err,
-			})
-		}
-
 		image, err := c.FormFile("banner")
 		if err == nil {
 			file, err := image.Open()
@@ -67,12 +42,46 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 			req.Banner = imageFile
 		}
 
-		err = sectionService.Create(c.Context(), req)
+		form, err := c.MultipartForm()
 		if err != nil {
 			return err
 		}
 
-		return c.SendStatus(fiber.StatusCreated)
+		instructors := form.Value["instructors[]"]
+		instructorList := []string{}
+		for _, instructor := range instructors {
+			instructorList = append(instructorList, strings.TrimSpace(instructor))
+		}
+
+		if len(instructorList) > 0 {
+			req.Instructors = instructorList
+		}
+
+		studentUsernames := form.Value["students[]"]
+		studentList := []string{}
+		for _, student := range studentUsernames {
+			studentList = append(studentList, strings.TrimSpace(student))
+		}
+
+		if len(studentList) > 0 {
+			req.Students = studentList
+		}
+
+		if err := req.Validate(); err != nil {
+			return c.Status(http.StatusBadRequest).JSON(fiber.Map{
+				"error":  "Bad Request",
+				"fields": err,
+			})
+		}
+
+		ID, err := sectionService.Create(c.Context(), req)
+		if err != nil {
+			return err
+		}
+
+		return c.Status(fiber.StatusCreated).JSON(fiber.Map{
+			"id": ID,
+		})
 	})
 
 	cmsSectionRouter.Patch("/:id", func(c *fiber.Ctx) error {

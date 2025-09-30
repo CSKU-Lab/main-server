@@ -278,7 +278,10 @@ func (s *userService) Create(ctx context.Context, req *requests.CreateMultiTypeU
 		}
 
 		if req.Password != nil {
-			u.UserPassword().SetPassword(ctx, id.String(), *req.Password)
+			err := u.UserPassword().SetPassword(ctx, id.String(), *req.Password)
+			if err != nil {
+				return err
+			}
 		}
 		return nil
 	})

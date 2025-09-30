@@ -17,9 +17,9 @@ func NewSectionStudentRepository(db instance) repositories.SectionStudentReposit
 	return &sectionStudentRepository{db: db}
 }
 
-func (s *sectionStudentRepository) Add(ctx context.Context, sectionID string, id string) error {
+func (s *sectionStudentRepository) Add(ctx context.Context, sectionID string, studentID string) error {
 	query := `INSERT INTO section_students (section_id, student_id) VALUES ($1, $2)`
-	_, err := s.db.ExecContext(ctx, query, sectionID, id)
+	_, err := s.db.ExecContext(ctx, query, sectionID, studentID)
 	if err != nil {
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) {
@@ -30,6 +30,7 @@ func (s *sectionStudentRepository) Add(ctx context.Context, sectionID string, id
 				})
 			}
 		}
+		return err
 	}
 	return nil
 }

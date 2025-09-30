@@ -48,7 +48,7 @@ func main() {
 	sectionUowRepo := sqlx.NewSectionUoWRepository(ctx, db)
 	sectionInstructorRepo := sqlx.NewSectionInstructorRepository(db)
 	sectionStudentRepo := sqlx.NewSectionStudentRepository(db)
-	sectionService := services.NewSectionService(config, sectionRepo, sectionUowRepo, courseRepo, sectionInstructorRepo, sectionStudentRepo, minio)
+	sectionService := services.NewSectionService(config, sectionRepo, sectionUowRepo, courseRepo, sectionInstructorRepo, sectionStudentRepo, minio, userRepo)
 
 	errHandlerMiddleware := middlewares.NewErrorHandlerMiddleware(config)
 
@@ -65,7 +65,6 @@ func main() {
 	rest.NewAdminRouter(&rest.AdminRouter{
 		Router:           protectedApi,
 		UserService:      userService,
-		SemesterService:  semesterService,
 		CourseService:    courseService,
 		UserGroupService: userGroupService,
 	})

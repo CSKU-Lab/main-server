@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"log"
 	"net/http"
 
 	"github.com/CSKU-Lab/main-server/configs"
@@ -15,7 +16,7 @@ import (
 )
 
 type SectionService interface {
-	Create(ctx context.Context, req *requests.CreateSection) error
+	Create(ctx context.Context, req *requests.CreateSection) (string, error)
 	UpdateByID(ctx context.Context, ID string, req *requests.UpdateSection) error
 	GetByID(ctx context.Context, ID string) (*models.Section, error)
 	GetBySemesterID(ctx context.Context, semesterID string) ([]models.Section, error)
@@ -30,9 +31,10 @@ type sectionService struct {
 	storage               repositories.FileRepository
 	sectionInstructorRepo repositories.SectionInstructorRepository
 	sectionStudentRepo    repositories.SectionStudentRepository
+	userRepo              repositories.User
 }
 
-func NewSectionService(config *configs.Config, repo repositories.SectionRepository, uowRepo repositories.SectionUoWRepository, courseRepo repositories.CourseRepository, sectionInstructorRepo repositories.SectionInstructorRepository, sectionStudentRepo repositories.SectionStudentRepository, storage repositories.FileRepository) SectionService {
+func NewSectionService(config *configs.Config, repo repositories.SectionRepository, uowRepo repositories.SectionUoWRepository, courseRepo repositories.CourseRepository, sectionInstructorRepo repositories.SectionInstructorRepository, sectionStudentRepo repositories.SectionStudentRepository, storage repositories.FileRepository, userRepo repositories.User) SectionService {
 	return &sectionService{
 		config:                config,
 		repo:                  repo,
@@ -41,20 +43,21 @@ func NewSectionService(config *configs.Config, repo repositories.SectionReposito
 		storage:               storage,
 		sectionInstructorRepo: sectionInstructorRepo,
 		sectionStudentRepo:    sectionStudentRepo,
+		userRepo:              userRepo,
 	}
 }
 
-func (s *sectionService) Create(ctx context.Context, req *requests.CreateSection) error {
+func (s *sectionService) Create(ctx context.Context, req *requests.CreateSection) (string, error) {
 	ID, err := uuid.NewV7()
 	if err != nil {
-		return cserrors.New(&cserrors.Option{
+		return "", cserrors.New(&cserrors.Option{
 			HttpStatus: http.StatusInternalServerError,
 			Message:    "Cannot generate uuid",
 		})
 	}
 
-	return s.uowRepo.Execute(ctx, func(suow repositories.SectionUoWInstance) error {
-		err = s.repo.Create(ctx, ID.String(), &repositories.CreateSection{
+	err = s.uowRepo.Execute(ctx, func(suow repositories.SectionUoWInstance) error {
+		err := suow.Section().Create(ctx, ID.String(), &repositories.CreateSection{
 			Name:       req.Name,
 			CourseID:   req.CourseID,
 			SemesterID: req.SemesterID,
@@ -64,37 +67,45 @@ func (s *sectionService) Create(ctx context.Context, req *requests.CreateSection
 		}
 
 		for _, instructorID := range req.Instructors {
-			err := s.sectionInstructorRepo.Add(ctx, ID.String(), instructorID)
+			err := suow.SectionInstructor().Add(ctx, ID.String(), instructorID)
 			if err != nil {
 				return err
 			}
 		}
 
-		if req.Banner == nil {
-			return nil
-		}
-
-		image, err := s.storage.UploadFile(ctx, constants.SECTION_BANNER, req.Banner)
-		if image == nil {
-			return nil
-		}
-
-		err = suow.Section().UpdateByID(ctx, ID.String(), &repositories.UpdateSection{
-			Banner: &image.Path,
-		})
-		if err != nil {
-			s.storage.DeleteFile(ctx, image.Name)
-			return err
-		}
-
-		for _, studentID := range req.Students {
-			err := suow.SectionStudent().Add(ctx, ID.String(), studentID)
+		if req.Banner != nil {
+			image, err := s.storage.UploadFile(ctx, constants.SECTION_BANNER, req.Banner)
 			if err != nil {
 				return err
 			}
+
+			err = suow.Section().UpdateByID(ctx, ID.String(), &repositories.UpdateSection{
+				Banner: &image.Path,
+			})
+			if err != nil {
+				s.storage.DeleteFile(ctx, image.Name)
+				return err
+			}
 		}
+
+		if len(req.Students) > 0 {
+			studentIds, err := s.userRepo.GetManyByUsername(ctx, req.Students)
+			if err != nil {
+				return err
+			}
+			for _, student := range studentIds {
+				err := suow.SectionStudent().Add(ctx, ID.String(), student.ID)
+				if err != nil {
+					return err
+				}
+			}
+		}
+
 		return nil
 	})
+	log.Println(err)
+
+	return ID.String(), err
 
 }
 

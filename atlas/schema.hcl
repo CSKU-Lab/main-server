@@ -290,10 +290,12 @@ table "section_tas" {
   foreign_key "fk_section_id" {
     columns = [ column.section_id ]
     ref_columns = [ table.sections.column.id ]
+    on_delete = CASCADE
   }
   foreign_key "fk_ta_id" {
     columns = [ column.ta_id ]
     ref_columns = [ table.users.column.id ]
+    on_delete = CASCADE
   }
 }
 
@@ -311,10 +313,12 @@ table "section_students" {
   foreign_key "fk_section_id" {
     columns = [ column.section_id ]
     ref_columns = [ table.sections.column.id ]
+    on_delete = CASCADE
   }
   foreign_key "fk_student_id" {
     columns = [ column.student_id ]
     ref_columns = [ table.users.column.id ]
+    on_delete = CASCADE
   }
 }
 

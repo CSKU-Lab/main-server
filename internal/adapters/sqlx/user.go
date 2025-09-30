@@ -24,7 +24,6 @@ func NewUserRepository(db instance) repositories.User {
 	return &userRepository{db: db}
 }
 
-
 type user struct {
 	ID           string         `db:"id"`
 	Username     string         `db:"username"`
@@ -93,6 +92,47 @@ func (r *userRepository) GetByUsername(ctx context.Context, username string) (*r
 	}, nil
 }
 
+func (r *userRepository) GetManyByUsername(ctx context.Context, usernames []string) ([]repositories.UserData, error) {
+	var users []user
+	query := `SELECT id, email, username,display_name,profile_image,
+	roles, group_id, type, created_at, updated_at 
+	FROM users 
+	WHERE username IN (?) AND is_deleted = false`
+
+	query, args, err := sqlx.In(query, usernames)
+	if err != nil {
+		return nil, err
+	}
+
+	query = r.db.Rebind(query)
+
+	err = r.db.SelectContext(ctx, &users, query, args...)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "User not found"})
+		}
+		return nil, err
+	}
+
+	var userDatas []repositories.UserData
+	for _, user := range users {
+		userDatas = append(userDatas, repositories.UserData{
+			ID:           user.ID,
+			Email:        user.Email,
+			Username:     user.Username,
+			DisplayName:  user.DisplayName,
+			ProfileImage: user.ProfileImage,
+			Roles:        user.Roles,
+			Type:         user.Type,
+			CreatedAt:    user.CreatedAt,
+			UpdatedAt:    user.UpdatedAt,
+			GroupID:      user.GroupID,
+		})
+	}
+
+	return userDatas, nil
+}
+
 func (r *userRepository) GetByID(ctx context.Context, ID string) (*repositories.UserData, error) {
 	var user user
 	query := `SELECT id, email, username,display_name,profile_image,
@@ -138,7 +178,7 @@ func (r *userRepository) GetPagination(ctx context.Context, page int, limit int,
 		OFFSET $%d
 		LIMIT $%d`, baseQuery, filterWhereClause, sortBy, sortOrder, len(filterArgs)+2, len(filterArgs)+3)
 
-	args := []any{"%"+search+"%"}
+	args := []any{"%" + search + "%"}
 	args = append(args, filterArgs...)
 	args = append(args, (page-1)*limit, limit)
 
@@ -178,7 +218,7 @@ func (r *userRepository) Count(ctx context.Context, search string, filters []san
 
 	query := fmt.Sprintf(`%s%s`, baseQuery, filterWhereClause)
 
-	args := []any{"%"+search+"%"}
+	args := []any{"%" + search + "%"}
 	args = append(args, filterArgs...)
 
 	var count int
@@ -216,8 +256,7 @@ func (r *userRepository) Create(ctx context.Context, req repositories.CreateMult
 
 	query = r.db.Rebind(query)
 
-	var id string
-	err = r.db.GetContext(ctx, &id, query, args...)
+	_, err = r.db.ExecContext(ctx, query, args...)
 	if err != nil {
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) {
@@ -225,6 +264,7 @@ func (r *userRepository) Create(ctx context.Context, req repositories.CreateMult
 				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "User already exists"})
 			}
 		}
+		return err
 	}
 
 	return nil

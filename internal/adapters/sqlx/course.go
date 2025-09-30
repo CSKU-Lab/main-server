@@ -204,7 +204,6 @@ func (r *sqlxCourseRepository) UpdateByID(ctx context.Context, ID string, c *req
 
 	_, err := r.db.NamedExecContext(ctx, query, fields)
 	if err != nil {
-		log.Println(err)
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) {
 			if pqErr.Code == "22P02" {
