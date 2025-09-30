@@ -114,20 +114,21 @@ func (s *sectionService) UpdateByID(ctx context.Context, ID string, req *request
 	}
 
 	return s.uowRepo.Execute(ctx, func(suow repositories.SectionUoWInstance) error {
-		updatedSection := &repositories.UpdateSection{
-			Name:       req.Name,
-			SemesterID: req.SemesterID,
-		}
-
 		if req.Banner != nil {
-			_imagePath, err := s.storage.UploadFile(ctx, constants.SECTION_BANNER, req.Banner)
+			imagePath, err := s.storage.UploadFile(ctx, constants.SECTION_BANNER, req.Banner)
 			if err != nil {
 				return cserrors.New(&cserrors.Option{
 					HttpStatus: http.StatusInternalServerError,
 					Message:    "Cannot upload image",
 				})
 			}
-			updatedSection.Banner = &_imagePath.Path
+
+			err = suow.Section().UpdateByID(ctx, ID, &repositories.UpdateSection{
+				Banner: &imagePath.Path,
+			})
+			if err != nil {
+				return err
+			}
 
 			if currentSection.Banner != nil {
 				if err := s.storage.DeleteFile(ctx, *currentSection.Banner); err != nil {
@@ -164,7 +165,10 @@ func (s *sectionService) UpdateByID(ctx context.Context, ID string, req *request
 			}
 		}
 
-		return suow.Section().UpdateByID(ctx, ID, updatedSection)
+		return suow.Section().UpdateByID(ctx, ID, &repositories.UpdateSection{
+			Name:       req.Name,
+			SemesterID: req.SemesterID,
+		})
 	})
 }
 
