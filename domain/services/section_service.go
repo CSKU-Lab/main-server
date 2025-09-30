@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"log"
 	"net/http"
 
 	"github.com/CSKU-Lab/main-server/configs"
@@ -103,7 +102,6 @@ func (s *sectionService) Create(ctx context.Context, req *requests.CreateSection
 
 		return nil
 	})
-	log.Println(err)
 
 	return ID.String(), err
 
