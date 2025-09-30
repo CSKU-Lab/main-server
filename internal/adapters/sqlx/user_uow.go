@@ -49,9 +49,5 @@ func (u *uowImpl) Execute(cb func(u repositories.UserUoWInstance) error) error {
 		return err
 	}
 
-	err = tx.Commit()
-	if err != nil {
-		return err
-	}
-	return nil
+	return tx.Commit()
 }
