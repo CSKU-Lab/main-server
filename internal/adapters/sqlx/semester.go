@@ -12,6 +12,7 @@ import (
 	"github.com/CSKU-Lab/main-server/domain/models"
 	"github.com/CSKU-Lab/main-server/domain/repositories"
 	"github.com/CSKU-Lab/main-server/internal/requests"
+	"github.com/CSKU-Lab/main-server/internal/sanitize"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 )
@@ -59,54 +60,59 @@ func (r *sqlxSemesterRepository) Create(ctx context.Context, ID string, sem *req
 
 }
 
-func (r *sqlxSemesterRepository) GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string) ([]models.Semester, error) {
-	query := fmt.Sprintf(`SELECT id,name,type,started_date FROM semesters 
-		WHERE (name ILIKE $1 
+func (r *sqlxSemesterRepository) GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string, filters []sanitize.Filter) ([]models.Semester, error) {
+	filterWhereClause, filterArgs := buildFilterWhereClause(filters, 2)
+
+	baseQuery := `SELECT id,name,type,started_date FROM semesters
+		WHERE (name ILIKE $1
 		OR type::text ILIKE $1
 		OR DATE(started_date)::text = $1)
-		AND deleted_at IS NULL
-		ORDER BY %s %s
-		OFFSET $2
-		LIMIT $3
-		`, sortBy, sortOrder)
+		AND deleted_at IS NULL`
 
-	rows, err := r.db.QueryxContext(ctx, query, "%"+search+"%", (page-1)*limit, limit)
+	query := fmt.Sprintf(`%s%s
+		ORDER BY %s %s
+		OFFSET $%d
+		LIMIT $%d`, baseQuery, filterWhereClause, sortBy, sortOrder, len(filterArgs)+2, len(filterArgs)+3)
+
+	args := []any{"%" + search + "%"}
+	args = append(args, filterArgs...)
+	args = append(args, (page-1)*limit, limit)
+
+	pgSemesters := []semester{}
+	err := r.db.SelectContext(ctx, &pgSemesters, query, args...)
 	if err != nil {
 		return nil, err
 	}
 
-	sems := []models.Semester{}
-
-	for rows.Next() {
-		var sem semester
-		err = rows.StructScan(&sem)
-		if err != nil {
-			return nil, err
+	semesters := make([]models.Semester, len(pgSemesters))
+	for i, pgSemester := range pgSemesters {
+		semesters[i] = models.Semester{
+			ID:        pgSemester.ID,
+			Name:      pgSemester.Name,
+			Type:      models.SemesterType(pgSemester.Type),
+			StartDate: pgSemester.StartedDate,
 		}
-
-		sems = append(sems, models.Semester{
-			ID:        sem.ID,
-			Name:      sem.Name,
-			Type:      models.SemesterType(sem.Type),
-			StartDate: sem.StartedDate,
-		})
 	}
 
-	return sems, nil
+	return semesters, nil
 }
 
-func (r *sqlxSemesterRepository) Count(ctx context.Context, search string) (int, error) {
-	query := `
-		SELECT COUNT(*) FROM semesters 
+func (r *sqlxSemesterRepository) Count(ctx context.Context, search string, filters []sanitize.Filter) (int, error) {
+	filterWhereClause, filterArgs := buildFilterWhereClause(filters, 2)
+
+	baseQuery := `SELECT COUNT(*) FROM semesters
 		WHERE (name LIKE $1
-		OR type::text LIKE $1 
-		OR DATE(started_date)::text = $1) AND deleted_at IS NULL
-	`
-	row := r.db.QueryRowContext(ctx, query, "%"+search+"%")
+		OR type::text LIKE $1
+		OR DATE(started_date)::text = $1) AND
+		deleted_at IS NULL`
+
+	query := fmt.Sprintf(`%s%s`, baseQuery, filterWhereClause)
+
+	args := []any{"%" + search + "%"}
+	args = append(args, filterArgs...)
 
 	var count int
-
-	err := row.Scan(&count)
+	err := r.db.GetContext(ctx, &count, query, args...)
 	if err != nil {
 		return 0, err
 	}

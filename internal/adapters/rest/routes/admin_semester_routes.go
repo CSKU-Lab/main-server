@@ -5,6 +5,7 @@ import (
 	"math"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
 	"github.com/CSKU-Lab/main-server/domain/services"
@@ -38,6 +39,13 @@ func NewAdminSemesterRoutes(router fiber.Router, service services.SemesterServic
 		sortBy := c.Query("sort_by", "name")
 		sortOrder := c.Query("sort_order", "desc")
 
+		filterParams := make(map[string]string)
+		for key, value := range c.Queries() {
+			if strings.Contains(key, "__") {
+				filterParams[key] = value
+			}
+		}
+
 		page, err := strconv.Atoi(pageQuery)
 		if err != nil {
 			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusBadRequest, Message: "Invalid page"})
@@ -48,12 +56,12 @@ func NewAdminSemesterRoutes(router fiber.Router, service services.SemesterServic
 			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusBadRequest, Message: "Invalid page size"})
 		}
 
-		sems, err := service.GetPagination(c.Context(), page, pageSize, search, sortBy, sortOrder)
+		sems, err := service.GetPagination(c.Context(), page, pageSize, search, sortBy, sortOrder, filterParams)
 		if err != nil {
-			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: err.Error()})
+			return err
 		}
 
-		count, err := service.Count(c.Context(), search)
+		count, err := service.Count(c.Context(), search, filterParams)
 		if err != nil {
 			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Error getting semesters count"})
 		}

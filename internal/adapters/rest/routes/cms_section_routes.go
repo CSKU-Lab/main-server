@@ -152,12 +152,12 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusBadRequest, Message: "Invalid page size"})
 		}
 
-		sems, err := semesterService.GetPagination(c.Context(), page, pageSize, search, sortBy, sortOrder)
+		sems, err := semesterService.GetPagination(c.Context(), page, pageSize, search, sortBy, sortOrder, nil)
 		if err != nil {
 			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: err.Error()})
 		}
 
-		count, err := semesterService.Count(c.Context(), search)
+		count, err := semesterService.Count(c.Context(), search, nil)
 		if err != nil {
 			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Error getting semesters count"})
 		}

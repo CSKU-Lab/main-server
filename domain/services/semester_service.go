@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"net/http"
+	"strings"
 
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
 	"github.com/CSKU-Lab/main-server/domain/models"
@@ -14,20 +15,26 @@ import (
 
 type SemesterService interface {
 	Create(ctx context.Context, sem *requests.CreateSemester) error
-	GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string) ([]models.Semester, error)
+	GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string, filterParams map[string]string) ([]models.Semester, error)
 	GetByID(ctx context.Context, ID string) (*models.Semester, error)
-	Count(ctx context.Context, search string) (int, error)
+	Count(ctx context.Context, search string, filterParams map[string]string) (int, error)
 	UpdateByID(ctx context.Context, ID string, sem *requests.UpdateSemester) error
 	DeleteByID(ctx context.Context, ID string) error
 }
 
 type semesterService struct {
-	repo repositories.SemesterRepository
+	repo                repositories.SemesterRepository
+	allowedFilterFields map[string]bool
 }
 
 func NewSemesterService(repo repositories.SemesterRepository) *semesterService {
 	return &semesterService{
 		repo: repo,
+		allowedFilterFields: map[string]bool{
+			"name":         true,
+			"type":         true,
+			"started_date": true,
+		},
 	}
 }
 
@@ -43,7 +50,7 @@ func (s *semesterService) Create(ctx context.Context, sem *requests.CreateSemest
 	return s.repo.Create(ctx, id.String(), sem)
 }
 
-func (s *semesterService) GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string) ([]models.Semester, error) {
+func (s *semesterService) GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string, filterParams map[string]string) ([]models.Semester, error) {
 	allowedSortFields := map[string]bool{
 		"name":         true,
 		"type":         true,
@@ -67,12 +74,33 @@ func (s *semesterService) GetPagination(ctx context.Context, page int, limit int
 			})
 	}
 
-	return s.repo.GetPagination(ctx, page, limit, search, sanitizedSortBy, sanitizedSortOrder)
+	if t, ok := filterParams["type__is"]; ok {
+		t = strings.ToLower(t)
+		if t != "first" && t != "second" && t != "summer" {
+			return nil, cserrors.New(&cserrors.Option{
+				HttpStatus: http.StatusBadRequest,
+				Message:    "Invalid semester type filter",
+			})
+		}
+		filterParams["type__is"] = strings.ToLower(t)
+	}
+
+	filters, err := sanitize.Filters(filterParams, s.allowedFilterFields)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.repo.GetPagination(ctx, page, limit, search, sanitizedSortBy, sanitizedSortOrder, filters)
 
 }
 
-func (s *semesterService) Count(ctx context.Context, search string) (int, error) {
-	return s.repo.Count(ctx, search)
+func (s *semesterService) Count(ctx context.Context, search string, filterParams map[string]string) (int, error) {
+	filters, err := sanitize.Filters(filterParams, s.allowedFilterFields)
+	if err != nil {
+		return 0, err
+	}
+
+	return s.repo.Count(ctx, search, filters)
 }
 
 func (s *semesterService) GetByID(ctx context.Context, ID string) (*models.Semester, error) {
