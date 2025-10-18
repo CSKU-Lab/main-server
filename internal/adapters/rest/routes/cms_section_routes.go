@@ -135,6 +135,7 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 		return c.SendStatus(fiber.StatusAccepted)
 	})
 
+	// need to be refactored because this violates clean architecture
 	cmsSectionRouter.Get("/", func(c *fiber.Ctx) error {
 		pageQuery := c.Query("page", "1")
 		pageSizeQuery := c.Query("pageSize", "10")
@@ -174,9 +175,14 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 				return err
 			}
 
+			responseSections := []models.Section{}
+			if len(sections) > 0 {
+				responseSections = sections
+			}
+
 			sectionsOfSemesters = append(sectionsOfSemesters, sectionsOfSemester{
 				SemesterName: semester.Name,
-				Sections:     sections,
+				Sections:     responseSections,
 			})
 		}
 
