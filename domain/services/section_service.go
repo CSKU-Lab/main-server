@@ -19,12 +19,13 @@ type SectionService interface {
 	UpdateByID(ctx context.Context, ID string, req *requests.UpdateSection) error
 	GetByID(ctx context.Context, ID string) (*models.Section, error)
 	GetBySemesterID(ctx context.Context, semesterID string) ([]models.Section, error)
+	GetRawBySemesterID(ctx context.Context, semesterID string) ([]repositories.RawSection, error)
 	DeleteByID(ctx context.Context, ID string) error
 }
 
 type sectionService struct {
 	config                *configs.Config
-	uowRepo               repositories.SectionUoWRepository
+	uowRepo               repositories.UoWRepository
 	repo                  repositories.SectionRepository
 	courseRepo            repositories.CourseRepository
 	storage               repositories.FileRepository
@@ -33,7 +34,7 @@ type sectionService struct {
 	userRepo              repositories.User
 }
 
-func NewSectionService(config *configs.Config, repo repositories.SectionRepository, uowRepo repositories.SectionUoWRepository, courseRepo repositories.CourseRepository, sectionInstructorRepo repositories.SectionInstructorRepository, sectionStudentRepo repositories.SectionStudentRepository, storage repositories.FileRepository, userRepo repositories.User) SectionService {
+func NewSectionService(config *configs.Config, repo repositories.SectionRepository, uowRepo repositories.UoWRepository, courseRepo repositories.CourseRepository, sectionInstructorRepo repositories.SectionInstructorRepository, sectionStudentRepo repositories.SectionStudentRepository, storage repositories.FileRepository, userRepo repositories.User) SectionService {
 	return &sectionService{
 		config:                config,
 		repo:                  repo,
@@ -55,7 +56,7 @@ func (s *sectionService) Create(ctx context.Context, req *requests.CreateSection
 		})
 	}
 
-	err = s.uowRepo.Execute(ctx, func(suow repositories.SectionUoWInstance) error {
+	err = s.uowRepo.Execute(ctx, func(suow repositories.UoWInstance) error {
 		err := suow.Section().Create(ctx, ID.String(), &repositories.CreateSection{
 			Name:       req.Name,
 			CourseID:   req.CourseID,
@@ -113,7 +114,7 @@ func (s *sectionService) UpdateByID(ctx context.Context, ID string, req *request
 		return err
 	}
 
-	return s.uowRepo.Execute(ctx, func(suow repositories.SectionUoWInstance) error {
+	return s.uowRepo.Execute(ctx, func(suow repositories.UoWInstance) error {
 		if req.Banner != nil {
 			imagePath, err := s.storage.UploadFile(ctx, constants.SECTION_BANNER, req.Banner)
 			if err != nil {
@@ -192,6 +193,7 @@ func (s *sectionService) GetByID(ctx context.Context, ID string) (*models.Sectio
 
 	return section, nil
 }
+
 func (s *sectionService) GetBySemesterID(ctx context.Context, semesterID string) ([]models.Section, error) {
 	sections, err := s.repo.GetBySemesterID(ctx, semesterID)
 	if err != nil {
@@ -214,6 +216,11 @@ func (s *sectionService) GetBySemesterID(ctx context.Context, semesterID string)
 
 	return sections, nil
 }
+
+func (s *sectionService) GetRawBySemesterID(ctx context.Context, semesterID string) ([]repositories.RawSection, error) {
+	return s.repo.GetRawBySemesterID(ctx, semesterID)
+}
+
 func (s *sectionService) DeleteByID(ctx context.Context, ID string) error {
 	return s.repo.DeleteByID(ctx, ID)
 }

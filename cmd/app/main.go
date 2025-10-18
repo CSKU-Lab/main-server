@@ -24,31 +24,30 @@ func main() {
 
 	minio := minio.New(ctx, config)
 
-	userUoWRepo := sqlx.NewUserUoWRepository(ctx, db)
+	uowRepo := sqlx.NewUoWRepository(ctx, db)
 
 	userRepo := sqlx.NewUserRepository(db)
 	userPasswordRepo := sqlx.NewUserPasswordRepository(db)
 	userGroupRepo := sqlx.NewUserGroupRepository(db)
 
-	userService := services.NewUserService(userRepo, userPasswordRepo, userGroupRepo, userUoWRepo)
+	userService := services.NewUserService(userRepo, userPasswordRepo, userGroupRepo, uowRepo)
 
 	userGroupService := services.NewUserGroupService(userGroupRepo)
 
 	refreshTokenRepo := sqlx.NewSQLxRefreshTokenRepository(db)
 	refreshTokenService := services.NewRefreshTokenService(refreshTokenRepo)
 
-	semesterRepo := sqlx.NewSqlxSemesterRepository(db)
-	semesterService := services.NewSemesterService(semesterRepo)
-
 	courseRepo := sqlx.NewSqlxCourseRepository(db)
 	courseCreatorRepo := sqlx.NewCourseCreatorRepository(db)
 	courseService := services.NewCourseService(courseRepo, courseCreatorRepo)
 
 	sectionRepo := sqlx.NewSectionRepository(db)
-	sectionUowRepo := sqlx.NewSectionUoWRepository(ctx, db)
 	sectionInstructorRepo := sqlx.NewSectionInstructorRepository(db)
 	sectionStudentRepo := sqlx.NewSectionStudentRepository(db)
-	sectionService := services.NewSectionService(config, sectionRepo, sectionUowRepo, courseRepo, sectionInstructorRepo, sectionStudentRepo, minio, userRepo)
+	sectionService := services.NewSectionService(config, sectionRepo, uowRepo, courseRepo, sectionInstructorRepo, sectionStudentRepo, minio, userRepo)
+
+	semesterRepo := sqlx.NewSqlxSemesterRepository(db)
+	semesterService := services.NewSemesterService(semesterRepo, sectionRepo, courseRepo)
 
 	errHandlerMiddleware := middlewares.NewErrorHandlerMiddleware(config)
 

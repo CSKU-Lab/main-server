@@ -23,6 +23,16 @@ type sectionSchema struct {
 	Banner *string `db:"banner"`
 }
 
+type rawSectionSchema struct {
+	ID         string  `db:"id"`
+	Name       string  `db:"name"`
+	Banner     *string `db:"banner"`
+	CourseID   string  `db:"course_id"`
+	SemesterID string  `db:"semester_id"`
+	CreatedAt  string  `db:"created_at"`
+	UpdatedAt  string  `db:"updated_at"`
+}
+
 func NewSectionRepository(db instance) repositories.SectionRepository {
 	return &sqlxSectionRepository{db: db}
 }
@@ -113,6 +123,30 @@ func (s *sqlxSectionRepository) GetBySemesterID(ctx context.Context, ID string) 
 			ID:     dbSection.ID,
 			Name:   dbSection.Name,
 			Banner: dbSection.Banner,
+		})
+	}
+
+	return sections, nil
+}
+
+func (s *sqlxSectionRepository) GetRawBySemesterID(ctx context.Context, ID string) ([]repositories.RawSection, error) {
+	var dbSections []rawSectionSchema
+	query := "SELECT id, name, banner, course_id, semester_id, created_at, updated_at FROM sections WHERE semester_id = $1 AND is_deleted = false"
+	err := s.db.SelectContext(ctx, &dbSections, query, ID)
+	if err != nil {
+		return nil, err
+	}
+
+	var sections []repositories.RawSection
+	for _, dbSection := range dbSections {
+		sections = append(sections, repositories.RawSection{
+			ID:         dbSection.ID,
+			Name:       dbSection.Name,
+			Banner:     dbSection.Banner,
+			CourseID:   dbSection.CourseID,
+			SemesterID: dbSection.SemesterID,
+			CreatedAt:  dbSection.CreatedAt,
+			UpdatedAt:  dbSection.UpdatedAt,
 		})
 	}
 

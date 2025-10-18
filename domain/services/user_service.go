@@ -35,11 +35,11 @@ type userService struct {
 	userRepository         repositories.User
 	userPasswordRepository repositories.UserPassword
 	userGroupRepository    repositories.UserGroup
-	uowRepository          repositories.UserUoWRepository
+	uowRepository          repositories.UoWRepository
 	allowedFilterFields    map[string]bool
 }
 
-func NewUserService(user repositories.User, userPassword repositories.UserPassword, userGroup repositories.UserGroup, uow repositories.UserUoWRepository) UserService {
+func NewUserService(user repositories.User, userPassword repositories.UserPassword, userGroup repositories.UserGroup, uow repositories.UoWRepository) UserService {
 	return &userService{
 		userRepository:         user,
 		userPasswordRepository: userPassword,
@@ -271,7 +271,7 @@ func (s *userService) Create(ctx context.Context, req *requests.CreateMultiTypeU
 
 	repoUser.ID = id.String()
 
-	err = s.uowRepository.Execute(func(u repositories.UserUoWInstance) error {
+	err = s.uowRepository.Execute(ctx, func(u repositories.UoWInstance) error {
 		err := u.User().Create(ctx, repoUser)
 		if err != nil {
 			return err

@@ -13,9 +13,20 @@ import (
 	"github.com/google/uuid"
 )
 
+type RawSection struct {
+	ID         string
+	Name       string
+	Banner     *string
+	CourseID   string
+	SemesterID string
+	CreatedAt  string
+	UpdatedAt  string
+}
+
 type SemesterService interface {
 	Create(ctx context.Context, sem *requests.CreateSemester) error
 	GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string, filterParams map[string]string) ([]models.Semester, error)
+	GetAffectedSections(ctx context.Context, semesterID string) ([]models.AffectedSection, error)
 	GetByID(ctx context.Context, ID string) (*models.Semester, error)
 	Count(ctx context.Context, search string, filterParams map[string]string) (int, error)
 	UpdateByID(ctx context.Context, ID string, sem *requests.UpdateSemester) error
@@ -24,12 +35,16 @@ type SemesterService interface {
 
 type semesterService struct {
 	repo                repositories.SemesterRepository
+	sectionRepo         repositories.SectionRepository
+	courseRepo          repositories.CourseRepository
 	allowedFilterFields map[string]bool
 }
 
-func NewSemesterService(repo repositories.SemesterRepository) *semesterService {
+func NewSemesterService(repo repositories.SemesterRepository, sectionRepo repositories.SectionRepository, courseRepo repositories.CourseRepository) *semesterService {
 	return &semesterService{
-		repo: repo,
+		repo:        repo,
+		sectionRepo: sectionRepo,
+		courseRepo:  courseRepo,
 		allowedFilterFields: map[string]bool{
 			"name":         true,
 			"type":         true,
@@ -113,4 +128,30 @@ func (s *semesterService) UpdateByID(ctx context.Context, ID string, sem *reques
 
 func (s *semesterService) DeleteByID(ctx context.Context, ID string) error {
 	return s.repo.DeleteByID(ctx, ID)
+}
+
+func (s *semesterService) GetAffectedSections(ctx context.Context, semesterID string) ([]models.AffectedSection, error) {
+	sections, err := s.sectionRepo.GetRawBySemesterID(ctx, semesterID)
+	if err != nil {
+		return nil, err
+	}
+
+	courseWithSectionsMap := make(map[string][]string)
+	for _, section := range sections {
+		courseWithSectionsMap[section.CourseID] = append(courseWithSectionsMap[section.CourseID], section.Name)
+	}
+
+	courseWithSectionsSlice := make([]models.AffectedSection, 0, len(courseWithSectionsMap))
+	for courseID, sectionNames := range courseWithSectionsMap {
+		course, err := s.courseRepo.GetByID(ctx, courseID)
+		if err != nil {
+			return nil, err
+		}
+		courseWithSectionsSlice = append(courseWithSectionsSlice, models.AffectedSection{
+			CourseName: course.Name,
+			Sections:   sectionNames,
+		})
+	}
+
+	return courseWithSectionsSlice, nil
 }

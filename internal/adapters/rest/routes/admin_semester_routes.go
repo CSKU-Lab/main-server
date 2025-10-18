@@ -14,7 +14,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func NewAdminSemesterRoutes(router fiber.Router, service services.SemesterService) {
+func NewAdminSemesterRoutes(router fiber.Router, service services.SemesterService, sectionService services.SectionService, courseService services.CourseService) {
 	semesterRouter := router.Group("/semesters")
 
 	semesterRouter.Post("/", middlewares.ValidateMiddleware[requests.CreateSemester](), func(c *fiber.Ctx) error {
@@ -121,4 +121,14 @@ func NewAdminSemesterRoutes(router fiber.Router, service services.SemesterServic
 		return c.SendStatus(fiber.StatusNoContent)
 	})
 
+	semesterRouter.Get("/:semID/affected-sections", func(c *fiber.Ctx) error {
+		semID := c.Params("semID")
+
+		courseWithSections, err := service.GetAffectedSections(c.Context(), semID)
+		if err != nil {
+			return err
+		}
+
+		return c.JSON(courseWithSections)
+	})
 }

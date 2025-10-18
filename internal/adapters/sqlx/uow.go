@@ -18,7 +18,7 @@ type uowInstance struct {
 	tx *sqlx.Tx
 }
 
-func NewUserUoWRepository(ctx context.Context, db *sqlx.DB) repositories.UserUoWRepository {
+func NewUoWRepository(ctx context.Context, db *sqlx.DB) repositories.UoWRepository {
 	return &uowImpl{db: db,
 		ctx: ctx,
 	}
@@ -36,8 +36,20 @@ func (u *uowInstance) UserGroup() repositories.UserGroup {
 	return NewUserGroupRepository(u.tx)
 }
 
-func (u *uowImpl) Execute(cb func(u repositories.UserUoWInstance) error) error {
-	tx, err := u.db.BeginTxx(u.ctx, &sql.TxOptions{})
+func (u *uowInstance) Section() repositories.SectionRepository {
+	return NewSectionRepository(u.tx)
+}
+
+func (u *uowInstance) SectionInstructor() repositories.SectionInstructorRepository {
+	return NewSectionInstructorRepository(u.tx)
+}
+
+func (u *uowInstance) SectionStudent() repositories.SectionStudentRepository {
+	return NewSectionStudentRepository(u.tx)
+}
+
+func (s *uowImpl) Execute(ctx context.Context, cb func(s repositories.UoWInstance) error) error {
+	tx, err := s.db.BeginTxx(ctx, &sql.TxOptions{})
 	if err != nil {
 		log.Fatalln("Cannot start transaction in sqlx UowRepository")
 	}
