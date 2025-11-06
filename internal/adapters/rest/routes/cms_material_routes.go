@@ -21,7 +21,14 @@ func NewCMSMaterialRoutes(router fiber.Router, materialService services.Material
 		req := c.Locals("body").(*requests.CreateMaterial)
 		user := c.Locals("user").(*models.User)
 
-		return materialService.Create(c.Context(), user.ID, req)
+		matID, err := materialService.Create(c.Context(), user.ID, req)
+		if err != nil {
+			return err
+		}
+
+		return c.Status(fiber.StatusCreated).JSON(fiber.Map{
+			"id": matID,
+		})
 	})
 
 	materialRouter.Get("/", func(c *fiber.Ctx) error {
