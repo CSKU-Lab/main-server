@@ -48,6 +48,14 @@ func (u *uowInstance) SectionStudent() repositories.SectionStudentRepository {
 	return NewSectionStudentRepository(u.tx)
 }
 
+func (u *uowInstance) Material() repositories.MaterialRepository {
+	return NewMaterialRepository(u.tx)
+}
+
+func (u *uowInstance) MaterialTag() repositories.WriteMaterialTagRepository {
+	return newWriteMaterialTagRepository(u.tx)
+}
+
 func (s *uowImpl) Execute(ctx context.Context, cb func(s repositories.UoWInstance) error) error {
 	tx, err := s.db.BeginTxx(ctx, &sql.TxOptions{})
 	if err != nil {

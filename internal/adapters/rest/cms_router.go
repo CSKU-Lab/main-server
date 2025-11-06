@@ -13,6 +13,7 @@ type CMSRouter struct {
 	SemesterService services.SemesterService
 	CourseService   services.CourseService
 	SectionService  services.SectionService
+	MaterialService services.MaterialService
 }
 
 func NewCMSRouter(r *CMSRouter) {
@@ -20,4 +21,5 @@ func NewCMSRouter(r *CMSRouter) {
 
 	routes.NewCmsSectionRoutes(cmsRouter, r.SectionService, r.SemesterService)
 	routes.NewAdminSemesterRoutes(cmsRouter, r.SemesterService, r.SectionService, r.CourseService)
+	routes.NewCMSMaterialRoutes(cmsRouter, r.MaterialService)
 }

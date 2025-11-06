@@ -10,6 +10,9 @@ type UoWInstance interface {
 	Section() SectionRepository
 	SectionInstructor() SectionInstructorRepository
 	SectionStudent() SectionStudentRepository
+
+	Material() MaterialRepository
+	MaterialTag() WriteMaterialTagRepository
 }
 
 type UoWRepository interface {

@@ -367,6 +367,98 @@ table "semesters" {
   }
 }
 
+enum "material_type" {
+  schema = schema.public
+  values = [ "document" , "code" , "type" ]
+}
+
+enum "visibility" {
+  schema = schema.public
+  values = [ "public" , "private" ]
+}
+
+table "materials" {
+  schema = schema.public
+  column "id" {
+    type = uuid
+  }
+  column "name" {
+    type = text
+  }
+  column "type" {
+    type = enum.material_type
+  }
+  column "visibility" {
+    type = enum.visibility
+  }
+  column "created_by" {
+    type = uuid
+  }
+  column "created_at" {
+    type = timestamp
+    default = sql("CURRENT_TIMESTAMP")
+  }
+  column "updated_at" {
+    type = timestamp
+    default = sql("CURRENT_TIMESTAMP")
+  }
+  column "is_deleted" {
+    type = boolean
+    default = false
+  }
+  column "deleted_at" {
+    type = timestamp
+    null = true
+  }
+  primary_key  {
+    columns = [ column.id ]
+  }
+  foreign_key "fk_created_by" {
+    columns = [ column.created_by ]
+    ref_columns = [ table.users.column.id ]
+    on_delete = SET_NULL
+  }
+}
+
+table "material_tags" {
+  schema = schema.public
+  column "material_id" {
+    type = uuid
+  }
+  column "tag_id" {
+    type = uuid
+  }
+  primary_key  {
+    columns = [ column.material_id, column.tag_id ]
+  }
+  foreign_key "fk_material_id" {
+    columns = [ column.material_id ]
+    ref_columns = [ table.materials.column.id ]
+    on_delete = CASCADE
+  }
+  foreign_key "fk_tag_id" {
+    columns = [ column.tag_id ]
+    ref_columns = [ table.tags.column.id ]
+    on_delete = CASCADE
+  }
+}
+
+table "tags" {
+  schema = schema.public
+  column "id" {
+    type = uuid
+  }
+  column "name" {
+    type = text
+  }
+  unique "unique_tag_name" {
+    columns = [ column.name ]
+  }
+  primary_key {
+    columns = [ column.id ]
+  }
+}
+
 enum "action" {
   schema = schema.public
   values = [ "sign-in" , "sign-out" , "sign-in-failed" ]
