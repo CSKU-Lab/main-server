@@ -14,7 +14,7 @@ import (
 )
 
 type MaterialService interface {
-	Create(ctx context.Context, createdByUserID string, req *requests.CreateMaterial) error
+	Create(ctx context.Context, createdByUserID string, req *requests.CreateMaterial) (string, error)
 	GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string, filterParams map[string]string) ([]models.Material, error)
 	Count(ctx context.Context, search string, filters map[string]string) (int, error)
 	GetByID(ctx context.Context, ID string) (*models.Material, error)
@@ -26,14 +26,16 @@ type materialService struct {
 	repo                repositories.MaterialRepository
 	uowRepo             repositories.UoWRepository
 	readMaterialTagRepo repositories.ReadMaterialTagRepository
+	userRepo            repositories.User
 	allowedFilterFields map[string]bool
 }
 
-func NewMaterialService(repo repositories.MaterialRepository, readMaterialTagRepo repositories.ReadMaterialTagRepository, uowRepo repositories.UoWRepository) MaterialService {
+func NewMaterialService(repo repositories.MaterialRepository, readMaterialTagRepo repositories.ReadMaterialTagRepository, uowRepo repositories.UoWRepository, userRepo repositories.User) MaterialService {
 	return &materialService{
 		repo:                repo,
 		uowRepo:             uowRepo,
 		readMaterialTagRepo: readMaterialTagRepo,
+		userRepo:            userRepo,
 		allowedFilterFields: map[string]bool{
 			"name": true,
 			"type": true,
@@ -41,8 +43,9 @@ func NewMaterialService(repo repositories.MaterialRepository, readMaterialTagRep
 	}
 }
 
-func (s *materialService) Create(ctx context.Context, createdByUserID string, req *requests.CreateMaterial) error {
-	return s.uowRepo.Execute(ctx, func(u repositories.UoWInstance) error {
+func (s *materialService) Create(ctx context.Context, createdByUserID string, req *requests.CreateMaterial) (string, error) {
+	var matID string
+	err := s.uowRepo.Execute(ctx, func(u repositories.UoWInstance) error {
 		id, err := uuid.NewV7()
 		if err != nil {
 			return cserrors.New(&cserrors.Option{
@@ -55,9 +58,15 @@ func (s *materialService) Create(ctx context.Context, createdByUserID string, re
 		if err != nil {
 			return err
 		}
+		matID = id.String()
 
 		return u.MaterialTag().SetTags(ctx, id.String(), req.Tags)
 	})
+	if err != nil {
+		return "", err
+	}
+
+	return matID, nil
 }
 
 func (s *materialService) GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string, filterParams map[string]string) ([]models.Material, error) {
@@ -65,6 +74,8 @@ func (s *materialService) GetPagination(ctx context.Context, page int, limit int
 		"name":         true,
 		"type":         true,
 		"started_date": true,
+		"created_at":   true,
+		"updated_at":   true,
 	}
 	sanitizedSortBy, err := sanitize.SortBy(sortBy, allowedSortFields)
 	if err != nil {
@@ -105,17 +116,36 @@ func (s *materialService) GetPagination(ctx context.Context, page int, limit int
 		return nil, err
 	}
 
-	for i, mat := range materials {
+	matModels := make([]models.Material, 0, len(materials))
+
+	for _, mat := range materials {
 		matTags, err := s.readMaterialTagRepo.GetTags(ctx, mat.ID)
 		if err != nil {
 			return nil, err
 		}
+
+		tags := []string{}
 		if matTags != nil {
-			materials[i].Tags = matTags
+			tags = matTags
 		}
+
+		creator, err := s.userRepo.GetByID(ctx, mat.CreatedBy)
+		if err != nil {
+			return nil, err
+		}
+
+		matModels = append(matModels, models.Material{
+			ID:         mat.ID,
+			Name:       mat.Name,
+			Tags:       tags,
+			Type:       mat.Type,
+			Visibility: mat.Visibility,
+			CreatedAt:  mat.CreatedAt,
+			CreatedBy:  creator.DisplayName,
+		})
 	}
 
-	return materials, nil
+	return matModels, nil
 }
 
 func (s *materialService) Count(ctx context.Context, search string, filterParams map[string]string) (int, error) {
@@ -133,14 +163,28 @@ func (s *materialService) GetByID(ctx context.Context, ID string) (*models.Mater
 		return nil, err
 	}
 
+	creator, err := s.userRepo.GetByID(ctx, mat.CreatedBy)
+	if err != nil {
+		return nil, err
+	}
+
+	matModel := &models.Material{
+		ID:         mat.ID,
+		Name:       mat.Name,
+		Type:       mat.Type,
+		Visibility: mat.Visibility,
+		CreatedAt:  mat.CreatedAt,
+		CreatedBy:  creator.DisplayName,
+	}
+
 	matTags, err := s.readMaterialTagRepo.GetTags(ctx, ID)
 	if err != nil {
 		return nil, err
 	}
 
-	mat.Tags = matTags
+	matModel.Tags = matTags
 
-	return mat, nil
+	return matModel, nil
 }
 
 func (s *materialService) UpdateByID(ctx context.Context, ID string, req *requests.UpdateMaterial) error {

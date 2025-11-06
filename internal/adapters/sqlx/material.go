@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
-	"github.com/CSKU-Lab/main-server/domain/models"
+	"github.com/CSKU-Lab/main-server/domain/raw"
 	"github.com/CSKU-Lab/main-server/domain/repositories"
 	"github.com/CSKU-Lab/main-server/internal/requests"
 	"github.com/CSKU-Lab/main-server/internal/sanitize"
@@ -15,13 +15,6 @@ import (
 
 type materialRepository struct {
 	db instance
-}
-
-type material struct {
-	ID         string `db:"id"`
-	Name       string `db:"name"`
-	Type       string `db:"type"`
-	Visibility string `db:"visibility"`
 }
 
 func NewMaterialRepository(db instance) repositories.MaterialRepository {
@@ -38,10 +31,10 @@ func (m *materialRepository) Create(ctx context.Context, ID string, createdByUse
 	return nil
 }
 
-func (m *materialRepository) GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string, filters []sanitize.Filter) ([]models.Material, error) {
+func (m *materialRepository) GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string, filters []sanitize.Filter) ([]raw.Material, error) {
 	filterWhereClause, filterArgs := buildFilterWhereClause(filters, 2)
 
-	baseQuery := `SELECT id, name, type, visibility FROM materials
+	baseQuery := `SELECT id, name, type, visibility, created_at, created_by FROM materials
 	WHERE (name ILIKE $1)`
 
 	query := fmt.Sprintf(`%s%s
@@ -53,24 +46,13 @@ func (m *materialRepository) GetPagination(ctx context.Context, page int, limit 
 	args = append(args, filterArgs...)
 	args = append(args, (page-1)*limit, limit)
 
-	materials := []material{}
+	materials := []raw.Material{}
 	err := m.db.SelectContext(ctx, &materials, query, args...)
 	if err != nil {
 		return nil, err
 	}
 
-	materialModels := make([]models.Material, 0, len(materials))
-	for _, mat := range materials {
-		materialModels = append(materialModels, models.Material{
-			ID:         mat.ID,
-			Name:       mat.Name,
-			Tags:       make([]string, 0),
-			Type:       mat.Type,
-			Visibility: mat.Visibility,
-		})
-	}
-
-	return materialModels, nil
+	return materials, nil
 }
 
 func (m *materialRepository) Count(ctx context.Context, search string, filters []sanitize.Filter) (int, error) {
@@ -93,11 +75,11 @@ func (m *materialRepository) Count(ctx context.Context, search string, filters [
 	return count, nil
 }
 
-func (m *materialRepository) GetByID(ctx context.Context, ID string) (*models.Material, error) {
-	query := `SELECT id, name, type, visibility FROM materials WHERE id = $1`
+func (m *materialRepository) GetByID(ctx context.Context, ID string) (*raw.Material, error) {
+	query := `SELECT id, name, type, visibility, created_at, created_by FROM materials WHERE id = $1`
 
-	var mat material
-	err := m.db.GetContext(ctx, &mat, query, ID)
+	mat := &raw.Material{}
+	err := m.db.GetContext(ctx, mat, query, ID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Material not found"})
@@ -105,14 +87,7 @@ func (m *materialRepository) GetByID(ctx context.Context, ID string) (*models.Ma
 		return nil, err
 	}
 
-	materialModel := &models.Material{
-		ID:         mat.ID,
-		Name:       mat.Name,
-		Type:       mat.Type,
-		Visibility: mat.Visibility,
-	}
-
-	return materialModel, nil
+	return mat, nil
 }
 
 func (m *materialRepository) UpdateByID(ctx context.Context, ID string, req *requests.UpdateMaterial) error {
@@ -121,7 +96,7 @@ func (m *materialRepository) UpdateByID(ctx context.Context, ID string, req *req
 		return err
 	}
 
-	mat := &material{
+	mat := &raw.Material{
 		ID:         ID,
 		Name:       req.Name,
 		Type:       req.Type,

@@ -52,7 +52,7 @@ func main() {
 
 	materialRepo := sqlx.NewMaterialRepository(db)
 	readMaterialTagRepo := sqlx.NewReadMaterialTagRepository(db)
-	materialService := services.NewMaterialService(materialRepo, readMaterialTagRepo, uowRepo)
+	materialService := services.NewMaterialService(materialRepo, readMaterialTagRepo, uowRepo, userRepo)
 
 	errHandlerMiddleware := middlewares.NewErrorHandlerMiddleware(config)
 
