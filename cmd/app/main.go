@@ -12,6 +12,7 @@ import (
 	"github.com/CSKU-Lab/main-server/internal/adapters/sqlx"
 	"github.com/CSKU-Lab/main-server/internal/adapters/storage/minio"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 )
 
 func main() {
@@ -49,11 +50,21 @@ func main() {
 	semesterRepo := sqlx.NewSqlxSemesterRepository(db)
 	semesterService := services.NewSemesterService(semesterRepo, sectionRepo, courseRepo)
 
+	materialRepo := sqlx.NewMaterialRepository(db)
+	readMaterialTagRepo := sqlx.NewReadMaterialTagRepository(db)
+	materialService := services.NewMaterialService(materialRepo, readMaterialTagRepo, uowRepo)
+
 	errHandlerMiddleware := middlewares.NewErrorHandlerMiddleware(config)
 
 	app := fiber.New(fiber.Config{
 		ErrorHandler: errHandlerMiddleware.ErrorHandler,
 	})
+
+	app.Use(cors.New(cors.Config{
+		AllowOrigins:     "http://localhost:3000",
+		AllowHeaders:     "Origin, Content-Type, Accept",
+		AllowCredentials: true,
+	}))
 
 	api := app.Group("/api/v1")
 
@@ -73,6 +84,7 @@ func main() {
 		SemesterService: semesterService,
 		CourseService:   courseService,
 		SectionService:  sectionService,
+		MaterialService: materialService,
 	})
 
 	port := fmt.Sprintf(":%v", config.Port)
