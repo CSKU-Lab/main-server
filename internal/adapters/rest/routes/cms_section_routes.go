@@ -138,7 +138,7 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 	// need to be refactored because this violates clean architecture
 	cmsSectionRouter.Get("/", func(c *fiber.Ctx) error {
 		pageQuery := c.Query("page", "1")
-		pageSizeQuery := c.Query("pageSize", "10")
+		pageSizeQuery := c.Query("page_size", "10")
 		search := c.Query("search", "")
 		sortBy := c.Query("sort_by", "name")
 		sortOrder := c.Query("sort_order", "desc")
@@ -153,7 +153,14 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusBadRequest, Message: "Invalid page size"})
 		}
 
-		sems, err := semesterService.GetPagination(c.Context(), page, pageSize, search, sortBy, sortOrder, nil)
+		filterParams := make(map[string]string)
+		for key, value := range c.Queries() {
+			if strings.Contains(key, "__") {
+				filterParams[key] = value
+			}
+		}
+
+		sems, err := semesterService.GetPagination(c.Context(), page, pageSize, search, sortBy, sortOrder, filterParams)
 		if err != nil {
 			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: err.Error()})
 		}
@@ -163,13 +170,18 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Error getting semesters count"})
 		}
 
-		type sectionsOfSemester struct {
-			SemesterName string           `json:"semester_name"`
-			Sections     []models.Section `json:"sections"`
+		type semesterFields struct {
+			Name string              `json:"name"`
+			Type models.SemesterType `json:"type"`
 		}
 
-		var sectionsOfSemesters []sectionsOfSemester
-		for _, semester := range sems {
+		type sectionsOfSemester struct {
+			Semester semesterFields   `json:"semester"`
+			Sections []models.Section `json:"sections"`
+		}
+
+		sectionsOfSemesters := make([]sectionsOfSemester, len(sems))
+		for i, semester := range sems {
 			sections, err := sectionService.GetBySemesterID(c.Context(), semester.ID)
 			if err != nil {
 				return err
@@ -180,16 +192,19 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 				responseSections = sections
 			}
 
-			sectionsOfSemesters = append(sectionsOfSemesters, sectionsOfSemester{
-				SemesterName: semester.Name,
-				Sections:     responseSections,
-			})
+			sectionsOfSemesters[i] = sectionsOfSemester{
+				Semester: semesterFields{
+					Name: semester.Name,
+					Type: semester.Type,
+				},
+				Sections: responseSections,
+			}
 		}
 
 		return c.JSON(fiber.Map{
 			"pagination": fiber.Map{
 				"page":       page,
-				"total_page": math.Ceil(float64(count/pageSize) + 1),
+				"total_page": math.Ceil(float64(count) / float64(pageSize)),
 				"total_rows": count,
 			},
 			"data": sectionsOfSemesters,
