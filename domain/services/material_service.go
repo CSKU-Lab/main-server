@@ -124,9 +124,9 @@ func (s *materialService) GetPagination(ctx context.Context, page int, limit int
 			return nil, err
 		}
 
-		tags := []string{}
-		if matTags != nil {
-			tags = matTags
+		var tags []string = matTags
+		if tags == nil {
+			tags = []string{}
 		}
 
 		creator, err := s.userRepo.GetByID(ctx, mat.CreatedBy)
@@ -168,21 +168,25 @@ func (s *materialService) GetByID(ctx context.Context, ID string) (*models.Mater
 		return nil, err
 	}
 
-	matModel := &models.Material{
-		ID:         mat.ID,
-		Name:       mat.Name,
-		Type:       mat.Type,
-		Visibility: mat.Visibility,
-		CreatedAt:  mat.CreatedAt,
-		CreatedBy:  creator.DisplayName,
-	}
-
-	matTags, err := s.readMaterialTagRepo.GetTags(ctx, ID)
+	matTags, err := s.readMaterialTagRepo.GetTags(ctx, mat.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	matModel.Tags = matTags
+	var tags []string = matTags
+	if tags == nil {
+		tags = []string{}
+	}
+
+	matModel := &models.Material{
+		ID:         mat.ID,
+		Name:       mat.Name,
+		Type:       mat.Type,
+		Tags:       tags,
+		Visibility: mat.Visibility,
+		CreatedAt:  mat.CreatedAt,
+		CreatedBy:  creator.DisplayName,
+	}
 
 	return matModel, nil
 }
