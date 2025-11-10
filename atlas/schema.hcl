@@ -420,6 +420,24 @@ table "materials" {
   }
 }
 
+table "code_materials" {
+  schema = schema.public
+  column "material_id" {
+    type = uuid
+  }
+  column "description" {
+    type = text
+  }
+  primary_key  {
+    columns = [ column.material_id ]
+  }
+  foreign_key "fk_material_id" {
+    columns = [ column.material_id ]
+    ref_columns = [ table.materials.column.id ]
+    on_delete = CASCADE
+  }
+}
+
 table "material_tags" {
   schema = schema.public
   column "material_id" {

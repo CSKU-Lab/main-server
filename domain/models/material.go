@@ -11,3 +11,8 @@ type Material struct {
 	CreatedAt  time.Time `json:"created_at"`
 	CreatedBy  string    `json:"created_by"`
 }
+
+type MaterialDetail struct {
+	*Material
+	Payload any `json:"payload"`
+}

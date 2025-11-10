@@ -6,6 +6,8 @@ import (
 	"log"
 
 	"github.com/CSKU-Lab/main-server/configs"
+	"github.com/CSKU-Lab/main-server/domain/registrables"
+	"github.com/CSKU-Lab/main-server/domain/registries"
 	"github.com/CSKU-Lab/main-server/domain/services"
 	"github.com/CSKU-Lab/main-server/internal/adapters/middlewares"
 	"github.com/CSKU-Lab/main-server/internal/adapters/rest"
@@ -52,7 +54,13 @@ func main() {
 
 	materialRepo := sqlx.NewMaterialRepository(db)
 	readMaterialTagRepo := sqlx.NewReadMaterialTagRepository(db)
-	materialService := services.NewMaterialService(materialRepo, readMaterialTagRepo, uowRepo, userRepo)
+	codeMaterialRepo := sqlx.NewCodeMaterialRepository(db)
+
+	materialRegistry := registries.NewMaterialRegistry()
+	codeMaterial := registrables.NewCodeMaterial(codeMaterialRepo)
+	materialRegistry.Register("code", codeMaterial)
+
+	materialService := services.NewMaterialService(materialRepo, readMaterialTagRepo, uowRepo, userRepo, materialRegistry)
 
 	errHandlerMiddleware := middlewares.NewErrorHandlerMiddleware(config)
 

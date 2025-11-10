@@ -7,6 +7,7 @@ import (
 
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
 	"github.com/CSKU-Lab/main-server/domain/models"
+	"github.com/CSKU-Lab/main-server/domain/registries"
 	"github.com/CSKU-Lab/main-server/domain/repositories"
 	"github.com/CSKU-Lab/main-server/internal/requests"
 	"github.com/CSKU-Lab/main-server/internal/sanitize"
@@ -17,7 +18,7 @@ type MaterialService interface {
 	Create(ctx context.Context, createdByUserID string, req *requests.CreateMaterial) (string, error)
 	GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string, filterParams map[string]string) ([]models.Material, error)
 	Count(ctx context.Context, search string, filters map[string]string) (int, error)
-	GetByID(ctx context.Context, ID string) (*models.Material, error)
+	GetByID(ctx context.Context, ID string) (*models.MaterialDetail, error)
 	UpdateByID(ctx context.Context, ID string, req *requests.UpdateMaterial) error
 	DeleteByID(ctx context.Context, ID string) error
 }
@@ -27,15 +28,17 @@ type materialService struct {
 	uowRepo             repositories.UoWRepository
 	readMaterialTagRepo repositories.ReadMaterialTagRepository
 	userRepo            repositories.User
+	materialRegistry    registries.Material
 	allowedFilterFields map[string]bool
 }
 
-func NewMaterialService(repo repositories.MaterialRepository, readMaterialTagRepo repositories.ReadMaterialTagRepository, uowRepo repositories.UoWRepository, userRepo repositories.User) MaterialService {
+func NewMaterialService(repo repositories.MaterialRepository, readMaterialTagRepo repositories.ReadMaterialTagRepository, uowRepo repositories.UoWRepository, userRepo repositories.User, materialRegistry registries.Material) MaterialService {
 	return &materialService{
 		repo:                repo,
 		uowRepo:             uowRepo,
 		readMaterialTagRepo: readMaterialTagRepo,
 		userRepo:            userRepo,
+		materialRegistry:    materialRegistry,
 		allowedFilterFields: map[string]bool{
 			"name": true,
 			"type": true,
@@ -157,10 +160,18 @@ func (s *materialService) Count(ctx context.Context, search string, filterParams
 	return s.repo.Count(ctx, search, filters)
 }
 
-func (s *materialService) GetByID(ctx context.Context, ID string) (*models.Material, error) {
+func (s *materialService) GetByID(ctx context.Context, ID string) (*models.MaterialDetail, error) {
 	mat, err := s.repo.GetByID(ctx, ID)
 	if err != nil {
 		return nil, err
+	}
+
+	materialHandler, exists := s.materialRegistry.GetHandler(mat.Type)
+	if !exists {
+		return nil, cserrors.New(&cserrors.Option{
+			HttpStatus: http.StatusBadRequest,
+			Message:    "Unsupported material type",
+		})
 	}
 
 	creator, err := s.userRepo.GetByID(ctx, mat.CreatedBy)
@@ -178,28 +189,61 @@ func (s *materialService) GetByID(ctx context.Context, ID string) (*models.Mater
 		tags = []string{}
 	}
 
-	matModel := &models.Material{
-		ID:         mat.ID,
-		Name:       mat.Name,
-		Type:       mat.Type,
-		Tags:       tags,
-		Visibility: mat.Visibility,
-		CreatedAt:  mat.CreatedAt,
-		CreatedBy:  creator.DisplayName,
+	matModel := &models.MaterialDetail{
+		Material: &models.Material{
+			ID:         mat.ID,
+			Name:       mat.Name,
+			Type:       mat.Type,
+			Tags:       tags,
+			Visibility: mat.Visibility,
+			CreatedAt:  mat.CreatedAt,
+			CreatedBy:  creator.DisplayName,
+		},
+		Payload: nil,
 	}
+
+	res, err := materialHandler.Response(ctx, ID)
+	if err != nil {
+		return nil, err
+	}
+
+	matModel.Payload = res
 
 	return matModel, nil
 }
 
+func isUpdateBaseMaterial(req *requests.UpdateMaterial) bool {
+	return req.Name != "" || req.Tags != nil || req.Visibility != ""
+}
+
 func (s *materialService) UpdateByID(ctx context.Context, ID string, req *requests.UpdateMaterial) error {
-	return s.uowRepo.Execute(ctx, func(u repositories.UoWInstance) error {
-		err := u.Material().UpdateByID(ctx, ID, req)
+	if isUpdateBaseMaterial(req) {
+		err := s.uowRepo.Execute(ctx, func(u repositories.UoWInstance) error {
+			err := u.Material().UpdateByID(ctx, ID, req)
+			if err != nil {
+				return err
+			}
+
+			if req.Tags != nil {
+				return u.MaterialTag().SetTags(ctx, ID, *req.Tags)
+			}
+
+			return nil
+		})
 		if err != nil {
 			return err
 		}
+	}
 
-		return u.MaterialTag().SetTags(ctx, ID, req.Tags)
-	})
+	materialHandler, exists := s.materialRegistry.GetHandler(req.Type)
+	if !exists {
+		return cserrors.New(&cserrors.Option{
+			HttpStatus: http.StatusBadRequest,
+			Message:    "Unsupported material type",
+		})
+	}
+
+	return materialHandler.Execute(ctx, ID, req)
 }
 
 func (s *materialService) DeleteByID(ctx context.Context, ID string) error {
