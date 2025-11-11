@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"io"
@@ -20,6 +21,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // temporaly way to just make it work for openhouse :D and need to clean this later
@@ -125,14 +127,17 @@ func main() {
 
 	})
 
-	api.Post("/execute", func(c *fiber.Ctx) error {
+	api.Post("/cms/playground/execute", func(c *fiber.Ctx) error {
 		var req RunExecutionRequest
-		err := c.BodyParser(&req)
-		if err != nil {
-			return err
+		if err := c.BodyParser(&req); err != nil {
+			return fiber.NewError(fiber.StatusBadRequest, "invalid request body")
 		}
 
-		stream, err := graderClient.Run(c.Context(), &graderPB.RunRequest{
+		if req.RunnerID == "" {
+			return fiber.NewError(fiber.StatusBadRequest, "runner_id is required")
+		}
+
+		runReq := &graderPB.RunRequest{
 			Input: req.Input,
 			Files: []*graderPB.File{
 				{
@@ -141,29 +146,67 @@ func main() {
 				},
 			},
 			RunnerId: req.RunnerID,
-		})
+		}
+
+		stream, err := graderClient.Run(c.Context(), runReq)
 		if err != nil {
 			return err
 		}
 
-		for {
-			result, err := stream.Recv()
-			if err == io.EOF {
-				break
-			}
+		c.Set(fiber.HeaderContentType, "text/event-stream")
+		c.Set(fiber.HeaderCacheControl, "no-cache")
+		c.Set("Connection", "keep-alive")
+		c.Set("X-Accel-Buffering", "no")
 
-			if err != nil {
-				return err
-			}
-
-			return c.JSON(fiber.Map{
-				"executionID": result.ExecutionId,
-				"status":      result.Status.String(),
-				"output":      result.Output,
-				"wall_time":   result.WallTime,
-				"memory":      result.Memory,
-			})
+		marshaler := protojson.MarshalOptions{
+			EmitUnpopulated: true,
+			UseProtoNames:   true,
 		}
+
+		c.Context().SetBodyStreamWriter(func(w *bufio.Writer) {
+			writeEvent := func(event string, payload []byte) bool {
+				if event != "" {
+					if _, err := w.WriteString("event: " + event + "\n"); err != nil {
+						return false
+					}
+				}
+				if _, err := w.WriteString("data: "); err != nil {
+					return false
+				}
+				if _, err := w.Write(payload); err != nil {
+					return false
+				}
+				if _, err := w.WriteString("\n\n"); err != nil {
+					return false
+				}
+				return w.Flush() == nil
+			}
+
+			for {
+				result, err := stream.Recv()
+				if err == io.EOF {
+					writeEvent("done", []byte("{}"))
+					return
+				}
+				if err != nil {
+					log.Printf("grader stream error: %v", err)
+					writeEvent("error", []byte(fmt.Sprintf("{\"error\":%q}", err.Error())))
+					return
+				}
+
+				payload, err := marshaler.Marshal(result)
+				if err != nil {
+					log.Printf("marshal stream result error: %v", err)
+					writeEvent("error", []byte(fmt.Sprintf("{\"error\":%q}", err.Error())))
+					return
+				}
+
+				if ok := writeEvent("result", payload); !ok {
+					return
+				}
+			}
+		})
+
 		return nil
 	})
 
