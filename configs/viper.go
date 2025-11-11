@@ -23,6 +23,8 @@ type Config struct {
 	S3_Endpoint        string `mapstructure:"S3_ENDPOINT"`
 	S3_Frontend_URL    string `mapstructure:"S3_FRONTEND_URL"`
 	S3_Bucket          string `mapstructure:"S3_BUCKET"`
+	GRADER_SERVER_URL  string `mapstructure:"GRADER_SERVER_URL"`
+	CONFIG_SERVER_URL  string `mapstructure:"CONFIG_SERVER_URL"`
 }
 
 func NewConfig() *Config {
