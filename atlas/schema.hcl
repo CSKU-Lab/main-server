@@ -427,7 +427,8 @@ table "code_materials" {
   }
   column "description" {
     type = text
-    default = ""
+    null = true
+    default = null
   }
   column "task_id" {
     type = uuid

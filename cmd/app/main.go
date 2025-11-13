@@ -106,7 +106,7 @@ func main() {
 	codeMaterialRepo := sqlx.NewCodeMaterialRepository(db)
 
 	materialRegistry := registries.NewMaterialRegistry()
-	codeMaterial := registrables.NewCodeMaterial(codeMaterialRepo, taskGrpcClient, configGRPCClient)
+	codeMaterial := registrables.NewCodeMaterial(codeMaterialRepo, taskGrpcClient, configGRPCClient, graderGRPCClient)
 	materialRegistry.Register("code", codeMaterial)
 
 	materialService := services.NewMaterialService(materialRepo, readMaterialTagRepo, uowRepo, userRepo, materialRegistry)
@@ -192,7 +192,7 @@ func main() {
 			Input: req.Input,
 			Files: []*graderPB.File{
 				{
-					Name:    "main.c",
+					Name:    "main.py",
 					Content: req.Code,
 				},
 			},

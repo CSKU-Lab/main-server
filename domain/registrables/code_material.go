@@ -3,12 +3,14 @@ package registrables
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
 	"github.com/CSKU-Lab/main-server/domain/registries"
 	"github.com/CSKU-Lab/main-server/domain/repositories"
 	configPB "github.com/CSKU-Lab/main-server/genproto/config/v1"
+	graderPB "github.com/CSKU-Lab/main-server/genproto/grader/v1"
 	taskPB "github.com/CSKU-Lab/main-server/genproto/task/v1"
 	"github.com/CSKU-Lab/main-server/internal/requests"
 )
@@ -17,9 +19,11 @@ type codeMaterial struct {
 	repo             repositories.CodeMaterialRepository
 	taskGRPCClient   taskPB.TaskServiceClient
 	configGRPCCLient configPB.ConfigServiceClient
+	graderGRPCClient graderPB.GraderServiceClient
 }
 
 type TestCase struct {
+	Order  int32  `json:"order"`
 	Input  string `json:"input"`
 	Output string `json:"output"`
 }
@@ -45,18 +49,19 @@ type CompareScript struct {
 }
 
 type CodeMaterialResponse struct {
-	Description    string        `json:"description"`
+	Description    *string       `json:"description"`
 	Solution       string        `json:"solution"`
 	TestCases      []TestCase    `json:"test_cases"`
 	AllowedRunners []Runner      `json:"allowed_runners"`
 	CompareScript  CompareScript `json:"compare_script"`
 }
 
-func NewCodeMaterial(repo repositories.CodeMaterialRepository, taskGRPCClient taskPB.TaskServiceClient, configGRPCClient configPB.ConfigServiceClient) registries.MaterialRegisterable {
+func NewCodeMaterial(repo repositories.CodeMaterialRepository, taskGRPCClient taskPB.TaskServiceClient, configGRPCClient configPB.ConfigServiceClient, graderGRPCClient graderPB.GraderServiceClient) registries.MaterialRegisterable {
 	return &codeMaterial{
 		repo:             repo,
 		taskGRPCClient:   taskGRPCClient,
 		configGRPCCLient: configGRPCClient,
+		graderGRPCClient: graderGRPCClient,
 	}
 }
 
@@ -129,6 +134,7 @@ func (c *codeMaterial) GetByID(ctx context.Context, ID string) (any, error) {
 
 	for i, tc := range task.GetTestcases() {
 		res.TestCases[i] = TestCase{
+			Order:  tc.GetOrder(),
 			Input:  tc.GetInput(),
 			Output: tc.GetOutput(),
 		}
@@ -171,15 +177,59 @@ func (c *codeMaterial) UpdateByID(ctx context.Context, ID string, req *requests.
 		}
 	}
 
+	task, err := c.taskGRPCClient.GetTask(ctx, &taskPB.GetTaskRequest{
+		Id: codeMat.TaskID,
+	})
+	if err != nil {
+		return err
+	}
+
 	if payload.Solution != nil || payload.TestCases != nil || payload.AllowedRunnerIDs != nil || payload.CompareScriptID != nil {
-		var testCases []*taskPB.UpsertTestCase
+		var testCases []*taskPB.TestCase
 		if payload.TestCases != nil {
-			testCases = make([]*taskPB.UpsertTestCase, 0, len(*payload.TestCases))
+			testCases = make([]*taskPB.TestCase, 0, len(*payload.TestCases))
 			for _, tc := range *payload.TestCases {
-				testCases = append(testCases, &taskPB.UpsertTestCase{
+				testCases = append(testCases, &taskPB.TestCase{
+					Order:  tc.Order,
 					Input:  tc.Input,
 					Output: tc.Output,
 				})
+			}
+		}
+
+		if (payload.Solution != nil || payload.TestCases != nil) && len(task.GetAllowedRunnerIds()) > 0 {
+			for i, tc := range testCases {
+				stream, err := c.graderGRPCClient.Run(ctx, &graderPB.RunRequest{
+					Input: tc.Input,
+					Files: []*graderPB.File{
+						{
+							Name:    "main.py",
+							Content: *payload.Solution,
+						},
+					},
+					RunnerId: task.GetAllowedRunnerIds()[0], // HARDCODED
+				})
+				if err != nil {
+					return err
+				}
+
+				for {
+					result, err := stream.Recv()
+					if err != nil {
+						if err == io.EOF {
+							break
+						}
+						return cserrors.New(&cserrors.Option{
+							Message:    "solution validation failed",
+							HttpStatus: http.StatusBadRequest,
+						})
+					}
+					if result.GetStatus() != graderPB.ExecutionStatus_STATUS_QUEUED && result.GetStatus() != graderPB.ExecutionStatus_STATUS_RUNNING {
+						testCases[i].Output = result.GetOutput()
+						break
+					}
+				}
+
 			}
 		}
 
@@ -193,6 +243,7 @@ func (c *codeMaterial) UpdateByID(ctx context.Context, ID string, req *requests.
 		if err != nil {
 			return err
 		}
+
 	}
 
 	return nil

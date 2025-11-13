@@ -3,6 +3,7 @@ package middlewares
 import (
 	"errors"
 	"fmt"
+	"log"
 
 	"github.com/CSKU-Lab/main-server/configs"
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
@@ -20,6 +21,7 @@ func NewErrorHandlerMiddleware(appConfig *configs.Config) *errorHandlerMiddlewar
 }
 
 func (e *errorHandlerMiddleware) ErrorHandler(c *fiber.Ctx, err error) error {
+	log.Println(err)
 	var csErr *cserrors.Error
 	if errors.As(err, &csErr) {
 		var errString string
