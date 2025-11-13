@@ -13,6 +13,7 @@ import (
 	"github.com/CSKU-Lab/main-server/domain/services"
 	configPB "github.com/CSKU-Lab/main-server/genproto/config/v1"
 	graderPB "github.com/CSKU-Lab/main-server/genproto/grader/v1"
+	taskPB "github.com/CSKU-Lab/main-server/genproto/task/v1"
 	"github.com/CSKU-Lab/main-server/internal/adapters/middlewares"
 	"github.com/CSKU-Lab/main-server/internal/adapters/rest"
 	"github.com/CSKU-Lab/main-server/internal/adapters/sqlx"
@@ -30,10 +31,21 @@ type RunnerConfig struct {
 	Name string `json:"name"`
 }
 
+type RunnerConfigDetail struct {
+	RunnerConfig
+	BuildScript string `json:"build_script"`
+	RunScript   string `json:"run_script"`
+}
+
 type RunExecutionRequest struct {
 	Code     string `json:"code"`
 	Input    string `json:"input"`
 	RunnerID string `json:"runner_id"`
+}
+
+type CompareConfig struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
 }
 
 func main() {
@@ -44,15 +56,21 @@ func main() {
 	// will be implemented in graceful shutdown
 	ctx := context.TODO()
 
-	graderClient, closeConn, err := initGraderGRPCClient(config.GRADER_SERVER_URL)
+	graderGRPCClient, closeConn, err := initGraderGRPCClient(config.GRADER_SERVER_URL)
 	if err != nil {
 		log.Fatal("Failed to connect to grader gRPC server: ", err)
 	}
 	defer closeConn()
 
-	configClient, closeConn, err := initConfigGRPCClient(config.CONFIG_SERVER_URL)
+	configGRPCClient, closeConn, err := initConfigGRPCClient(config.CONFIG_SERVER_URL)
 	if err != nil {
 		log.Fatal("Failed to connect to config gRPC server: ", err)
+	}
+	defer closeConn()
+
+	taskGrpcClient, closeConn, err := initTaskGRPCClient(config.TASK_SERVER_URL)
+	if err != nil {
+		log.Fatal("Failed to connect to task gRPC server: ", err)
 	}
 	defer closeConn()
 
@@ -88,7 +106,7 @@ func main() {
 	codeMaterialRepo := sqlx.NewCodeMaterialRepository(db)
 
 	materialRegistry := registries.NewMaterialRegistry()
-	codeMaterial := registrables.NewCodeMaterial(codeMaterialRepo)
+	codeMaterial := registrables.NewCodeMaterial(codeMaterialRepo, taskGrpcClient, configGRPCClient)
 	materialRegistry.Register("code", codeMaterial)
 
 	materialService := services.NewMaterialService(materialRepo, readMaterialTagRepo, uowRepo, userRepo, materialRegistry)
@@ -107,12 +125,29 @@ func main() {
 
 	api := app.Group("/api/v1")
 
-	api.Get("/config/runners", func(c *fiber.Ctx) error {
-		runners, err := configClient.GetRunners(c.Context(), &configPB.GetRunnersRequest{
+	api.Get("cms/config/runners", func(c *fiber.Ctx) error {
+		includeScriptQuery := c.Query("include_script", "false")
+
+		runners, err := configGRPCClient.GetRunners(c.Context(), &configPB.GetRunnersRequest{
 			IncludeName: true,
 		})
 		if err != nil {
 			return err
+		}
+
+		if includeScriptQuery == "true" {
+			var runnerConfigs []RunnerConfigDetail
+			for _, runner := range runners.Runners {
+				runnerConfigs = append(runnerConfigs, RunnerConfigDetail{
+					RunnerConfig: RunnerConfig{
+						ID:   runner.GetId(),
+						Name: runner.GetName(),
+					},
+					BuildScript: runner.GetBuildScript(),
+					RunScript:   runner.GetRunScript(),
+				})
+			}
+			return c.JSON(runnerConfigs)
 		}
 
 		var runnerConfigs []RunnerConfig
@@ -124,10 +159,26 @@ func main() {
 		}
 
 		return c.JSON(runnerConfigs)
-
 	})
 
-	api.Post("/cms/playground/execute", func(c *fiber.Ctx) error {
+	api.Get("/cms/config/compare-scripts", func(c *fiber.Ctx) error {
+		compares, err := configGRPCClient.GetCompares(c.Context(), nil)
+		if err != nil {
+			return err
+		}
+
+		var compareConfigs []CompareConfig
+		for _, compare := range compares.Compares {
+			compareConfigs = append(compareConfigs, CompareConfig{
+				ID:   compare.GetId(),
+				Name: compare.GetName(),
+			})
+		}
+
+		return c.JSON(compareConfigs)
+	})
+
+	api.Post("/playground/execute", func(c *fiber.Ctx) error {
 		var req RunExecutionRequest
 		if err := c.BodyParser(&req); err != nil {
 			return fiber.NewError(fiber.StatusBadRequest, "invalid request body")
@@ -141,14 +192,14 @@ func main() {
 			Input: req.Input,
 			Files: []*graderPB.File{
 				{
-					Name:    "main.py",
+					Name:    "main.c",
 					Content: req.Code,
 				},
 			},
 			RunnerId: req.RunnerID,
 		}
 
-		stream, err := graderClient.Run(c.Context(), runReq)
+		stream, err := graderGRPCClient.Run(c.Context(), runReq)
 		if err != nil {
 			return err
 		}
@@ -258,6 +309,19 @@ func initGraderGRPCClient(clientAddr string) (graderPB.GraderServiceClient, func
 	}
 
 	client := graderPB.NewGraderServiceClient(conn)
+
+	return client, func() {
+		conn.Close()
+	}, nil
+}
+
+func initTaskGRPCClient(clientAddr string) (taskPB.TaskServiceClient, func(), error) {
+	conn, err := grpc.NewClient(clientAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	client := taskPB.NewTaskServiceClient(conn)
 
 	return client, func() {
 		conn.Close()

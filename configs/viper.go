@@ -25,6 +25,7 @@ type Config struct {
 	S3_Bucket          string `mapstructure:"S3_BUCKET"`
 	GRADER_SERVER_URL  string `mapstructure:"GRADER_SERVER_URL"`
 	CONFIG_SERVER_URL  string `mapstructure:"CONFIG_SERVER_URL"`
+	TASK_SERVER_URL    string `mapstructure:"TASK_SERVER_URL"`
 }
 
 func NewConfig() *Config {

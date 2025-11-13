@@ -90,7 +90,7 @@ func (m *materialRepository) GetByID(ctx context.Context, ID string) (*raw.Mater
 	return mat, nil
 }
 
-func (m *materialRepository) UpdateByID(ctx context.Context, ID string, req *requests.UpdateMaterial) error {
+func (m *materialRepository) UpdateByID(ctx context.Context, ID string, req *requests.BaseUpdateMaterial) error {
 	_, err := m.GetByID(ctx, ID)
 	if err != nil {
 		return err
@@ -99,7 +99,6 @@ func (m *materialRepository) UpdateByID(ctx context.Context, ID string, req *req
 	mat := &raw.Material{
 		ID:         ID,
 		Name:       req.Name,
-		Type:       req.Type,
 		Visibility: req.Visibility,
 	}
 

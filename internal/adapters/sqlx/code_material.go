@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 
+	"github.com/CSKU-Lab/main-server/domain/raw"
 	"github.com/CSKU-Lab/main-server/domain/repositories"
 	"github.com/jmoiron/sqlx"
 )
@@ -19,20 +20,19 @@ func NewCodeMaterialRepository(db *sqlx.DB) repositories.CodeMaterialRepository 
 func (c *codeMaterialRepo) SetDescription(ctx context.Context, materialID string, description string) error {
 	_, err := c.db.ExecContext(
 		ctx,
-		`INSERT INTO code_materials (material_id, description) VALUES ($1, $2)
-		ON CONFLICT (material_id) DO UPDATE SET description = $2`,
-		materialID,
+		`UPDATE code_materials SET description = $1 WHERE material_id = $2`,
 		description,
+		materialID,
 	)
 	return err
 }
 
-func (c *codeMaterialRepo) GetDescription(ctx context.Context, materialID string) (*string, error) {
-	var description string
+func (c *codeMaterialRepo) GetByID(ctx context.Context, materialID string) (*raw.CodeMaterial, error) {
+	var codeMat raw.CodeMaterial
 	err := c.db.GetContext(
 		ctx,
-		&description,
-		`SELECT description FROM code_materials WHERE material_id = $1`,
+		&codeMat,
+		`SELECT description,task_id FROM code_materials WHERE material_id = $1`,
 		materialID,
 	)
 	if err != nil {
@@ -42,5 +42,15 @@ func (c *codeMaterialRepo) GetDescription(ctx context.Context, materialID string
 		return nil, err
 	}
 
-	return &description, nil
+	return &codeMat, nil
+}
+
+func (c *codeMaterialRepo) SetTaskID(ctx context.Context, materialID string, taskID string) error {
+	_, err := c.db.ExecContext(
+		ctx,
+		`INSERT INTO code_materials (material_id, task_id) VALUES ($1, $2)`,
+		materialID,
+		taskID,
+	)
+	return err
 }

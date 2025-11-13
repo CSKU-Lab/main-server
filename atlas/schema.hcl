@@ -427,6 +427,10 @@ table "code_materials" {
   }
   column "description" {
     type = text
+    default = ""
+  }
+  column "task_id" {
+    type = uuid
   }
   primary_key  {
     columns = [ column.material_id ]

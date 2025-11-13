@@ -7,8 +7,10 @@ import (
 )
 
 type MaterialRegisterable interface {
-	Execute(ctx context.Context, ID string, req *requests.UpdateMaterial) error
-	Response(ctx context.Context, ID string) (any, error)
+	Create(ctx context.Context, matID string, req *requests.CreateMaterial, rawReq []byte) error
+	GetByID(ctx context.Context, ID string) (any, error)
+	UpdateByID(ctx context.Context, ID string, req *requests.BaseUpdateMaterial, rawReq []byte) error
+	DeleteByID(ctx context.Context, ID string) error
 }
 
 type Material interface {

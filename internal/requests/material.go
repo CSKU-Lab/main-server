@@ -20,19 +20,16 @@ func (c *CreateMaterial) Validate() error {
 	)
 }
 
-type UpdateMaterial struct {
+type BaseUpdateMaterial struct {
 	Name       string    `json:"name"`
 	Tags       *[]string `json:"tags"`
-	Type       string    `json:"type"`
-	Payload    any       `json:"payload"`
 	Visibility string    `json:"visibility"`
 }
 
-func (u *UpdateMaterial) Validate() error {
+func (u *BaseUpdateMaterial) Validate() error {
 	return validation.ValidateStruct(u,
 		validation.Field(&u.Name, validation.Skip.When(u.Name == "")),
 		validation.Field(&u.Tags, validation.Skip.When(u.Tags == nil)),
-		validation.Field(&u.Type, validation.In("document", "code", "type"), validation.Skip.When(u.Type == "")),
 		validation.Field(&u.Visibility, validation.In("public", "private"), validation.Skip.When(u.Visibility == "")),
 	)
 }

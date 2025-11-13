@@ -84,11 +84,12 @@ func NewCMSMaterialRoutes(router fiber.Router, materialService services.Material
 		return c.JSON(material)
 	})
 
-	materialRouter.Patch("/:id", middlewares.ValidateMiddleware[requests.UpdateMaterial](), func(c *fiber.Ctx) error {
+	materialRouter.Patch("/:id", middlewares.ValidateMiddleware[requests.BaseUpdateMaterial](), func(c *fiber.Ctx) error {
 		id := c.Params("id")
-		req := c.Locals("body").(*requests.UpdateMaterial)
+		req := c.Locals("body").(*requests.BaseUpdateMaterial)
+		rawReq := c.Body()
 
-		return materialService.UpdateByID(c.Context(), id, req)
+		return materialService.UpdateByID(c.Context(), id, req, rawReq)
 	})
 
 	materialRouter.Delete("/:id", func(c *fiber.Ctx) error {

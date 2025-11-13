@@ -19,7 +19,7 @@ type MaterialService interface {
 	GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string, filterParams map[string]string) ([]models.Material, error)
 	Count(ctx context.Context, search string, filters map[string]string) (int, error)
 	GetByID(ctx context.Context, ID string) (*models.MaterialDetail, error)
-	UpdateByID(ctx context.Context, ID string, req *requests.UpdateMaterial) error
+	UpdateByID(ctx context.Context, ID string, req *requests.BaseUpdateMaterial, rawReq []byte) error
 	DeleteByID(ctx context.Context, ID string) error
 }
 
@@ -47,6 +47,14 @@ func NewMaterialService(repo repositories.MaterialRepository, readMaterialTagRep
 }
 
 func (s *materialService) Create(ctx context.Context, createdByUserID string, req *requests.CreateMaterial) (string, error) {
+	materialHandler, exists := s.materialRegistry.GetHandler(req.Type)
+	if !exists {
+		return "", cserrors.New(&cserrors.Option{
+			HttpStatus: http.StatusBadRequest,
+			Message:    "Unsupported material type",
+		})
+	}
+
 	var matID string
 	err := s.uowRepo.Execute(ctx, func(u repositories.UoWInstance) error {
 		id, err := uuid.NewV7()
@@ -63,8 +71,19 @@ func (s *materialService) Create(ctx context.Context, createdByUserID string, re
 		}
 		matID = id.String()
 
-		return u.MaterialTag().SetTags(ctx, id.String(), req.Tags)
+		err = u.MaterialTag().SetTags(ctx, id.String(), req.Tags)
+		if err != nil {
+			return err
+		}
+
+		return nil
 	})
+	if err != nil {
+		return "", err
+	}
+
+	// I think there is other way to do this with more conistency. Stay tuned !
+	err = materialHandler.Create(ctx, matID, req, nil)
 	if err != nil {
 		return "", err
 	}
@@ -202,7 +221,7 @@ func (s *materialService) GetByID(ctx context.Context, ID string) (*models.Mater
 		Payload: nil,
 	}
 
-	res, err := materialHandler.Response(ctx, ID)
+	res, err := materialHandler.GetByID(ctx, ID)
 	if err != nil {
 		return nil, err
 	}
@@ -212,11 +231,16 @@ func (s *materialService) GetByID(ctx context.Context, ID string) (*models.Mater
 	return matModel, nil
 }
 
-func isUpdateBaseMaterial(req *requests.UpdateMaterial) bool {
+func isUpdateBaseMaterial(req *requests.BaseUpdateMaterial) bool {
 	return req.Name != "" || req.Tags != nil || req.Visibility != ""
 }
 
-func (s *materialService) UpdateByID(ctx context.Context, ID string, req *requests.UpdateMaterial) error {
+func (s *materialService) UpdateByID(ctx context.Context, ID string, req *requests.BaseUpdateMaterial, rawReq []byte) error {
+	mat, err := s.repo.GetByID(ctx, ID)
+	if err != nil {
+		return err
+	}
+
 	if isUpdateBaseMaterial(req) {
 		err := s.uowRepo.Execute(ctx, func(u repositories.UoWInstance) error {
 			err := u.Material().UpdateByID(ctx, ID, req)
@@ -235,7 +259,7 @@ func (s *materialService) UpdateByID(ctx context.Context, ID string, req *reques
 		}
 	}
 
-	materialHandler, exists := s.materialRegistry.GetHandler(req.Type)
+	materialHandler, exists := s.materialRegistry.GetHandler(mat.Type)
 	if !exists {
 		return cserrors.New(&cserrors.Option{
 			HttpStatus: http.StatusBadRequest,
@@ -243,7 +267,7 @@ func (s *materialService) UpdateByID(ctx context.Context, ID string, req *reques
 		})
 	}
 
-	return materialHandler.Execute(ctx, ID, req)
+	return materialHandler.UpdateByID(ctx, ID, req, rawReq)
 }
 
 func (s *materialService) DeleteByID(ctx context.Context, ID string) error {

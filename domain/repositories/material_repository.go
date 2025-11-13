@@ -13,6 +13,6 @@ type MaterialRepository interface {
 	GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string, filters []sanitize.Filter) ([]raw.Material, error)
 	Count(ctx context.Context, search string, filters []sanitize.Filter) (int, error)
 	GetByID(ctx context.Context, ID string) (*raw.Material, error)
-	UpdateByID(ctx context.Context, ID string, req *requests.UpdateMaterial) error
+	UpdateByID(ctx context.Context, ID string, req *requests.BaseUpdateMaterial) error
 	DeleteByID(ctx context.Context, ID string) error
 }
