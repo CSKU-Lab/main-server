@@ -2,4 +2,4 @@
 
 export COMPOSE_PROJECT_NAME=main-server-infra
 
-docker compose -f docker/docker-compose.infra.yaml --env-file .env "$@"
+doppler run --command="docker compose -f docker/docker-compose.infra.yaml up -d"
