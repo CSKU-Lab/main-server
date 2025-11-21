@@ -10,7 +10,7 @@ import (
 )
 
 type UserGroupService interface {
-	Create(ctx context.Context, name string) error
+	Create(ctx context.Context, name string) (string, error)
 	GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string) ([]models.UserGroup, error)
 	Count(ctx context.Context, search string) (int, error)
 	Update(ctx context.Context, ID string, name string) error
@@ -27,13 +27,13 @@ func NewUserGroupService(repo repositories.UserGroup) UserGroupService {
 	}
 }
 
-func (u *userGroupService) Create(ctx context.Context, name string) error {
+func (u *userGroupService) Create(ctx context.Context, name string) (string, error) {
 	ID, err := uuid.NewV7()
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	return u.repo.Create(ctx, ID.String(), name)
+	return ID.String(), u.repo.Create(ctx, ID.String(), name)
 }
 
 func (u *userGroupService) GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string) ([]models.UserGroup, error) {

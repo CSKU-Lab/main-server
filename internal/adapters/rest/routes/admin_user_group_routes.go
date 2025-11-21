@@ -24,7 +24,8 @@ func NewAdminUserGroupRoutes(router fiber.Router, userGroupService services.User
 			})
 		}
 
-		return userGroupService.Create(c.Context(), req.Name)
+		_, err = userGroupService.Create(c.Context(), req.Name)
+		return err
 	})
 
 	adminUserGroupRoutes.Get("/", func(c *fiber.Ctx) error {
