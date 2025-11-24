@@ -184,15 +184,9 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 			Secure:   false,
 		})
 
-		if appConfig.DevMode {
-			return c.JSON(fiber.Map{
-				"message":       "OK",
-				"access_token":  newAccessToken,
-				"refresh_token": newRefreshToken,
-			})
-		}
-
-		return c.Redirect(appConfig.FRONTEND_URL)
+		return c.JSON(fiber.Map{
+			"message": "success",
+		})
 	})
 
 	authRouter.Post("/refresh-token", func(c *fiber.Ctx) error {
