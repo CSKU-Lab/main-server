@@ -129,6 +129,26 @@ func (s *sqlxSectionRepository) GetBySemesterID(ctx context.Context, ID string) 
 	return sections, nil
 }
 
+func (s *sqlxSectionRepository) GetByCourseID(ctx context.Context, ID string) ([]models.Section, error) {
+	var dbSections []sectionSchema
+	query := "SELECT id, name, banner FROM sections WHERE course_id = $1 AND is_deleted = false"
+	err := s.db.SelectContext(ctx, &dbSections, query, ID)
+	if err != nil {
+		return nil, err
+	}
+
+	var sections []models.Section
+	for _, dbSection := range dbSections {
+		sections = append(sections, models.Section{
+			ID:     dbSection.ID,
+			Name:   dbSection.Name,
+			Banner: dbSection.Banner,
+		})
+	}
+
+	return sections, nil
+}
+
 func (s *sqlxSectionRepository) GetRawBySemesterID(ctx context.Context, ID string) ([]repositories.RawSection, error) {
 	var dbSections []rawSectionSchema
 	query := "SELECT id, name, banner, course_id, semester_id, created_at, updated_at FROM sections WHERE semester_id = $1 AND is_deleted = false"

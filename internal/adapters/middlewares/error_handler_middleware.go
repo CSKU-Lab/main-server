@@ -54,7 +54,6 @@ func (e *errorHandlerMiddleware) ErrorHandler(c *fiber.Ctx, err error) error {
 				"message": fiberErr.Message,
 			})
 		}
-
 	}
 
 	return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{

@@ -8,12 +8,13 @@ import (
 )
 
 type CMSRouter struct {
-	Router          fiber.Router
-	UserService     services.UserService
-	SemesterService services.SemesterService
-	CourseService   services.CourseService
-	SectionService  services.SectionService
-	MaterialService services.MaterialService
+	Router                  fiber.Router
+	UserService             services.UserService
+	SemesterService         services.SemesterService
+	CourseService           services.CourseService
+	SectionService          services.SectionService
+	MaterialService         services.MaterialService
+	AffectedEntitiesService services.AffectedEntitiesService
 }
 
 func NewCMSRouter(r *CMSRouter) {
@@ -22,4 +23,5 @@ func NewCMSRouter(r *CMSRouter) {
 	routes.NewCmsSectionRoutes(cmsRouter, r.SectionService, r.SemesterService)
 	routes.NewAdminSemesterRoutes(cmsRouter, r.SemesterService, r.SectionService, r.CourseService)
 	routes.NewCMSMaterialRoutes(cmsRouter, r.MaterialService)
+	routes.NewCMSAffectedEntitiesRoutes(cmsRouter, r.AffectedEntitiesService)
 }

@@ -115,6 +115,15 @@ func main() {
 
 	materialService := services.NewMaterialService(materialRepo, readMaterialTagRepo, uowRepo, userRepo, materialRegistry)
 
+	affectedEntitiesFactory := registries.NewAffectedEntityFactory()
+	deletedCourseAffected := registrables.NewDeletedCourseAffected(courseRepo, sectionRepo)
+	deletedSemesterAffected := registrables.NewDeletedSemesterAffected(semesterRepo, sectionRepo, courseRepo)
+
+	affectedEntitiesFactory.Register("course", deletedCourseAffected)
+	affectedEntitiesFactory.Register("semester", deletedSemesterAffected)
+
+	affectedEntitiesService := services.NewAffectedEntitiesService(affectedEntitiesFactory)
+
 	errHandlerMiddleware := middlewares.NewErrorHandlerMiddleware(config)
 
 	app := fiber.New(fiber.Config{
@@ -277,11 +286,12 @@ func main() {
 	})
 
 	rest.NewCMSRouter(&rest.CMSRouter{
-		Router:          protectedApi,
-		SemesterService: semesterService,
-		CourseService:   courseService,
-		SectionService:  sectionService,
-		MaterialService: materialService,
+		Router:                  protectedApi,
+		SemesterService:         semesterService,
+		CourseService:           courseService,
+		SectionService:          sectionService,
+		MaterialService:         materialService,
+		AffectedEntitiesService: affectedEntitiesService,
 	})
 
 	port := fmt.Sprintf(":%v", config.Port)

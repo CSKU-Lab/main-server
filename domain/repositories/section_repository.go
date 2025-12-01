@@ -11,6 +11,7 @@ type SectionRepository interface {
 	UpdateByID(ctx context.Context, ID string, section *UpdateSection) error
 	GetByID(ctx context.Context, ID string) (*models.Section, error)
 	GetBySemesterID(ctx context.Context, semesterID string) ([]models.Section, error)
+	GetByCourseID(ctx context.Context, courseID string) ([]models.Section, error)
 	GetRawBySemesterID(ctx context.Context, semesterID string) ([]RawSection, error)
 	DeleteByID(ctx context.Context, ID string) error
 }
