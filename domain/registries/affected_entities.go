@@ -8,7 +8,7 @@ import (
 )
 
 type AffectedEntities interface {
-	GetByTypeAndID(ctx context.Context, req *requests.GetAffectedEntities, res *[]models.AffectedEntity) error
+	GetByTypeAndID(ctx context.Context, req *requests.GetAffectedEntities) ([]models.AffectedEntity, error)
 }
 
 type AffectedEntitiesFactory interface {

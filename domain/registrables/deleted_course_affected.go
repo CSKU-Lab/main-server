@@ -21,18 +21,21 @@ func NewDeletedCourseAffected(courseRepo repositories.CourseRepository, sectionR
 	}
 }
 
-func (d *deletedCourseAffected) GetByTypeAndID(ctx context.Context, req *requests.GetAffectedEntities, res *[]models.AffectedEntity) error {
+func (d *deletedCourseAffected) GetByTypeAndID(
+	ctx context.Context,
+	req *requests.GetAffectedEntities,
+) ([]models.AffectedEntity, error) {
 	_, err := d.courseRepo.GetByID(ctx, req.ID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	sections, err := d.sectionRepo.GetByCourseID(ctx, req.ID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	sectionRes := &models.AffectedEntity{
+	sectionRes := models.AffectedEntity{
 		Type: "Section",
 		Data: []models.EntityDetail{},
 	}
@@ -44,7 +47,6 @@ func (d *deletedCourseAffected) GetByTypeAndID(ctx context.Context, req *request
 		})
 	}
 
-	*res = []models.AffectedEntity{*sectionRes}
-
-	return nil
+	res := []models.AffectedEntity{sectionRes}
+	return res, nil
 }

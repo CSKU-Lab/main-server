@@ -11,7 +11,7 @@ import (
 )
 
 type AffectedEntitiesService interface {
-	GetAffectedEntities(ctx context.Context, req *requests.GetAffectedEntities, res *[]models.AffectedEntity) error
+	GetAffectedEntities(ctx context.Context, req *requests.GetAffectedEntities) ([]models.AffectedEntity, error)
 }
 
 type affectedEntitiesService struct {
@@ -24,19 +24,19 @@ func NewAffectedEntitiesService(affectedEntitiesFactory registries.AffectedEntit
 	}
 }
 
-func (a *affectedEntitiesService) GetAffectedEntities(ctx context.Context, req *requests.GetAffectedEntities, res *[]models.AffectedEntity) error {
+func (a *affectedEntitiesService) GetAffectedEntities(ctx context.Context, req *requests.GetAffectedEntities) ([]models.AffectedEntity, error) {
 	handler, exists := a.affectedEntitiesFactory.GetHandler(req.Type)
 	if !exists {
-		return cserrors.New(&cserrors.Option{
+		return nil, cserrors.New(&cserrors.Option{
 			HttpStatus: http.StatusBadRequest,
 			Message:    "Unsupported entity type",
 		})
 	}
 
-	err := handler.GetByTypeAndID(ctx, req, res)
+	res, err := handler.GetByTypeAndID(ctx, req)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return res, nil
 }

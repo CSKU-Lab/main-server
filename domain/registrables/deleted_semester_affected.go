@@ -26,16 +26,15 @@ func NewDeletedSemesterAffected(semesterRepo repositories.SemesterRepository, se
 func (d *deletedSemesterAffected) GetByTypeAndID(
 	ctx context.Context,
 	req *requests.GetAffectedEntities,
-	res *[]models.AffectedEntity,
-) error {
+) ([]models.AffectedEntity, error) {
 	_, err := d.semesterRepo.GetByID(ctx, req.ID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	sections, err := d.sectionRepo.GetRawBySemesterID(ctx, req.ID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	courseWithSectionsMap := make(map[string][]models.EntityDetail)
@@ -58,7 +57,7 @@ func (d *deletedSemesterAffected) GetByTypeAndID(
 	for courseID, sectionEntity := range courseWithSectionsMap {
 		course, err := d.courseRepo.GetByID(ctx, courseID)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		courseRes.Data = append(courseRes.Data, models.EntityDetail{
@@ -70,6 +69,6 @@ func (d *deletedSemesterAffected) GetByTypeAndID(
 		})
 	}
 
-	*res = append(*res, courseRes)
-	return nil
+	res := []models.AffectedEntity{courseRes}
+	return res, nil
 }
