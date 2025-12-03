@@ -22,6 +22,7 @@ type UserService interface {
 	GetByID(ctx context.Context, ID string) (*models.User, error)
 	GetPasswordByID(ctx context.Context, ID string) (string, error)
 	GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string, filterParams map[string]string) ([]models.User, error)
+	GetUserExistances(ctx context.Context, req *requests.GetUserExistances) ([]string, error)
 	Count(ctx context.Context, search string, filterParams map[string]string) (int, error)
 	Create(ctx context.Context, user *requests.CreateMultiTypeUser) error
 	CreateMany(ctx context.Context, users *requests.CreateManyUsers) error
@@ -56,6 +57,47 @@ func NewUserService(user repositories.User, userPassword repositories.UserPasswo
 			"updated_at":   true,
 		},
 	}
+}
+
+func (s *userService) GetUserExistances(ctx context.Context, req *requests.GetUserExistances) ([]string, error) {
+	allowedFindBy := map[string]bool{
+		"username":     true,
+		"type":         false,
+		"email":        true,
+		"display_name": false,
+		"roles":        false,
+		"created_at":   false,
+		"updated_at":   false,
+	}
+
+	if allowed, ok := allowedFindBy[req.FindBy]; !ok || !allowed {
+		return nil, cserrors.New(&cserrors.Option{
+			HttpStatus: http.StatusBadRequest,
+			Message:    "Invalid find by field",
+		})
+	}
+
+	err := sanitize.FindBy(allowedFindBy, req.FindBy)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: swtich find by email, username
+
+	switch req.FindBy {
+	case "username":
+		users, err := s.userRepository.GetManyByUsername(ctx, req.Users)
+		if err != nil {
+			return nil, err
+		}
+	case "email":
+		users, err := s.userRepository.GetManyByEmail(ctx, req.Users)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return []string{}, nil
 }
 
 func (s *userService) GetByEmail(ctx context.Context, email string) (*models.User, error) {
@@ -252,7 +294,6 @@ func (s *userService) Create(ctx context.Context, req *requests.CreateMultiTypeU
 				HttpStatus: http.StatusInternalServerError,
 				Message:    "Cannot generate password",
 			})
-
 		}
 		*req.Password = string(hashedPassword)
 	}
