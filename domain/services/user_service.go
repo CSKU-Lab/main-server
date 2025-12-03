@@ -23,7 +23,7 @@ type UserService interface {
 	GetPasswordByID(ctx context.Context, ID string) (string, error)
 	GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string, filterParams map[string]string) ([]models.User, error)
 	Count(ctx context.Context, search string, filterParams map[string]string) (int, error)
-	Create(ctx context.Context, user *requests.CreateMultiTypeUserRequest) error
+	Create(ctx context.Context, user *requests.CreateMultiTypeUser) error
 	CreateMany(ctx context.Context, users *requests.CreateManyUsers) error
 	SetPassword(ctx context.Context, ID string, password string) error
 	Update(ctx context.Context, ID string, user *requests.UpdateUser) error
@@ -244,7 +244,7 @@ func (s *userService) Count(ctx context.Context, search string, filterParams map
 	return s.userRepository.Count(ctx, search, filters)
 }
 
-func (s *userService) Create(ctx context.Context, req *requests.CreateMultiTypeUserRequest) error {
+func (s *userService) Create(ctx context.Context, req *requests.CreateMultiTypeUser) error {
 	if models.UserType(req.Type) == models.UserTypeCredential {
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(*req.Password), 10)
 		if err != nil {
@@ -257,7 +257,7 @@ func (s *userService) Create(ctx context.Context, req *requests.CreateMultiTypeU
 	}
 
 	repoUser := repositories.CreateMultiTypeUser{
-		CreateMultiTypeUser: req.CreateMultiTypeUser,
+		CreateMultiTypeUser: *req,
 	}
 
 	id, err := uuid.NewV7()
