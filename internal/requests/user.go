@@ -25,8 +25,8 @@ func (c *CreateMultiTypeUser) Validate() error {
 		validation.Field(&c.Type),
 		validation.Field(&c.Password, validation.When(c.Type == "credential", validation.Required).Else(validation.Nil), validation.Length(8, 0)),
 		validation.Field(&c.Email, validation.When(c.Type == "oauth", validation.Required.Error("required for oauth user")).Else(validation.Nil.Error("field must be null when user type is credential"), is.Email)),
-		validation.Field(&c.GroupID, validation.When(c.Type == "credential", validation.Required).Else(validation.NilOrNotEmpty), is.UUID),
-		validation.Field(&c.Group, validation.When(c.Type == "credential" && c.GroupID == nil, validation.Required.Error("group is required when group_id is not provided and user type is credential")).Else(validation.NilOrNotEmpty)),
+		validation.Field(&c.GroupID, validation.When(c.Type == "credential" && c.Group == nil, validation.Required).Else(validation.Nil.Error("exact one required for credential")), is.UUID),
+		validation.Field(&c.Group, validation.When(c.Type == "credential" && c.GroupID == nil, validation.Required).Else(validation.Nil.Error("exact one required for credentail"))),
 	)
 }
 
