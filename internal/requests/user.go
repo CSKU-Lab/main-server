@@ -6,6 +6,11 @@ import (
 	"github.com/go-ozzo/ozzo-validation/v4/is"
 )
 
+type CreateMultiTypeUserRequest struct {
+	CreateMultiTypeUser
+	Group *string `json:"group"`
+}
+
 type CreateMultiTypeUser struct {
 	Username    string          `json:"username"`
 	DisplayName string          `json:"display_name"`
@@ -61,7 +66,7 @@ func (u *DeleteManyUser) Validate() error {
 }
 
 type CreateManyUsers struct {
-	Users []CreateMultiTypeUser `json:"users"`
+	Users []CreateMultiTypeUserRequest `json:"users"`
 }
 
 func (c *CreateManyUsers) Validate() error {

@@ -72,7 +72,7 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 	})
 
 	adminUserRouter.Post("/", middlewares.ValidateMiddleware[requests.CreateMultiTypeUser](), func(c *fiber.Ctx) error {
-		userRequest := c.Locals("body").(*requests.CreateMultiTypeUser)
+		userRequest := c.Locals("body").(*requests.CreateMultiTypeUserRequest)
 
 		err := userService.Create(c.Context(), userRequest)
 		if err != nil {

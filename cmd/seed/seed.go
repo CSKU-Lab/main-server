@@ -32,16 +32,19 @@ func main() {
 	}
 
 	// Create admin user
-	err = userService.Create(context.Background(), &requests.CreateMultiTypeUser{
-		Username:    "postman_admin",
-		DisplayName: "Postman Admin",
-		Roles:       []string{"admin"},
-		GroupID:     &id,
-		Type:        models.UserTypeCredential,
-		Password: func() *string {
-			password := "postman_admin"
-			return &password
-		}(),
+	err = userService.Create(context.Background(), &requests.CreateMultiTypeUserRequest{
+		CreateMultiTypeUser: requests.CreateMultiTypeUser{
+			Username:    "postman_admin",
+			DisplayName: "Postman Admin",
+			Roles:       []string{"admin"},
+
+			GroupID: &id,
+			Type:    models.UserTypeCredential,
+			Password: func() *string {
+				password := "postman_admin"
+				return &password
+			}(),
+		},
 	})
 	if err != nil {
 		fmt.Println("❌ Error creating user:", err)

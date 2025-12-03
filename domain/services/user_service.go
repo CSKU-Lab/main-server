@@ -23,7 +23,7 @@ type UserService interface {
 	GetPasswordByID(ctx context.Context, ID string) (string, error)
 	GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string, filterParams map[string]string) ([]models.User, error)
 	Count(ctx context.Context, search string, filterParams map[string]string) (int, error)
-	Create(ctx context.Context, user *requests.CreateMultiTypeUser) error
+	Create(ctx context.Context, user *requests.CreateMultiTypeUserRequest) error
 	CreateMany(ctx context.Context, users *requests.CreateManyUsers) error
 	SetPassword(ctx context.Context, ID string, password string) error
 	Update(ctx context.Context, ID string, user *requests.UpdateUser) error
@@ -244,7 +244,7 @@ func (s *userService) Count(ctx context.Context, search string, filterParams map
 	return s.userRepository.Count(ctx, search, filters)
 }
 
-func (s *userService) Create(ctx context.Context, req *requests.CreateMultiTypeUser) error {
+func (s *userService) Create(ctx context.Context, req *requests.CreateMultiTypeUserRequest) error {
 	if models.UserType(req.Type) == models.UserTypeCredential {
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(*req.Password), 10)
 		if err != nil {
@@ -252,13 +252,12 @@ func (s *userService) Create(ctx context.Context, req *requests.CreateMultiTypeU
 				HttpStatus: http.StatusInternalServerError,
 				Message:    "Cannot generate password",
 			})
-
 		}
 		*req.Password = string(hashedPassword)
 	}
 
 	repoUser := repositories.CreateMultiTypeUser{
-		CreateMultiTypeUser: *req,
+		CreateMultiTypeUser: req.CreateMultiTypeUser,
 	}
 
 	id, err := uuid.NewV7()
@@ -272,6 +271,14 @@ func (s *userService) Create(ctx context.Context, req *requests.CreateMultiTypeU
 	repoUser.ID = id.String()
 
 	err = s.uowRepository.Execute(ctx, func(u repositories.UoWInstance) error {
+		if req.Group != nil {
+			userGroup, err := u.UserGroup().GetByName(ctx, *req.Group)
+			if err != nil {
+				return err
+			}
+			repoUser.GroupID = &userGroup.ID
+		}
+
 		err := u.User().Create(ctx, repoUser)
 		if err != nil {
 			return err
@@ -283,6 +290,7 @@ func (s *userService) Create(ctx context.Context, req *requests.CreateMultiTypeU
 				return err
 			}
 		}
+
 		return nil
 	})
 	if err != nil {
