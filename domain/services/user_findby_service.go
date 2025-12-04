@@ -13,7 +13,12 @@ type userFindByService struct {
 	allowedUserFindBy map[string]bool
 }
 
-func NewFindByService(userRepo repositories.User) FindByService[repositories.UserData, *requests.GetInvalidUsers] {
+type (
+	PreferResponse map[string]bool
+	PreferRequest  *requests.GetInvalidUsers
+)
+
+func NewFindByService(userRepo repositories.User) FindByService[PreferResponse, PreferRequest] {
 	return &userFindByService{
 		userRepo: userRepo,
 		allowedUserFindBy: map[string]bool{
@@ -23,7 +28,7 @@ func NewFindByService(userRepo repositories.User) FindByService[repositories.Use
 	}
 }
 
-func (u *userFindByService) Find(ctx context.Context, req *requests.GetInvalidUsers) ([]repositories.UserData, error) {
+func (u *userFindByService) Find(ctx context.Context, req PreferRequest) (PreferResponse, error) {
 	err := sanitize.FindBy(u.allowedUserFindBy, req.FindBy)
 	if err != nil {
 		return nil, err
@@ -39,5 +44,16 @@ func (u *userFindByService) Find(ctx context.Context, req *requests.GetInvalidUs
 		return nil, err
 	}
 
-	return users, nil
+	flattenUsers := map[string]bool{}
+	for _, u := range users {
+		switch req.FindBy {
+		case "username":
+			flattenUsers[u.Username] = true
+		case "email":
+			if u.Email != nil {
+				flattenUsers[*u.Email] = true
+			}
+		}
+	}
+	return flattenUsers, nil
 }
