@@ -60,22 +60,13 @@ func NewUserService(user repositories.User, userPassword repositories.UserPasswo
 }
 
 func (s *userService) GetInvalidUsers(ctx context.Context, req *requests.GetInvalidUsers) ([]string, error) {
-	allowedFindBy := map[string]bool{
-		"username": true,
-		"email":    true,
-	}
-
-	err := sanitize.FindBy(allowedFindBy, req.FindBy)
+	findByService := NewFindByService(s.userRepository)
+	users, err := findByService.Find(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
-	users, err := s.userRepository.GetManyByFindBy(ctx, req.Users, req.FindBy, req.Role)
-	if err != nil {
-		return nil, err
-	}
-
-	flattenUsers := make(map[string]bool)
+	flattenUsers := map[string]bool{}
 	for _, u := range users {
 		switch req.FindBy {
 		case "username":
