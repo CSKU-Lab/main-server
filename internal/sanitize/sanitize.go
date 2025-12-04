@@ -35,12 +35,14 @@ type Filter struct {
 }
 
 func FindBy(allowedFields map[string]bool, field string) error {
-	if !allowedFields[field] {
+	_, ok := allowedFields[field]
+	if !allowedFields[field] || !ok {
 		return cserrors.New(&cserrors.Option{
 			HttpStatus: http.StatusBadRequest,
 			Message:    "Invalid field: " + field,
 		})
 	}
+
 	return nil
 }
 

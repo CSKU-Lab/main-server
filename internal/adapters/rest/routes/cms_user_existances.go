@@ -10,10 +10,10 @@ import (
 func NewCMSUserExistancesRoutes(router fiber.Router, userService services.UserService) {
 	userRouter := router.Group("/user-existances")
 
-	userRouter.Post("/", middlewares.ValidateMiddleware[requests.GetUserExistances](), func(c *fiber.Ctx) error {
-		req := c.Locals("body").(*requests.GetUserExistances)
+	userRouter.Post("/", middlewares.ValidateMiddleware[requests.GetInvalidUsers](), func(c *fiber.Ctx) error {
+		req := c.Locals("body").(*requests.GetInvalidUsers)
 
-		res, err := userService.GetUserExistances(c.Context(), req)
+		res, err := userService.GetInvalidUsers(c.Context(), req)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 				"message": "Error fetching user existances",
@@ -21,6 +21,16 @@ func NewCMSUserExistancesRoutes(router fiber.Router, userService services.UserSe
 			})
 		}
 
-		return c.Status(fiber.StatusOK).JSON(res)
+		if res != nil {
+			return c.Status(fiber.StatusOK).JSON(fiber.Map{
+				"error": "Some users are invalid",
+				"users": res,
+			})
+		}
+
+		return c.Status(fiber.StatusOK).JSON(fiber.Map{
+			"code":    "OK",
+			"message": "All users are valid",
+		})
 	})
 }
