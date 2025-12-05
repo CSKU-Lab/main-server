@@ -9,6 +9,7 @@ import (
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
 	"github.com/CSKU-Lab/main-server/domain/models"
 	"github.com/CSKU-Lab/main-server/domain/services"
+	"github.com/CSKU-Lab/main-server/internal/adapters/middlewares"
 	"github.com/CSKU-Lab/main-server/internal/requests"
 	"github.com/gofiber/fiber/v2"
 )
@@ -16,7 +17,10 @@ import (
 func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionService, semesterService services.SemesterService) {
 	cmsSectionRouter := router.Group("/sections")
 
-	cmsSectionRouter.Post("/", func(c *fiber.Ctx) error {
+	cmsSectionRouter.Post("/", middlewares.RBACMiddleware([]models.Role{
+		models.ADMIN,
+		models.INSTRUCTOR,
+	}), func(c *fiber.Ctx) error {
 		req := &requests.CreateSection{
 			Name:       c.FormValue("name"),
 			SemesterID: c.FormValue("semester_id"),
@@ -84,7 +88,11 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 		})
 	})
 
-	cmsSectionRouter.Patch("/:id", func(c *fiber.Ctx) error {
+	cmsSectionRouter.Patch("/:id", middlewares.RBACMiddleware([]models.Role{
+		models.ADMIN,
+		models.INSTRUCTOR,
+	}), func(c *fiber.Ctx) error {
+		user := c.Locals("user").(*models.User)
 		id := c.Params("id")
 		req := &requests.UpdateSection{
 			Name:       c.FormValue("name"),
@@ -127,7 +135,7 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 			}
 		}
 
-		err = sectionService.UpdateByID(c.Context(), id, req)
+		err = sectionService.UpdateByID(c.Context(), id, req, user.ID)
 		if err != nil {
 			return err
 		}
@@ -136,7 +144,11 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 	})
 
 	// need to be refactored because this violates clean architecture
-	cmsSectionRouter.Get("/", func(c *fiber.Ctx) error {
+	cmsSectionRouter.Get("/", middlewares.RBACMiddleware([]models.Role{
+		models.ADMIN,
+		models.INSTRUCTOR,
+		models.STUDENT,
+	}), func(c *fiber.Ctx) error {
 		pageQuery := c.Query("page", "1")
 		pageSizeQuery := c.Query("page_size", "10")
 		search := c.Query("search", "")
@@ -211,7 +223,11 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 		})
 	})
 
-	cmsSectionRouter.Get("/:id", func(c *fiber.Ctx) error {
+	cmsSectionRouter.Get("/:id", middlewares.RBACMiddleware([]models.Role{
+		models.ADMIN,
+		models.INSTRUCTOR,
+		models.STUDENT,
+	}), func(c *fiber.Ctx) error {
 		id := c.Params("id")
 		section, err := sectionService.GetByID(c.Context(), id)
 		if err != nil {
@@ -221,9 +237,13 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 		return c.Status(fiber.StatusOK).JSON(section)
 	})
 
-	cmsSectionRouter.Delete("/:id", func(c *fiber.Ctx) error {
+	cmsSectionRouter.Delete("/:id", middlewares.RBACMiddleware([]models.Role{
+		models.ADMIN,
+		models.INSTRUCTOR,
+	}), func(c *fiber.Ctx) error {
+		user := c.Locals("user").(*models.User)
 		id := c.Params("id")
-		if err := sectionService.DeleteByID(c.Context(), id); err != nil {
+		if err := sectionService.DeleteByID(c.Context(), id, user.ID); err != nil {
 			return err
 		}
 

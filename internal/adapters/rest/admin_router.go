@@ -2,7 +2,6 @@ package rest
 
 import (
 	"github.com/CSKU-Lab/main-server/domain/services"
-	"github.com/CSKU-Lab/main-server/internal/adapters/middlewares"
 	"github.com/CSKU-Lab/main-server/internal/adapters/rest/routes"
 	"github.com/gofiber/fiber/v2"
 )
@@ -15,10 +14,9 @@ type AdminRouter struct {
 }
 
 func NewAdminRouter(r *AdminRouter) {
-	adminRouter := r.Router.Group("/admin", middlewares.AdminMiddleware)
+	adminRouter := r.Router.Group("/admin")
 
 	routes.NewAdminUserRoutes(adminRouter, r.UserService)
 	routes.NewAdminCourseRoutes(adminRouter, r.CourseService)
 	routes.NewAdminUserGroupRoutes(adminRouter, r.UserGroupService)
-
 }

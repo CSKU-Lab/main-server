@@ -6,13 +6,17 @@ import (
 	"strconv"
 
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
+	"github.com/CSKU-Lab/main-server/domain/models"
 	"github.com/CSKU-Lab/main-server/domain/services"
+	"github.com/CSKU-Lab/main-server/internal/adapters/middlewares"
 	"github.com/CSKU-Lab/main-server/internal/requests"
 	"github.com/gofiber/fiber/v2"
 )
 
 func NewAdminUserGroupRoutes(router fiber.Router, userGroupService services.UserGroupService) {
-	adminUserGroupRoutes := router.Group("/user-groups")
+	adminUserGroupRoutes := router.Group("/user-groups", middlewares.RBACMiddleware([]models.Role{
+		models.ADMIN,
+	}))
 
 	adminUserGroupRoutes.Post("/", func(c *fiber.Ctx) error {
 		var req requests.UserGroup
@@ -94,5 +98,4 @@ func NewAdminUserGroupRoutes(router fiber.Router, userGroupService services.User
 		id := c.Params("id")
 		return userGroupService.Delete(c.Context(), id)
 	})
-
 }

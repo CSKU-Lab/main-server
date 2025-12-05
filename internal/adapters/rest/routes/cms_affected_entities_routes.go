@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"github.com/CSKU-Lab/main-server/domain/models"
 	"github.com/CSKU-Lab/main-server/domain/services"
 	"github.com/CSKU-Lab/main-server/internal/adapters/middlewares"
 	"github.com/CSKU-Lab/main-server/internal/requests"
@@ -8,7 +9,10 @@ import (
 )
 
 func NewCMSAffectedEntitiesRoutes(router fiber.Router, affectedEntitiesService services.AffectedEntitiesService) {
-	affectedEntitiesRouter := router.Group("/affected-entities")
+	affectedEntitiesRouter := router.Group("/affected-entities", middlewares.RBACMiddleware([]models.Role{
+		models.ADMIN,
+		models.INSTRUCTOR,
+	}))
 
 	affectedEntitiesRouter.Post("/", middlewares.ValidateMiddleware[requests.GetAffectedEntities](), func(c *fiber.Ctx) error {
 		req := c.Locals("body").(*requests.GetAffectedEntities)

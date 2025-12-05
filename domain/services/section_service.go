@@ -16,11 +16,11 @@ import (
 
 type SectionService interface {
 	Create(ctx context.Context, req *requests.CreateSection) (string, error)
-	UpdateByID(ctx context.Context, ID string, req *requests.UpdateSection) error
+	UpdateByID(ctx context.Context, ID string, req *requests.UpdateSection, userID string) error
 	GetByID(ctx context.Context, ID string) (*models.Section, error)
 	GetBySemesterID(ctx context.Context, semesterID string) ([]models.Section, error)
 	GetRawBySemesterID(ctx context.Context, semesterID string) ([]repositories.RawSection, error)
-	DeleteByID(ctx context.Context, ID string) error
+	DeleteByID(ctx context.Context, ID string, userID string) error
 }
 
 type sectionService struct {
@@ -105,16 +105,32 @@ func (s *sectionService) Create(ctx context.Context, req *requests.CreateSection
 	})
 
 	return ID.String(), err
-
 }
 
-func (s *sectionService) UpdateByID(ctx context.Context, ID string, req *requests.UpdateSection) error {
+func (s *sectionService) UpdateByID(ctx context.Context, ID string, req *requests.UpdateSection, userID string) error {
 	currentSection, err := s.repo.GetByID(ctx, ID)
+	if err != nil {
+		return err
+	}
+	sectionInstructors, err := s.sectionInstructorRepo.Get(ctx, currentSection.ID)
 	if err != nil {
 		return err
 	}
 
 	return s.uowRepo.Execute(ctx, func(suow repositories.UoWInstance) error {
+		isAuthor := false
+		for _, i := range sectionInstructors {
+			if userID == i.ID {
+				isAuthor = true
+			}
+		}
+		if !isAuthor {
+			return cserrors.New(&cserrors.Option{
+				HttpStatus: http.StatusUnauthorized,
+				Message:    "No Permission",
+			})
+		}
+
 		if req.Banner != nil {
 			imagePath, err := s.storage.UploadFile(ctx, constants.SECTION_BANNER, req.Banner)
 			if err != nil {
@@ -221,6 +237,28 @@ func (s *sectionService) GetRawBySemesterID(ctx context.Context, semesterID stri
 	return s.repo.GetRawBySemesterID(ctx, semesterID)
 }
 
-func (s *sectionService) DeleteByID(ctx context.Context, ID string) error {
+func (s *sectionService) DeleteByID(ctx context.Context, ID string, userID string) error {
+	_, err := s.repo.GetByID(ctx, ID)
+	if err != nil {
+		return err
+	}
+
+	instructors, err := s.sectionInstructorRepo.Get(ctx, ID)
+	if err != nil {
+		return err
+	}
+
+	isAuthor := false
+	for _, instructor := range instructors {
+		if userID == instructor.ID {
+			isAuthor = true
+		}
+	}
+	if !isAuthor {
+		return cserrors.New(&cserrors.Option{
+			HttpStatus: http.StatusUnauthorized,
+			Message:    "No Permission",
+		})
+	}
 	return s.repo.DeleteByID(ctx, ID)
 }

@@ -19,8 +19,8 @@ type MaterialService interface {
 	GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string, filterParams map[string]string) ([]models.Material, error)
 	Count(ctx context.Context, search string, filters map[string]string) (int, error)
 	GetByID(ctx context.Context, ID string) (*models.MaterialDetail, error)
-	UpdateByID(ctx context.Context, ID string, req *requests.BaseUpdateMaterial, rawReq []byte) error
-	DeleteByID(ctx context.Context, ID string) error
+	UpdateByID(ctx context.Context, ID string, req *requests.BaseUpdateMaterial, rawReq []byte, userID string) error
+	DeleteByID(ctx context.Context, ID string, userID string) error
 }
 
 type materialService struct {
@@ -235,10 +235,16 @@ func isUpdateBaseMaterial(req *requests.BaseUpdateMaterial) bool {
 	return req.Name != "" || req.Tags != nil || req.Visibility != ""
 }
 
-func (s *materialService) UpdateByID(ctx context.Context, ID string, req *requests.BaseUpdateMaterial, rawReq []byte) error {
+func (s *materialService) UpdateByID(ctx context.Context, ID string, req *requests.BaseUpdateMaterial, rawReq []byte, userID string) error {
 	mat, err := s.repo.GetByID(ctx, ID)
 	if err != nil {
 		return err
+	}
+	if mat.CreatedBy != userID {
+		return cserrors.New(&cserrors.Option{
+			HttpStatus: http.StatusUnauthorized,
+			Message:    "No Permission",
+		})
 	}
 
 	if isUpdateBaseMaterial(req) {
@@ -270,6 +276,16 @@ func (s *materialService) UpdateByID(ctx context.Context, ID string, req *reques
 	return materialHandler.UpdateByID(ctx, ID, req, rawReq)
 }
 
-func (s *materialService) DeleteByID(ctx context.Context, ID string) error {
+func (s *materialService) DeleteByID(ctx context.Context, ID string, userID string) error {
+	mat, err := s.repo.GetByID(ctx, ID)
+	if err != nil {
+		return err
+	}
+	if mat.CreatedBy != userID {
+		return cserrors.New(&cserrors.Option{
+			HttpStatus: http.StatusUnauthorized,
+			Message:    "No Permission",
+		})
+	}
 	return s.repo.DeleteByID(ctx, ID)
 }
