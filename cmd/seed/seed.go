@@ -36,8 +36,9 @@ func main() {
 		Username:    "postman_admin",
 		DisplayName: "Postman Admin",
 		Roles:       []string{"admin"},
-		GroupID:     &id,
-		Type:        models.UserTypeCredential,
+
+		GroupID: &id,
+		Type:    models.UserTypeCredential,
 		Password: func() *string {
 			password := "postman_admin"
 			return &password

@@ -294,6 +294,14 @@ func (s *userService) Create(ctx context.Context, req *requests.CreateMultiTypeU
 	repoUser.ID = id.String()
 
 	err = s.uowRepository.Execute(ctx, func(u repositories.UoWInstance) error {
+		if req.Group != nil {
+			userGroup, err := u.UserGroup().GetByName(ctx, *req.Group)
+			if err != nil {
+				return err
+			}
+			repoUser.GroupID = &userGroup.ID
+		}
+
 		err := u.User().Create(ctx, repoUser)
 		if err != nil {
 			return err
@@ -305,6 +313,7 @@ func (s *userService) Create(ctx context.Context, req *requests.CreateMultiTypeU
 				return err
 			}
 		}
+
 		return nil
 	})
 	if err != nil {
