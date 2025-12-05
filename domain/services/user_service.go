@@ -22,6 +22,7 @@ type UserService interface {
 	GetByID(ctx context.Context, ID string) (*models.User, error)
 	GetPasswordByID(ctx context.Context, ID string) (string, error)
 	GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string, filterParams map[string]string) ([]models.User, error)
+	GetInvalidUsers(ctx context.Context, req *requests.GetInvalidUsers) ([]string, error)
 	Count(ctx context.Context, search string, filterParams map[string]string) (int, error)
 	Create(ctx context.Context, user *requests.CreateMultiTypeUser) error
 	CreateMany(ctx context.Context, users *requests.CreateManyUsers) error
@@ -56,6 +57,28 @@ func NewUserService(user repositories.User, userPassword repositories.UserPasswo
 			"updated_at":   true,
 		},
 	}
+}
+
+func (s *userService) GetInvalidUsers(ctx context.Context, req *requests.GetInvalidUsers) ([]string, error) {
+	findByService := NewFindByService(s.userRepository)
+	flattenUsers, err := findByService.Find(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	notFound := []string{}
+	for _, v := range req.Users {
+		if _, exists := flattenUsers[v]; !exists {
+			if !slices.Contains(notFound, v) {
+				notFound = append(notFound, v)
+			}
+		}
+	}
+	if len(notFound) == 0 {
+		return nil, nil
+	}
+
+	return notFound, nil
 }
 
 func (s *userService) GetByEmail(ctx context.Context, email string) (*models.User, error) {
@@ -252,7 +275,6 @@ func (s *userService) Create(ctx context.Context, req *requests.CreateMultiTypeU
 				HttpStatus: http.StatusInternalServerError,
 				Message:    "Cannot generate password",
 			})
-
 		}
 		*req.Password = string(hashedPassword)
 	}

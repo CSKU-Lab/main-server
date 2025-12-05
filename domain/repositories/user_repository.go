@@ -14,6 +14,7 @@ type User interface {
 	GetByEmail(ctx context.Context, email string) (*UserData, error)
 	GetByUsername(ctx context.Context, username string) (*UserData, error)
 	GetManyByUsername(ctx context.Context, usernames []string) ([]UserData, error)
+	GetManyByFindBy(ctx context.Context, data []string, findBy string, role string) ([]UserData, error)
 	GetByID(ctx context.Context, ID string) (*UserData, error)
 	GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string, filters []sanitize.Filter) ([]UserData, error)
 	Count(ctx context.Context, search string, filters []sanitize.Filter) (int, error)

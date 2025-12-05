@@ -6,6 +6,20 @@ import (
 	"github.com/go-ozzo/ozzo-validation/v4/is"
 )
 
+type GetInvalidUsers struct {
+	Role   string   `json:"role"`
+	FindBy string   `json:"find_by"`
+	Users  []string `json:"users"`
+}
+
+func (c *GetInvalidUsers) Validate() error {
+	return validation.ValidateStruct(c,
+		validation.Field(&c.Role, validation.Required, validation.In("admin", "instructor", "student").Error("must be one of 'admin', 'instructor', 'student'")),
+		validation.Field(&c.FindBy, validation.Required),
+		validation.Field(&c.Users, validation.Required, validation.Length(1, 0)),
+	)
+}
+
 type CreateMultiTypeUser struct {
 	Username    string          `json:"username"`
 	DisplayName string          `json:"display_name"`

@@ -34,6 +34,18 @@ type Filter struct {
 	Value    string
 }
 
+func FindBy(allowedFields map[string]bool, field string) error {
+	_, ok := allowedFields[field]
+	if !allowedFields[field] || !ok {
+		return cserrors.New(&cserrors.Option{
+			HttpStatus: http.StatusBadRequest,
+			Message:    "Invalid field: " + field,
+		})
+	}
+
+	return nil
+}
+
 func Filters(filterParams map[string]string, allowedFields map[string]bool) ([]Filter, error) {
 	allowedOperators := map[string]bool{
 		"is":           true,
@@ -86,4 +98,3 @@ func Filters(filterParams map[string]string, allowedFields map[string]bool) ([]F
 
 	return filters, nil
 }
-

@@ -287,6 +287,7 @@ func main() {
 
 	rest.NewCMSRouter(&rest.CMSRouter{
 		Router:                  protectedApi,
+		UserService:             userService,
 		SemesterService:         semesterService,
 		CourseService:           courseService,
 		SectionService:          sectionService,

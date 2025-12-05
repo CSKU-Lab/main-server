@@ -92,6 +92,48 @@ func (r *userRepository) GetByUsername(ctx context.Context, username string) (*r
 	}, nil
 }
 
+func (r *userRepository) GetManyByFindBy(ctx context.Context, data []string, findBy string, role string) ([]repositories.UserData, error) {
+	query := fmt.Sprintf(`
+		SELECT id, email, username, display_name, profile_image,
+		       roles, group_id, type, created_at, updated_at
+		FROM users
+		WHERE %s IN (?)
+		  AND is_deleted = false
+		  AND ? = ANY(roles)
+	`, findBy)
+
+	query, args, err := sqlx.In(query, data, role)
+	if err != nil {
+		return nil, err
+	}
+
+	query = r.db.Rebind(query)
+
+	var users []user
+	err = r.db.SelectContext(ctx, &users, query, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	userDatas := make([]repositories.UserData, len(users))
+	for i, u := range users {
+		userDatas[i] = repositories.UserData{
+			ID:           u.ID,
+			Email:        u.Email,
+			Username:     u.Username,
+			DisplayName:  u.DisplayName,
+			ProfileImage: u.ProfileImage,
+			Roles:        u.Roles,
+			Type:         u.Type,
+			CreatedAt:    u.CreatedAt,
+			UpdatedAt:    u.UpdatedAt,
+			GroupID:      u.GroupID,
+		}
+	}
+
+	return userDatas, nil
+}
+
 func (r *userRepository) GetManyByUsername(ctx context.Context, usernames []string) ([]repositories.UserData, error) {
 	var users []user
 	query := `SELECT id, email, username,display_name,profile_image,
