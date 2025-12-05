@@ -128,6 +128,7 @@ func main() {
 
 	app := fiber.New(fiber.Config{
 		ErrorHandler: errHandlerMiddleware.ErrorHandler,
+		BodyLimit:    10 * 1024 * 1024, // 10 MB
 	})
 
 	app.Use(cors.New(cors.Config{
