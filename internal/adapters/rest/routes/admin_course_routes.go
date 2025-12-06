@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
+	"github.com/CSKU-Lab/main-server/domain/models"
 	"github.com/CSKU-Lab/main-server/domain/services"
 	"github.com/CSKU-Lab/main-server/internal/adapters/middlewares"
 	"github.com/CSKU-Lab/main-server/internal/requests"
@@ -14,7 +15,10 @@ import (
 )
 
 func NewAdminCourseRoutes(router fiber.Router, service services.CourseService) {
-	courseRouter := router.Group("/courses")
+	courseRouter := router.Group("/courses", middlewares.RBACMiddleware([]models.Role{
+		models.ADMIN,
+		models.INSTRUCTOR,
+	}))
 
 	courseRouter.Post("/", middlewares.ValidateMiddleware[requests.CreateCourse](), func(c *fiber.Ctx) error {
 		req := c.Locals("body").(*requests.CreateCourse)

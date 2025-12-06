@@ -17,7 +17,10 @@ import (
 func NewCMSMaterialRoutes(router fiber.Router, materialService services.MaterialService) {
 	materialRouter := router.Group("/materials")
 
-	materialRouter.Post("/", middlewares.ValidateMiddleware[requests.CreateMaterial](), func(c *fiber.Ctx) error {
+	materialRouter.Post("/", middlewares.RBACMiddleware([]models.Role{
+		models.ADMIN,
+		models.INSTRUCTOR,
+	}), middlewares.ValidateMiddleware[requests.CreateMaterial](), func(c *fiber.Ctx) error {
 		req := c.Locals("body").(*requests.CreateMaterial)
 		user := c.Locals("user").(*models.User)
 
@@ -31,7 +34,11 @@ func NewCMSMaterialRoutes(router fiber.Router, materialService services.Material
 		})
 	})
 
-	materialRouter.Get("/", func(c *fiber.Ctx) error {
+	materialRouter.Get("/", middlewares.RBACMiddleware([]models.Role{
+		models.ADMIN,
+		models.INSTRUCTOR,
+		models.STUDENT,
+	}), func(c *fiber.Ctx) error {
 		pageQuery := c.Query("page", "1")
 		pageSizeQuery := c.Query("page_size", "10")
 		search := c.Query("search", "")
@@ -75,7 +82,11 @@ func NewCMSMaterialRoutes(router fiber.Router, materialService services.Material
 		})
 	})
 
-	materialRouter.Get("/:id", func(c *fiber.Ctx) error {
+	materialRouter.Get("/:id", middlewares.RBACMiddleware([]models.Role{
+		models.ADMIN,
+		models.INSTRUCTOR,
+		models.STUDENT,
+	}), func(c *fiber.Ctx) error {
 		id := c.Params("id")
 		material, err := materialService.GetByID(c.Context(), id)
 		if err != nil {
@@ -84,16 +95,24 @@ func NewCMSMaterialRoutes(router fiber.Router, materialService services.Material
 		return c.JSON(material)
 	})
 
-	materialRouter.Patch("/:id", middlewares.ValidateMiddleware[requests.BaseUpdateMaterial](), func(c *fiber.Ctx) error {
+	materialRouter.Patch("/:id", middlewares.RBACMiddleware([]models.Role{
+		models.ADMIN,
+		models.INSTRUCTOR,
+	}), middlewares.ValidateMiddleware[requests.BaseUpdateMaterial](), func(c *fiber.Ctx) error {
+		user := c.Locals("user").(*models.User)
 		id := c.Params("id")
 		req := c.Locals("body").(*requests.BaseUpdateMaterial)
 		rawReq := c.Body()
 
-		return materialService.UpdateByID(c.Context(), id, req, rawReq)
+		return materialService.UpdateByID(c.Context(), id, req, rawReq, user.ID)
 	})
 
-	materialRouter.Delete("/:id", func(c *fiber.Ctx) error {
+	materialRouter.Delete("/:id", middlewares.RBACMiddleware([]models.Role{
+		models.ADMIN,
+		models.INSTRUCTOR,
+	}), func(c *fiber.Ctx) error {
+		user := c.Locals("user").(*models.User)
 		id := c.Params("id")
-		return materialService.DeleteByID(c.Context(), id)
+		return materialService.DeleteByID(c.Context(), id, user.ID)
 	})
 }

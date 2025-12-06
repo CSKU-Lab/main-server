@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
+	"github.com/CSKU-Lab/main-server/domain/models"
 	"github.com/CSKU-Lab/main-server/domain/services"
 	"github.com/CSKU-Lab/main-server/internal/adapters/middlewares"
 	"github.com/CSKU-Lab/main-server/internal/requests"
@@ -15,7 +16,9 @@ import (
 )
 
 func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
-	adminUserRouter := router.Group("/users")
+	adminUserRouter := router.Group("/users", middlewares.RBACMiddleware([]models.Role{
+		models.ADMIN,
+	}))
 
 	adminUserRouter.Get("/", func(c *fiber.Ctx) error {
 		pageQuery := c.Query("page", "1")

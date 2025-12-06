@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"github.com/CSKU-Lab/main-server/domain/models"
 	"github.com/CSKU-Lab/main-server/domain/services"
 	"github.com/CSKU-Lab/main-server/internal/adapters/middlewares"
 	"github.com/CSKU-Lab/main-server/internal/requests"
@@ -8,7 +9,10 @@ import (
 )
 
 func NewCMSUserExistancesRoutes(router fiber.Router, userService services.UserService) {
-	userRouter := router.Group("/user-existances")
+	userRouter := router.Group("/user-existances", middlewares.RBACMiddleware([]models.Role{
+		models.ADMIN,
+		models.INSTRUCTOR,
+	}))
 
 	userRouter.Post("/", middlewares.ValidateMiddleware[requests.GetInvalidUsers](), func(c *fiber.Ctx) error {
 		req := c.Locals("body").(*requests.GetInvalidUsers)
