@@ -19,6 +19,6 @@ func RBACMiddleware(roles []models.Role) func(*fiber.Ctx) error {
 			}
 		}
 
-		return cserrors.New(&cserrors.Option{HttpStatus: http.StatusUnauthorized, Message: "No Permission"})
+		return cserrors.New(&cserrors.Option{HttpStatus: http.StatusForbidden, Message: "No Permission"})
 	}
 }

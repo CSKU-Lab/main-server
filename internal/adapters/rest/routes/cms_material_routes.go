@@ -37,7 +37,6 @@ func NewCMSMaterialRoutes(router fiber.Router, materialService services.Material
 	materialRouter.Get("/", middlewares.RBACMiddleware([]models.Role{
 		models.ADMIN,
 		models.INSTRUCTOR,
-		models.STUDENT,
 	}), func(c *fiber.Ctx) error {
 		pageQuery := c.Query("page", "1")
 		pageSizeQuery := c.Query("page_size", "10")
@@ -85,7 +84,6 @@ func NewCMSMaterialRoutes(router fiber.Router, materialService services.Material
 	materialRouter.Get("/:id", middlewares.RBACMiddleware([]models.Role{
 		models.ADMIN,
 		models.INSTRUCTOR,
-		models.STUDENT,
 	}), func(c *fiber.Ctx) error {
 		id := c.Params("id")
 		material, err := materialService.GetByID(c.Context(), id)
