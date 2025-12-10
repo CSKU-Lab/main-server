@@ -24,4 +24,5 @@ func NewCMSRouter(r *CMSRouter) {
 	routes.NewCMSMaterialRoutes(cmsRouter, r.MaterialService)
 	routes.NewCMSAffectedEntitiesRoutes(cmsRouter, r.AffectedEntitiesService)
 	routes.NewCMSUserExistancesRoutes(cmsRouter, r.UserService)
+	routes.NewCMSCourseRoutes(cmsRouter, r.SectionService, r.SemesterService)
 }

@@ -19,6 +19,7 @@ type SectionService interface {
 	UpdateByID(ctx context.Context, ID string, req *requests.UpdateSection, userID string) error
 	GetByID(ctx context.Context, ID string) (*models.Section, error)
 	GetBySemesterID(ctx context.Context, semesterID string) ([]models.Section, error)
+	GetByCourseID(ctx context.Context, courseID string) ([]models.Section, error)
 	GetRawBySemesterID(ctx context.Context, semesterID string) ([]repositories.RawSection, error)
 	DeleteByID(ctx context.Context, ID string, userID string) error
 }
@@ -212,6 +213,29 @@ func (s *sectionService) GetByID(ctx context.Context, ID string) (*models.Sectio
 
 func (s *sectionService) GetBySemesterID(ctx context.Context, semesterID string) ([]models.Section, error) {
 	sections, err := s.repo.GetBySemesterID(ctx, semesterID)
+	if err != nil {
+		return nil, nil
+	}
+
+	for i, section := range sections {
+		if sections[i].Banner != nil {
+			bannerS3Path := converter.ToS3Path(s.config, *section.Banner)
+			sections[i].Banner = &bannerS3Path
+		}
+
+		instructors, err := s.sectionInstructorRepo.Get(ctx, section.ID)
+		if err != nil {
+			return nil, err
+		}
+
+		sections[i].Instructors = instructors
+	}
+
+	return sections, nil
+}
+
+func (s *sectionService) GetByCourseID(ctx context.Context, courseID string) ([]models.Section, error) {
+	sections, err := s.repo.GetByCourseID(ctx, courseID)
 	if err != nil {
 		return nil, nil
 	}

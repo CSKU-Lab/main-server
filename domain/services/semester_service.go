@@ -106,7 +106,6 @@ func (s *semesterService) GetPagination(ctx context.Context, page int, limit int
 	}
 
 	return s.repo.GetPagination(ctx, page, limit, search, sanitizedSortBy, sanitizedSortOrder, filters)
-
 }
 
 func (s *semesterService) Count(ctx context.Context, search string, filterParams map[string]string) (int, error) {
