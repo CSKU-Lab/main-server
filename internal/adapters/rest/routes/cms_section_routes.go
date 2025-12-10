@@ -147,7 +147,6 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 	cmsSectionRouter.Get("/", middlewares.RBACMiddleware([]models.Role{
 		models.ADMIN,
 		models.INSTRUCTOR,
-		models.STUDENT,
 	}), func(c *fiber.Ctx) error {
 		pageQuery := c.Query("page", "1")
 		pageSizeQuery := c.Query("page_size", "10")
@@ -226,7 +225,6 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 	cmsSectionRouter.Get("/:id", middlewares.RBACMiddleware([]models.Role{
 		models.ADMIN,
 		models.INSTRUCTOR,
-		models.STUDENT,
 	}), func(c *fiber.Ctx) error {
 		id := c.Params("id")
 		section, err := sectionService.GetByID(c.Context(), id)

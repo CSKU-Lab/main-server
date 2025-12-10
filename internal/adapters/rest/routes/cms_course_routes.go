@@ -19,7 +19,6 @@ func NewCMSCourseRoutes(router fiber.Router, sectionService services.SectionServ
 	courseRouter.Get("/:courseID/sections", middlewares.RBACMiddleware([]models.Role{
 		models.ADMIN,
 		models.INSTRUCTOR,
-		models.STUDENT,
 	}), func(c *fiber.Ctx) error {
 		courseID := c.Params("courseID")
 		pageQuery := c.Query("page", "1")
