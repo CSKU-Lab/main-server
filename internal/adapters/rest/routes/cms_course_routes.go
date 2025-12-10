@@ -14,7 +14,7 @@ import (
 )
 
 func NewCMSCourseRoutes(router fiber.Router, sectionService services.SectionService, semesterService services.SemesterService) {
-	courseRouter := router.Group("/course")
+	courseRouter := router.Group("/courses")
 
 	courseRouter.Get("/:courseID/sections", middlewares.RBACMiddleware([]models.Role{
 		models.ADMIN,
@@ -67,7 +67,7 @@ func NewCMSCourseRoutes(router fiber.Router, sectionService services.SectionServ
 
 		sectionsOfSemesters := make([]sectionsOfSemester, len(sems))
 		for i, semester := range sems {
-			sections, err := sectionService.GetByCourseID(c.Context(), courseID)
+			sections, err := sectionService.GetByCourseIDAndSemesterID(c.Context(), courseID, semester.ID)
 			if err != nil {
 				return err
 			}

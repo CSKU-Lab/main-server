@@ -129,10 +129,30 @@ func (s *sqlxSectionRepository) GetBySemesterID(ctx context.Context, ID string) 
 	return sections, nil
 }
 
-func (s *sqlxSectionRepository) GetByCourseID(ctx context.Context, ID string) ([]models.Section, error) {
+func (s *sqlxSectionRepository) GetByCourseIDAndSemesterID(ctx context.Context, courseID string, semesterID string) ([]models.Section, error) {
+	var dbSections []sectionSchema
+	query := "SELECT id, name, banner FROM sections WHERE course_id = $1 AND semester_id = $2 AND is_deleted = false"
+	err := s.db.SelectContext(ctx, &dbSections, query, courseID, semesterID)
+	if err != nil {
+		return nil, err
+	}
+
+	var sections []models.Section
+	for _, dbSection := range dbSections {
+		sections = append(sections, models.Section{
+			ID:     dbSection.ID,
+			Name:   dbSection.Name,
+			Banner: dbSection.Banner,
+		})
+	}
+
+	return sections, nil
+}
+
+func (s *sqlxSectionRepository) GetByCourseID(ctx context.Context, courseID string) ([]models.Section, error) {
 	var dbSections []sectionSchema
 	query := "SELECT id, name, banner FROM sections WHERE course_id = $1 AND is_deleted = false"
-	err := s.db.SelectContext(ctx, &dbSections, query, ID)
+	err := s.db.SelectContext(ctx, &dbSections, query, courseID)
 	if err != nil {
 		return nil, err
 	}
