@@ -369,6 +369,174 @@ table "semesters" {
   }
 }
 
+table "default_labs" {
+  schema = schema.public
+  column "course_id" {
+    type = uuid
+  }
+  column "lab_id" {
+    type = uuid
+  }
+  column "position" {
+    type = int
+  }
+  column "created_at" {
+    type = timestamp
+    default = sql("CURRENT_TIMESTAMP")
+  }
+  column "updated_at" {
+    type = timestamp
+    default = sql("CURRENT_TIMESTAMP")
+  }
+  column "is_deleted" {
+    type = boolean
+    default = false
+  }
+  column "deleted_at" {
+    type = timestamp
+    null = true
+  }
+  primary_key  {
+    columns = [ column.course_id, column.lab_id ]
+  }
+  foreign_key "fk_course_id" {
+    columns = [ column.course_id ]
+    ref_columns = [ table.courses.column.id ]
+    on_delete = CASCADE
+  }
+  foreign_key "fk_lab_id" {
+    columns = [ column.lab_id ]
+    ref_columns = [ table.labs.column.id ]
+    on_delete = CASCADE
+  }
+}
+
+table "labs" {
+  schema = schema.public
+  column "id" {
+    type = uuid
+  }
+  column "display_name" {
+    type = text
+  }
+  column "course_id" {
+    type = uuid
+  }
+  column "created_by" {
+    type = uuid
+  }
+  column "created_at" {
+    type = timestamp
+    default = sql("CURRENT_TIMESTAMP")
+  }
+  column "updated_at" {
+    type = timestamp
+    default = sql("CURRENT_TIMESTAMP")
+  }
+  column "is_deleted" {
+    type = boolean
+    default = false
+  }
+  column "deleted_at" {
+    type = timestamp
+    null = true
+  }
+  primary_key  {
+    columns = [ column.id ]
+  }
+  foreign_key "fk_created_by" {
+    columns = [ column.created_by ]
+    ref_columns = [ table.users.column.id ]
+    on_delete = SET_NULL
+  }
+  foreign_key "fk_course_id" {
+    columns = [ column.course_id ]
+    ref_columns = [ table.courses.column.id ]
+    on_delete = CASCADE
+  }
+}
+
+table "lab_materials" {
+  schema = schema.public
+  column "lab_id" {
+    type = uuid
+  }
+  column "material_id" {
+    type = uuid
+  }
+  column "created_at" {
+    type = timestamp
+    default = sql("CURRENT_TIMESTAMP")
+  }
+  column "updated_at" {
+    type = timestamp
+    default = sql("CURRENT_TIMESTAMP")
+  }
+  column "is_deleted" {
+    type = boolean
+    default = false
+  }
+  column "deleted_at" {
+    type = timestamp
+    null = true
+  }
+  primary_key  {
+    columns = [ column.lab_id, column.material_id ]
+  }
+  foreign_key "fk_lab_id" {
+    columns = [ column.lab_id ]
+    ref_columns = [ table.labs.column.id ]
+    on_delete = CASCADE
+  }
+  foreign_key "fk_material_id" {
+    columns = [ column.material_id ]
+    ref_columns = [ table.materials.column.id ]
+    on_delete = CASCADE
+  }
+}
+
+table "lab_sections" {
+  schema = schema.public
+  column "lab_id" {
+    type = uuid
+  }
+  column "section_id" {
+    type = uuid
+  }
+  column "position" {
+    type = int
+  }
+  column "created_at" {
+    type = timestamp
+    default = sql("CURRENT_TIMESTAMP")
+  }
+  column "updated_at" {
+    type = timestamp
+    default = sql("CURRENT_TIMESTAMP")
+  }
+  column "is_deleted" {
+    type = boolean
+    default = false
+  }
+  column "deleted_at" {
+    type = timestamp
+    null = true
+  }
+  primary_key  {
+    columns = [ column.lab_id, column.section_id ]
+  }
+  foreign_key "fk_lab_id" {
+    columns = [ column.lab_id ]
+    ref_columns = [ table.labs.column.id ]
+    on_delete = CASCADE
+  }
+  foreign_key "fk_section_id" {
+    columns = [ column.section_id ]
+    ref_columns = [ table.sections.column.id ]
+    on_delete = CASCADE
+  }
+}
+
 enum "material_type" {
   schema = schema.public
   values = [ "document" , "code" , "type" ]
