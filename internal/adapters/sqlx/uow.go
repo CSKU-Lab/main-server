@@ -19,7 +19,8 @@ type uowInstance struct {
 }
 
 func NewUoWRepository(ctx context.Context, db *sqlx.DB) repositories.UoWRepository {
-	return &uowImpl{db: db,
+	return &uowImpl{
+		db:  db,
 		ctx: ctx,
 	}
 }
@@ -62,6 +63,10 @@ func (u *uowInstance) Material() repositories.MaterialRepository {
 
 func (u *uowInstance) MaterialTag() repositories.WriteMaterialTagRepository {
 	return newWriteMaterialTagRepository(u.tx)
+}
+
+func (u *uowInstance) Lab() repositories.LabRepository {
+	return NewSqlxLabRepository(u.tx)
 }
 
 func (s *uowImpl) Execute(ctx context.Context, cb func(s repositories.UoWInstance) error) error {

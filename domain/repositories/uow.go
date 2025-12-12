@@ -16,6 +16,8 @@ type UoWInstance interface {
 
 	Material() MaterialRepository
 	MaterialTag() WriteMaterialTagRepository
+
+	Lab() LabRepository
 }
 
 type UoWRepository interface {
