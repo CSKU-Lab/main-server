@@ -4,22 +4,20 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
 	"github.com/CSKU-Lab/main-server/domain/models"
 	"github.com/CSKU-Lab/main-server/domain/repositories"
 	"github.com/CSKU-Lab/main-server/internal/requests"
-	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 )
 
 type sqlxCourseRepository struct {
-	db *sqlx.DB
+	db instance
 }
 
-func NewSqlxCourseRepository(db *sqlx.DB) repositories.CourseRepository {
+func NewCourseRepository(db instance) repositories.CourseRepository {
 	return &sqlxCourseRepository{db: db}
 }
 
@@ -32,23 +30,7 @@ type course struct {
 func (r *sqlxCourseRepository) Create(ctx context.Context, ID string, c *requests.CreateCourse) error {
 	query := `INSERT INTO courses (id, name, type) VALUES ($1, $2, $3)`
 
-	tx, err := r.db.BeginTxx(ctx, nil)
-	if err != nil {
-		return cserrors.New(&cserrors.Option{
-			HttpStatus: http.StatusInternalServerError,
-			Message:    "Failed to begin transaction",
-		})
-	}
-
-	defer func() {
-		if err != nil {
-			if rollbackErr := tx.Rollback(); rollbackErr != nil {
-				log.Printf("Failed to rollback transaction: %v", rollbackErr)
-			}
-		}
-	}()
-
-	_, err = tx.ExecContext(ctx, query, ID, c.Name, c.Type)
+	_, err := r.db.ExecContext(ctx, query, ID, c.Name, c.Type)
 	if err != nil {
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) {
@@ -64,26 +46,6 @@ func (r *sqlxCourseRepository) Create(ctx context.Context, ID string, c *request
 		return cserrors.New(&cserrors.Option{
 			HttpStatus: http.StatusInternalServerError,
 			Message:    "Failed to create course",
-		})
-	}
-
-	for order, creator := range c.Creators {
-		query := `INSERT INTO course_creators (course_id, creator_id, "order") VALUES ($1, $2, $3)`
-		_, err := tx.ExecContext(ctx, query, ID, creator, order)
-		if err != nil {
-			log.Printf("Failed to insert course creator: %v", err)
-			return cserrors.New(&cserrors.Option{
-				HttpStatus: http.StatusInternalServerError,
-				Message:    "Failed to set course creators",
-			})
-		}
-	}
-
-	if err = tx.Commit(); err != nil {
-		log.Printf("Failed to commit transaction: %v", err)
-		return cserrors.New(&cserrors.Option{
-			HttpStatus: http.StatusInternalServerError,
-			Message:    "Failed to commit transaction",
 		})
 	}
 
@@ -173,7 +135,7 @@ func (r *sqlxCourseRepository) Count(ctx context.Context, search string, show st
 		%s
 	`, archiveCondition)
 
-	row := r.db.QueryRowContext(ctx, query, "%"+search+"%")
+	row := r.db.QueryRowxContext(ctx, query, "%"+search+"%")
 
 	var count int
 

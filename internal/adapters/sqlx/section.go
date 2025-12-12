@@ -201,3 +201,12 @@ func (s *sqlxSectionRepository) DeleteByID(ctx context.Context, ID string) error
 	}
 	return nil
 }
+
+func (s *sqlxSectionRepository) DeleteByCourseID(ctx context.Context, courseID string) error {
+	query := "UPDATE sections SET is_deleted = true, deleted_at = NOW() WHERE course_id = $1"
+	_, err := s.db.ExecContext(ctx, query, courseID)
+	if err != nil {
+		return err
+	}
+	return nil
+}

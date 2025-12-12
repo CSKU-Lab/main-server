@@ -7,11 +7,10 @@ import (
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
 	"github.com/CSKU-Lab/main-server/domain/models"
 	"github.com/CSKU-Lab/main-server/domain/repositories"
-	"github.com/jmoiron/sqlx"
 )
 
 type courseCreatorRepository struct {
-	db *sqlx.DB
+	db instance
 }
 
 type courseCreator struct {
@@ -21,7 +20,7 @@ type courseCreator struct {
 	ProfileImage *string `db:"profile_image"`
 }
 
-func NewCourseCreatorRepository(db *sqlx.DB) repositories.CourseCreatorRepository {
+func NewCourseCreatorRepository(db instance) repositories.CourseCreatorRepository {
 	return &courseCreatorRepository{db: db}
 }
 
@@ -56,28 +55,18 @@ func (c *courseCreatorRepository) GetCreators(ctx context.Context, ID string) ([
 }
 
 func (c *courseCreatorRepository) SetCreators(ctx context.Context, ID string, creators []string) error {
-	tx, err := c.db.BeginTxx(ctx, nil)
-	if err != nil {
-		return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Failed to begin transaction"})
-	}
-	defer tx.Rollback()
-
 	query := `DELETE FROM course_creators WHERE course_id = $1`
-	_, err = tx.ExecContext(ctx, query, ID)
+	_, err := c.db.ExecContext(ctx, query, ID)
 	if err != nil {
 		return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Failed to delete existing course creators"})
 	}
 
 	for order, creator := range creators {
 		query := `INSERT INTO course_creators (course_id, creator_id, "order") VALUES ($1, $2, $3)`
-		_, err := tx.ExecContext(ctx, query, ID, creator, order)
+		_, err := c.db.ExecContext(ctx, query, ID, creator, order)
 		if err != nil {
 			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Failed to set course creators"})
 		}
-	}
-
-	if err = tx.Commit(); err != nil {
-		return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Failed to commit transaction"})
 	}
 
 	return nil
