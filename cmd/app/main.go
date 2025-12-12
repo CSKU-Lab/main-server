@@ -126,6 +126,9 @@ func main() {
 
 	errHandlerMiddleware := middlewares.NewErrorHandlerMiddleware(config)
 
+	labRepo := sqlx.NewSqlxLabRepository(db)
+	labService := services.NewLabService(labRepo, courseRepo, uowRepo)
+
 	app := fiber.New(fiber.Config{
 		ErrorHandler: errHandlerMiddleware.ErrorHandler,
 		BodyLimit:    10 * 1024 * 1024, // 10 MB
@@ -294,6 +297,7 @@ func main() {
 		SectionService:          sectionService,
 		MaterialService:         materialService,
 		AffectedEntitiesService: affectedEntitiesService,
+		LabService:              labService,
 	})
 
 	port := fmt.Sprintf(":%v", config.Port)
