@@ -12,7 +12,7 @@ enum "user_type" {
   values = [ "oauth", "credential" ]
 }
 
-enum "course_type" {
+enum "course_visibility" {
   schema = schema.public
   values = [ "public" , "private" ]
 }
@@ -142,8 +142,8 @@ table "courses" {
   column "name" {
     type = text
   }
-  column "type" {
-    type = enum.course_type
+  column "visibility" {
+    type = enum.course_visibility
   }
   column "created_at" {
     type = timestamp

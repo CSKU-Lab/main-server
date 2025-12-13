@@ -22,21 +22,21 @@ func NewCourseRepository(db instance) repositories.CourseRepository {
 }
 
 type course struct {
-	ID   string `db:"id"`
-	Name string `db:"name"`
-	Type string `db:"type"`
+	ID         string `db:"id"`
+	Name       string `db:"name"`
+	Visibility string `db:"visibility"`
 }
 
 type updateCourse struct {
-	ID   string  `db:"id"`
-	Name *string `db:"name"`
-	Type *string `db:"type"`
+	ID         string  `db:"id"`
+	Name       *string `db:"name"`
+	Visibility *string `db:"visibility"`
 }
 
 func (r *sqlxCourseRepository) Create(ctx context.Context, ID string, c *requests.CreateCourse) error {
-	query := `INSERT INTO courses (id, name, type) VALUES ($1, $2, $3)`
+	query := `INSERT INTO courses (id, name, visibility) VALUES ($1, $2, $3)`
 
-	_, err := r.db.ExecContext(ctx, query, ID, c.Name, c.Type)
+	_, err := r.db.ExecContext(ctx, query, ID, c.Name, c.Visibility)
 	if err != nil {
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) {
@@ -59,7 +59,7 @@ func (r *sqlxCourseRepository) Create(ctx context.Context, ID string, c *request
 }
 
 func (r *sqlxCourseRepository) GetByID(ctx context.Context, ID string) (*models.Course, error) {
-	query := `SELECT id, name, type FROM courses WHERE id = $1 AND is_deleted = false`
+	query := `SELECT id, name, visibility FROM courses WHERE id = $1 AND is_deleted = false`
 	row := r.db.QueryRowxContext(ctx, query, ID)
 
 	var course course
@@ -72,9 +72,9 @@ func (r *sqlxCourseRepository) GetByID(ctx context.Context, ID string) (*models.
 	}
 
 	return &models.Course{
-		ID:   course.ID,
-		Name: course.Name,
-		Type: course.Type,
+		ID:         course.ID,
+		Name:       course.Name,
+		Visibility: course.Visibility,
 	}, nil
 }
 
@@ -89,7 +89,7 @@ func (r *sqlxCourseRepository) GetPagination(ctx context.Context, page int, page
 		archiveCondition = ""
 	}
 
-	query := fmt.Sprintf(`SELECT id, name, type FROM courses 
+	query := fmt.Sprintf(`SELECT id, name, visibility FROM courses 
 		WHERE LOWER(name) ILIKE $1 
 		AND deleted_at IS NULL
 		%s
@@ -113,10 +113,10 @@ func (r *sqlxCourseRepository) GetPagination(ctx context.Context, page int, page
 		}
 
 		courses = append(courses, models.Course{
-			ID:       course.ID,
-			Name:     course.Name,
-			Type:     course.Type,
-			Creators: make([]models.CourseCreator, 0),
+			ID:         course.ID,
+			Name:       course.Name,
+			Visibility: course.Visibility,
+			Creators:   make([]models.CourseCreator, 0),
 		})
 	}
 
@@ -155,9 +155,9 @@ func (r *sqlxCourseRepository) Count(ctx context.Context, search string, show st
 
 func (r *sqlxCourseRepository) UpdateByID(ctx context.Context, ID string, c *requests.UpdateCourse) error {
 	fields := &updateCourse{
-		ID:   ID,
-		Name: c.Name,
-		Type: c.Type,
+		ID:         ID,
+		Name:       c.Name,
+		Visibility: c.Visibility,
 	}
 
 	updateFields := getUpdateFields(fields)

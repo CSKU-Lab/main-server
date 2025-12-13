@@ -140,7 +140,7 @@ func (s *courseService) Count(ctx context.Context, search string, show string) (
 }
 
 func (s *courseService) UpdateByID(ctx context.Context, ID string, c *requests.UpdateCourse) error {
-	if c.Name == nil && c.Creators == nil && c.Type == nil {
+	if c.Name == nil && c.Creators == nil && c.Visibility == nil {
 		return nil
 	}
 

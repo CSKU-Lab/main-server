@@ -8,23 +8,23 @@ import (
 )
 
 type CreateCourse struct {
-	Name     string   `json:"name"`
-	Type     string   `json:"type"`
-	Creators []string `json:"creators"`
+	Name       string   `json:"name"`
+	Visibility *string  `json:"visibility"`
+	Creators   []string `json:"creators"`
 }
 
 func (c *CreateCourse) Validate() error {
 	return validation.ValidateStruct(c,
 		validation.Field(&c.Name, validation.Required),
-		validation.Field(&c.Type, validation.Required, validation.In("public", "private")),
+		validation.Field(&c.Visibility, validation.Required, validation.In("public", "private")),
 		validation.Field(&c.Creators, validation.Required, validation.Length(1, 0), validation.Each(is.UUID)),
 	)
 }
 
 type UpdateCourse struct {
-	Name     *string   `json:"name"`
-	Creators *[]string `json:"creators"`
-	Type     *string   `json:"type"`
+	Name       *string   `json:"name"`
+	Creators   *[]string `json:"creators"`
+	Visibility *string   `json:"visibility"`
 }
 
 func (c *UpdateCourse) Validate() error {
@@ -52,6 +52,6 @@ func (c *UpdateCourse) Validate() error {
 
 			return nil
 		})),
-		validation.Field(&c.Type, validation.Skip.When(c.Type == nil), validation.In("public", "private")),
+		validation.Field(&c.Visibility, validation.Skip.When(c.Visibility == nil), validation.In("public", "private")),
 	)
 }
