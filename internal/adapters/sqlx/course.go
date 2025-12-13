@@ -27,6 +27,12 @@ type course struct {
 	Type string `db:"type"`
 }
 
+type updateCourse struct {
+	ID   string  `db:"id"`
+	Name *string `db:"name"`
+	Type *string `db:"type"`
+}
+
 func (r *sqlxCourseRepository) Create(ctx context.Context, ID string, c *requests.CreateCourse) error {
 	query := `INSERT INTO courses (id, name, type) VALUES ($1, $2, $3)`
 
@@ -148,9 +154,10 @@ func (r *sqlxCourseRepository) Count(ctx context.Context, search string, show st
 }
 
 func (r *sqlxCourseRepository) UpdateByID(ctx context.Context, ID string, c *requests.UpdateCourse) error {
-	fields := &course{
+	fields := &updateCourse{
 		ID:   ID,
 		Name: c.Name,
+		Type: c.Type,
 	}
 
 	updateFields := getUpdateFields(fields)

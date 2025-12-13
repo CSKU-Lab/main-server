@@ -140,29 +140,21 @@ func (s *courseService) Count(ctx context.Context, search string, show string) (
 }
 
 func (s *courseService) UpdateByID(ctx context.Context, ID string, c *requests.UpdateCourse) error {
-	if c.Creators != nil && len(c.Creators) == 0 {
-		return cserrors.New(&cserrors.Option{
-			HttpStatus: http.StatusBadRequest,
-			Message:    "At least one creator is required",
-		})
+	if c.Name == nil && c.Creators == nil && c.Type == nil {
+		return nil
 	}
 
-	if c.Creators != nil {
-		err := s.courseCreatorRepo.SetCreators(ctx, ID, c.Creators)
-		if err != nil {
-			return err
-		}
-	}
-
-	if c.Name != "" {
-		err := s.courseRepo.UpdateByID(ctx, ID, c)
-		if err != nil {
-			return err
+	return s.uowRepo.Execute(ctx, func(u repositories.UoWInstance) error {
+		if c.Creators != nil {
+			err := u.CourseCreator().SetCreators(ctx, ID, *c.Creators)
+			if err != nil {
+				return err
+			}
 		}
 
-	}
+		return u.Course().UpdateByID(ctx, ID, c)
+	})
 
-	return nil
 }
 
 func (s *courseService) DeleteByID(ctx context.Context, ID string) error {
