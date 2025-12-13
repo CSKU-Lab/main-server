@@ -241,10 +241,12 @@ table "sections" {
   foreign_key "fk_course_id" {
     columns = [ column.course_id ]
     ref_columns = [ table.courses.column.id ]
+    on_delete = CASCADE
   }
   foreign_key "fk_semester_id" {
     columns = [ column.semester_id  ]
     ref_columns = [ table.semesters.column.id ]
+    on_delete = CASCADE
   }
   index "unique_active_section" {
     columns = [ column.name, column.course_id, column.semester_id ]

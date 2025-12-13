@@ -93,9 +93,9 @@ func main() {
 	refreshTokenRepo := sqlx.NewSQLxRefreshTokenRepository(db)
 	refreshTokenService := services.NewRefreshTokenService(refreshTokenRepo)
 
-	courseRepo := sqlx.NewSqlxCourseRepository(db)
+	courseRepo := sqlx.NewCourseRepository(db)
 	courseCreatorRepo := sqlx.NewCourseCreatorRepository(db)
-	courseService := services.NewCourseService(courseRepo, courseCreatorRepo)
+	courseService := services.NewCourseService(courseRepo, courseCreatorRepo, uowRepo)
 
 	sectionRepo := sqlx.NewSectionRepository(db)
 	sectionInstructorRepo := sqlx.NewSectionInstructorRepository(db)

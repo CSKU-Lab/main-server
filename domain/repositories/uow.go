@@ -11,6 +11,9 @@ type UoWInstance interface {
 	SectionInstructor() SectionInstructorRepository
 	SectionStudent() SectionStudentRepository
 
+	Course() CourseRepository
+	CourseCreator() CourseCreatorRepository
+
 	Material() MaterialRepository
 	MaterialTag() WriteMaterialTagRepository
 }

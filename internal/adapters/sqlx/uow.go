@@ -48,6 +48,14 @@ func (u *uowInstance) SectionStudent() repositories.SectionStudentRepository {
 	return NewSectionStudentRepository(u.tx)
 }
 
+func (u *uowInstance) Course() repositories.CourseRepository {
+	return NewCourseRepository(u.tx)
+}
+
+func (u *uowInstance) CourseCreator() repositories.CourseCreatorRepository {
+	return NewCourseCreatorRepository(u.tx)
+}
+
 func (u *uowInstance) Material() repositories.MaterialRepository {
 	return NewMaterialRepository(u.tx)
 }

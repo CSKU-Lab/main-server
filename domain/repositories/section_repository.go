@@ -15,6 +15,7 @@ type SectionRepository interface {
 	GetByCourseIDAndSemesterID(ctx context.Context, courseID string, semesterID string) ([]models.Section, error)
 	GetRawBySemesterID(ctx context.Context, semesterID string) ([]RawSection, error)
 	DeleteByID(ctx context.Context, ID string) error
+	DeleteByCourseID(ctx context.Context, courseID string) error
 }
 
 type CreateSection struct {

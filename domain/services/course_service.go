@@ -24,12 +24,14 @@ type CourseService interface {
 type courseService struct {
 	courseRepo        repositories.CourseRepository
 	courseCreatorRepo repositories.CourseCreatorRepository
+	uowRepo           repositories.UoWRepository
 }
 
-func NewCourseService(courseRepo repositories.CourseRepository, courseCreatorRepo repositories.CourseCreatorRepository) CourseService {
+func NewCourseService(courseRepo repositories.CourseRepository, courseCreatorRepo repositories.CourseCreatorRepository, uowRepo repositories.UoWRepository) CourseService {
 	return &courseService{
 		courseRepo:        courseRepo,
 		courseCreatorRepo: courseCreatorRepo,
+		uowRepo:           uowRepo,
 	}
 }
 
@@ -43,7 +45,19 @@ func (s *courseService) Create(ctx context.Context, c *requests.CreateCourse) (*
 			})
 	}
 
-	err = s.courseRepo.Create(ctx, id.String(), c)
+	err = s.uowRepo.Execute(ctx, func(u repositories.UoWInstance) error {
+		err := u.Course().Create(ctx, id.String(), c)
+		if err != nil {
+			return err
+		}
+
+		err = u.CourseCreator().SetCreators(ctx, id.String(), c.Creators)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -152,5 +166,17 @@ func (s *courseService) UpdateByID(ctx context.Context, ID string, c *requests.U
 }
 
 func (s *courseService) DeleteByID(ctx context.Context, ID string) error {
-	return s.courseRepo.DeleteByID(ctx, ID)
+	return s.uowRepo.Execute(ctx, func(u repositories.UoWInstance) error {
+		err := u.Course().DeleteByID(ctx, ID)
+		if err != nil {
+			return err
+		}
+
+		err = u.Section().DeleteByCourseID(ctx, ID)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
 }
