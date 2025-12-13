@@ -17,6 +17,5 @@ func NewAdminRouter(r *AdminRouter) {
 	adminRouter := r.Router.Group("/admin")
 
 	routes.NewAdminUserRoutes(adminRouter, r.UserService)
-	routes.NewAdminCourseRoutes(adminRouter, r.CourseService)
 	routes.NewAdminUserGroupRoutes(adminRouter, r.UserGroupService)
 }
