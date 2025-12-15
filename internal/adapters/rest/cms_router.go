@@ -15,16 +15,17 @@ type CMSRouter struct {
 	MaterialService         services.MaterialService
 	AffectedEntitiesService services.AffectedEntitiesService
 	LabService              services.LabService
+	LabSectionService       services.LabSectionService
 }
 
 func NewCMSRouter(r *CMSRouter) {
 	cmsRouter := r.Router.Group("/cms")
 
-	routes.NewCmsSectionRoutes(cmsRouter, r.SectionService, r.SemesterService)
+	routes.NewCmsSectionRoutes(cmsRouter, r.SectionService, r.SemesterService, r.LabSectionService)
 	routes.NewAdminSemesterRoutes(cmsRouter, r.SemesterService, r.SectionService, r.CourseService)
 	routes.NewCMSMaterialRoutes(cmsRouter, r.MaterialService)
 	routes.NewCMSAffectedEntitiesRoutes(cmsRouter, r.AffectedEntitiesService)
 	routes.NewCMSUserExistancesRoutes(cmsRouter, r.UserService)
 	routes.NewCMSCourseRoutes(cmsRouter, r.CourseService, r.SectionService, r.SemesterService)
-	routes.NewCMSLabRoutes(cmsRouter, r.LabService)
+	routes.NewCMSLabRoutes(cmsRouter, r.LabService, r.LabSectionService)
 }

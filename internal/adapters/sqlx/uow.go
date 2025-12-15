@@ -16,6 +16,7 @@ type uowImpl struct {
 
 type uowInstance struct {
 	tx *sqlx.Tx
+	db *sqlx.DB
 }
 
 func NewUoWRepository(ctx context.Context, db *sqlx.DB) repositories.UoWRepository {
@@ -67,6 +68,10 @@ func (u *uowInstance) MaterialTag() repositories.WriteMaterialTagRepository {
 
 func (u *uowInstance) Lab() repositories.LabRepository {
 	return NewSqlxLabRepository(u.tx)
+}
+
+func (u *uowInstance) CourseCreator() repositories.CourseCreatorRepository {
+	return NewCourseCreatorRepository(u.db)
 }
 
 func (s *uowImpl) Execute(ctx context.Context, cb func(s repositories.UoWInstance) error) error {
