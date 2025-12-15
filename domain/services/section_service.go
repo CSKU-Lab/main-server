@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"net/http"
 
 	"github.com/CSKU-Lab/main-server/configs"
@@ -22,6 +23,9 @@ type SectionService interface {
 	GetByCourseIDAndSemesterID(ctx context.Context, courseID string, semesterID string) ([]models.Section, error)
 	GetRawBySemesterID(ctx context.Context, semesterID string) ([]repositories.RawSection, error)
 	DeleteByID(ctx context.Context, ID string, userID string) error
+	AddStudents(ctx context.Context, sectionID string, studentUsernames []string) error
+	GetStudentsBySectionID(ctx context.Context, sectionID string) ([]models.Student, error)
+	RemoveStudents(ctx context.Context, sectionID string, studentIDs []string) error
 }
 
 type sectionService struct {
@@ -169,20 +173,6 @@ func (s *sectionService) UpdateByID(ctx context.Context, ID string, req *request
 			}
 		}
 
-		if len(req.Students) > 0 {
-			err := suow.SectionStudent().DeleteBySectionID(ctx, ID)
-			if err != nil {
-				return err
-			}
-
-			for _, studentID := range req.Students {
-				err := suow.SectionStudent().Add(ctx, ID, studentID)
-				if err != nil {
-					return err
-				}
-			}
-		}
-
 		return suow.Section().UpdateByID(ctx, ID, &repositories.UpdateSection{
 			Name:       req.Name,
 			SemesterID: req.SemesterID,
@@ -285,4 +275,52 @@ func (s *sectionService) DeleteByID(ctx context.Context, ID string, userID strin
 		})
 	}
 	return s.repo.DeleteByID(ctx, ID)
+}
+
+func (s *sectionService) AddStudents(ctx context.Context, sectionID string, studentUsernames []string) error {
+	students, err := s.userRepo.GetManyByUsername(ctx, studentUsernames)
+	if err != nil {
+		return err
+	}
+
+	if len(students) == 0 || len(students) != len(studentUsernames) {
+		return cserrors.New(&cserrors.Option{
+			HttpStatus: http.StatusBadRequest,
+			Message:    "Some students not found",
+		})
+	}
+
+	return s.uowRepo.Execute(ctx, func(u repositories.UoWInstance) error {
+		for _, student := range students {
+			err := u.SectionStudent().Add(ctx, sectionID, student.ID)
+			if err != nil {
+				var csErr *cserrors.Error
+				if ok := errors.As(err, &csErr); ok {
+					if csErr.Code == cserrors.UniqueViolation {
+						return cserrors.New(&cserrors.Option{
+							HttpStatus: http.StatusBadRequest,
+							Message:    "Student \"" + student.DisplayName + "\" is already added to the section",
+						})
+					}
+				}
+			}
+		}
+		return nil
+	})
+}
+
+func (s *sectionService) GetStudentsBySectionID(ctx context.Context, sectionID string) ([]models.Student, error) {
+	return s.sectionStudentRepo.GetBySectionID(ctx, sectionID)
+}
+
+func (s *sectionService) RemoveStudents(ctx context.Context, sectionID string, studentIDs []string) error {
+	return s.uowRepo.Execute(ctx, func(u repositories.UoWInstance) error {
+		for _, studentID := range studentIDs {
+			err := u.SectionStudent().RemoveBySectionIDAndStudentID(ctx, sectionID, studentID)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }

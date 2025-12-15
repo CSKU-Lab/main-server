@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"log"
 	"math"
 	"net/http"
 	"strconv"
@@ -15,12 +16,12 @@ import (
 )
 
 func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionService, semesterService services.SemesterService) {
-	cmsSectionRouter := router.Group("/sections")
-
-	cmsSectionRouter.Post("/", middlewares.RBACMiddleware([]models.Role{
+	cmsSectionRouter := router.Group("/sections", middlewares.RBACMiddleware([]models.Role{
 		models.ADMIN,
 		models.INSTRUCTOR,
-	}), func(c *fiber.Ctx) error {
+	}))
+
+	cmsSectionRouter.Post("/", func(c *fiber.Ctx) error {
 		req := &requests.CreateSection{
 			Name:       c.FormValue("name"),
 			SemesterID: c.FormValue("semester_id"),
@@ -88,10 +89,7 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 		})
 	})
 
-	cmsSectionRouter.Patch("/:id", middlewares.RBACMiddleware([]models.Role{
-		models.ADMIN,
-		models.INSTRUCTOR,
-	}), func(c *fiber.Ctx) error {
+	cmsSectionRouter.Patch("/:id", func(c *fiber.Ctx) error {
 		user := c.Locals("user").(*models.User)
 		id := c.Params("id")
 		req := &requests.UpdateSection{
@@ -144,10 +142,7 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 	})
 
 	// need to be refactored because this violates clean architecture
-	cmsSectionRouter.Get("/", middlewares.RBACMiddleware([]models.Role{
-		models.ADMIN,
-		models.INSTRUCTOR,
-	}), func(c *fiber.Ctx) error {
+	cmsSectionRouter.Get("/", func(c *fiber.Ctx) error {
 		pageQuery := c.Query("page", "1")
 		pageSizeQuery := c.Query("page_size", "10")
 		search := c.Query("search", "")
@@ -222,10 +217,7 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 		})
 	})
 
-	cmsSectionRouter.Get("/:id", middlewares.RBACMiddleware([]models.Role{
-		models.ADMIN,
-		models.INSTRUCTOR,
-	}), func(c *fiber.Ctx) error {
+	cmsSectionRouter.Get("/:id", func(c *fiber.Ctx) error {
 		id := c.Params("id")
 		section, err := sectionService.GetByID(c.Context(), id)
 		if err != nil {
@@ -235,10 +227,7 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 		return c.Status(fiber.StatusOK).JSON(section)
 	})
 
-	cmsSectionRouter.Delete("/:id", middlewares.RBACMiddleware([]models.Role{
-		models.ADMIN,
-		models.INSTRUCTOR,
-	}), func(c *fiber.Ctx) error {
+	cmsSectionRouter.Delete("/:id", func(c *fiber.Ctx) error {
 		user := c.Locals("user").(*models.User)
 		id := c.Params("id")
 		if err := sectionService.DeleteByID(c.Context(), id, user.ID); err != nil {
@@ -246,5 +235,47 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 		}
 
 		return c.Status(fiber.StatusNoContent).JSON(fiber.Map{})
+	})
+
+	cmsSectionRouter.Get(":id/students", func(c *fiber.Ctx) error {
+		sectionID := c.Params("id")
+
+		students, err := sectionService.GetStudentsBySectionID(c.Context(), sectionID)
+		if err != nil {
+			return err
+		}
+
+		return c.Status(fiber.StatusOK).JSON(fiber.Map{
+			"data": students,
+		})
+	})
+
+	cmsSectionRouter.Post(":id/students", middlewares.ValidateMiddleware[requests.SectionStudents](), func(c *fiber.Ctx) error {
+		sectionID := c.Params("id")
+		body := c.Locals("body").(*requests.SectionStudents)
+
+		err := sectionService.AddStudents(c.Context(), sectionID, body.StudentUsernames)
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+
+		return c.Status(fiber.StatusOK).JSON(fiber.Map{
+			"message": "Students added successfully",
+		})
+	})
+
+	cmsSectionRouter.Post(":id/students/remove", middlewares.ValidateMiddleware[requests.RemoveStudent](), func(c *fiber.Ctx) error {
+		sectionID := c.Params("id")
+		body := c.Locals("body").(*requests.RemoveStudent)
+
+		err := sectionService.RemoveStudents(c.Context(), sectionID, body.StudentIDs)
+		if err != nil {
+			return err
+		}
+
+		return c.Status(fiber.StatusOK).JSON(fiber.Map{
+			"message": "Students removed successfully",
+		})
 	})
 }
