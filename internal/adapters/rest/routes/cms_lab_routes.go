@@ -14,7 +14,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func NewCMSLabRoutes(router fiber.Router, labService services.LabService, labSectionService services.LabSectionService) {
+func NewCMSLabRoutes(router fiber.Router, labService services.LabService, labSectionService services.LabSectionService, labMaterialService services.LabMaterialService) {
 	labRouter := router.Group("/labs", middlewares.RBACMiddleware([]models.Role{
 		models.ADMIN,
 		models.INSTRUCTOR,
@@ -174,5 +174,16 @@ func NewCMSLabRoutes(router fiber.Router, labService services.LabService, labSec
 		labID := c.Params("labID")
 		sectionID := c.Params("sectionID")
 		return labSectionService.DeleteByID(c.Context(), labID, sectionID, user.ID)
+	})
+
+	labRouter.Post("/set-material", middlewares.ValidateMiddleware[requests.SetLabMaterial](), func(c *fiber.Ctx) error {
+		user := c.Locals("user").(*models.User)
+		req := c.Locals("body").(*requests.SetLabMaterial)
+		err := labMaterialService.Create(c.Context(), req, user.ID)
+		if err != nil {
+			return err
+		}
+
+		return c.SendStatus(fiber.StatusCreated)
 	})
 }

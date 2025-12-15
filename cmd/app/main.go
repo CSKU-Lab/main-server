@@ -132,6 +132,9 @@ func main() {
 	labSectionRepo := sqlx.NewSqlxLabSectionRepository(db)
 	labSectionService := services.NewLabSectionService(labSectionRepo, uowRepo)
 
+	labMaterialRepo := sqlx.NewSqlxLabMaterialRepository(db)
+	labMaterialService := services.NewLabMaterialService(labMaterialRepo, uowRepo)
+
 	app := fiber.New(fiber.Config{
 		ErrorHandler: errHandlerMiddleware.ErrorHandler,
 		BodyLimit:    10 * 1024 * 1024, // 10 MB
@@ -302,6 +305,7 @@ func main() {
 		AffectedEntitiesService: affectedEntitiesService,
 		LabService:              labService,
 		LabSectionService:       labSectionService,
+		LabMaterialService:      labMaterialService,
 	})
 
 	port := fmt.Sprintf(":%v", config.Port)
