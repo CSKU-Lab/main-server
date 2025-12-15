@@ -16,6 +16,7 @@ type CMSRouter struct {
 	AffectedEntitiesService services.AffectedEntitiesService
 	LabService              services.LabService
 	LabSectionService       services.LabSectionService
+	LabMaterialService      services.LabMaterialService
 }
 
 func NewCMSRouter(r *CMSRouter) {
@@ -27,5 +28,5 @@ func NewCMSRouter(r *CMSRouter) {
 	routes.NewCMSAffectedEntitiesRoutes(cmsRouter, r.AffectedEntitiesService)
 	routes.NewCMSUserExistancesRoutes(cmsRouter, r.UserService)
 	routes.NewCMSCourseRoutes(cmsRouter, r.CourseService, r.SectionService, r.SemesterService)
-	routes.NewCMSLabRoutes(cmsRouter, r.LabService, r.LabSectionService)
+	routes.NewCMSLabRoutes(cmsRouter, r.LabService, r.LabSectionService, r.LabMaterialService)
 }

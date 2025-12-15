@@ -41,7 +41,10 @@ type (
 )
 
 type (
-	SetLabMaterial struct{}
+	SetLabMaterial struct {
+		LabID      string `json:"lab_id"`
+		MaterialID string `json:"material_id"`
+	}
 )
 
 type (
@@ -67,5 +70,12 @@ func (ls *UpdateLabSection) Validate() error {
 			validation.Required,
 			validation.Min(1),
 		),
+	)
+}
+
+func (lm *SetLabMaterial) Validate() error {
+	return validation.ValidateStruct(lm,
+		validation.Field(&lm.LabID, validation.Required, is.UUID),
+		validation.Field(&lm.MaterialID, validation.Required, is.UUID),
 	)
 }

@@ -40,6 +40,24 @@ func NewLabSectionService(labSectionRepo repositories.LabSectionRepository, uowR
 	}
 }
 
+func (ls *labSectionService) rowExists(ctx context.Context, labID string, sectionID string) error {
+	err := ls.uowRepo.Execute(ctx, func(u repositories.UoWInstance) error {
+		_, err := u.Lab().GetByID(ctx, labID)
+		if err != nil {
+			return err
+		}
+		_, err = u.Section().GetByID(ctx, sectionID)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (ls *labSectionService) mutationPermission(ctx context.Context, userID string, sectionID string) error {
 	err := ls.uowRepo.Execute(ctx, func(u repositories.UoWInstance) error {
 		user, err := u.User().GetByID(ctx, userID)
@@ -91,18 +109,18 @@ func (ls *labSectionService) mutationPermission(ctx context.Context, userID stri
 	return nil
 }
 
-func (ls *labSectionService) rearrangeUpdatedIndex(ctx context.Context, sectionID string, position int) error {
+func (ls *labSectionService) rearrangeUpdatedIndex(ctx context.Context, sectionID string, position *int) error {
 	err := ls.uowRepo.Execute(ctx, func(u repositories.UoWInstance) error {
 		maxPos, err := ls.labSectionRepo.GetMaxPosition(ctx, sectionID)
 		if err != nil {
 			return err
 		}
 
-		if maxPos < position {
-			position = maxPos
+		if maxPos < *position {
+			*position = maxPos
 		}
 
-		err = ls.labSectionRepo.ShiftDownPositions(ctx, sectionID, position)
+		err = ls.labSectionRepo.ShiftDownPositions(ctx, sectionID, *position)
 		if err != nil {
 			return err
 		}
@@ -123,12 +141,17 @@ func (ls *labSectionService) rearrangeDeletedIndex(ctx context.Context, sectionI
 }
 
 func (ls *labSectionService) Create(ctx context.Context, req *requests.SetLabSection, userID string) error {
-	err := ls.mutationPermission(ctx, userID, req.SectionID)
+	err := ls.rowExists(ctx, req.LabID, req.SectionID)
 	if err != nil {
 		return err
 	}
 
-	err = ls.rearrangeUpdatedIndex(ctx, req.SectionID, req.Position)
+	err = ls.mutationPermission(ctx, userID, req.SectionID)
+	if err != nil {
+		return err
+	}
+
+	err = ls.rearrangeUpdatedIndex(ctx, req.SectionID, &req.Position)
 	if err != nil {
 		return err
 	}
@@ -183,12 +206,17 @@ func (ls *labSectionService) Count(ctx context.Context, filterParams map[string]
 }
 
 func (ls *labSectionService) UpdateByID(ctx context.Context, userID string, labID string, sectionID string, req *requests.UpdateLabSection) error {
-	err := ls.mutationPermission(ctx, userID, sectionID)
+	err := ls.rowExists(ctx, labID, sectionID)
 	if err != nil {
 		return err
 	}
 
-	err = ls.rearrangeUpdatedIndex(ctx, sectionID, req.Position)
+	err = ls.mutationPermission(ctx, userID, sectionID)
+	if err != nil {
+		return err
+	}
+
+	err = ls.rearrangeUpdatedIndex(ctx, sectionID, &req.Position)
 	if err != nil {
 		return err
 	}
@@ -201,7 +229,12 @@ func (ls *labSectionService) UpdateByID(ctx context.Context, userID string, labI
 }
 
 func (ls *labSectionService) DeleteByID(ctx context.Context, labID string, sectionID string, userID string) error {
-	err := ls.mutationPermission(ctx, userID, sectionID)
+	err := ls.rowExists(ctx, labID, sectionID)
+	if err != nil {
+		return err
+	}
+
+	err = ls.mutationPermission(ctx, userID, sectionID)
 	if err != nil {
 		return err
 	}
