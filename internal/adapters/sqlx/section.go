@@ -193,6 +193,27 @@ func (s *sqlxSectionRepository) GetRawBySemesterID(ctx context.Context, ID strin
 	return sections, nil
 }
 
+func (s *sqlxSectionRepository) GetRawByID(ctx context.Context, ID string) (*repositories.RawSection, error) {
+	var dbSection rawSectionSchema
+	query := "SELECT id, name, banner, course_id, semester_id, created_at, updated_at FROM sections WHERE id = $1 AND is_deleted = false"
+	err := s.db.SelectContext(ctx, &dbSection, query, ID)
+	if err != nil {
+		return nil, err
+	}
+
+	section := &repositories.RawSection{
+		ID:         dbSection.ID,
+		Name:       dbSection.Name,
+		Banner:     dbSection.Banner,
+		CourseID:   dbSection.CourseID,
+		SemesterID: dbSection.SemesterID,
+		CreatedAt:  dbSection.CreatedAt,
+		UpdatedAt:  dbSection.UpdatedAt,
+	}
+
+	return section, nil
+}
+
 func (s *sqlxSectionRepository) DeleteByID(ctx context.Context, ID string) error {
 	query := "UPDATE sections SET is_deleted = true, deleted_at = NOW() WHERE id = $1"
 	_, err := s.db.ExecContext(ctx, query, ID)

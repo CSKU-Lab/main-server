@@ -5,7 +5,6 @@ import (
 )
 
 type LabSection struct {
-	ID        string    `json:"id"`
 	LabID     string    `json:"lab_id"`
 	SectionID string    `json:"section_id"`
 	Position  int       `json:"position"`

@@ -30,7 +30,42 @@ func (l *BaseUpdateLab) Validate() error {
 }
 
 type (
-	AssignLabMaterial interface{}
-	AssignLabSection  interface{}
-	AssignDefaultLab  interface{}
+	SetLabSection struct {
+		LabID     string `json:"lab_id"`
+		SectionID string `json:"section_id"`
+		Position  int    `json:"position"`
+	}
+	UpdateLabSection struct {
+		Position int `json:"position"`
+	}
 )
+
+type (
+	SetLabMaterial struct{}
+)
+
+type (
+	SetDefaultLab struct{}
+)
+
+func (ls *SetLabSection) Validate() error {
+	return validation.ValidateStruct(ls,
+		validation.Field(&ls.LabID, validation.Required, is.UUID),
+		validation.Field(&ls.SectionID, validation.Required, is.UUID),
+		validation.Field(
+			&ls.Position,
+			validation.Required,
+			validation.Min(1),
+		),
+	)
+}
+
+func (ls *UpdateLabSection) Validate() error {
+	return validation.ValidateStruct(ls,
+		validation.Field(
+			&ls.Position,
+			validation.Required,
+			validation.Min(1),
+		),
+	)
+}

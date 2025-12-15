@@ -15,7 +15,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionService, semesterService services.SemesterService) {
+func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionService, semesterService services.SemesterService, labSectionService services.LabSectionService) {
 	cmsSectionRouter := router.Group("/sections", middlewares.RBACMiddleware([]models.Role{
 		models.ADMIN,
 		models.INSTRUCTOR,
@@ -276,6 +276,53 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 
 		return c.Status(fiber.StatusOK).JSON(fiber.Map{
 			"message": "Students removed successfully",
+		})
+	})
+
+	cmsSectionRouter.Get("/:sectionID/labs", func(c *fiber.Ctx) error {
+		sectionID := c.Params("sectionID")
+
+		pageQuery := c.Query("page", "1")
+		pageSizeQuery := c.Query("page_size", "10")
+		sortBy := c.Query("sort_by", "position")
+		sortOrder := c.Query("sort_order", "asc")
+
+		filterParams := make(map[string]string)
+		for key, value := range c.Queries() {
+			if strings.Contains(key, "__") {
+				filterParams[key] = value
+			}
+		}
+
+		page, err := strconv.Atoi(pageQuery)
+		if err != nil {
+			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusBadRequest, Message: "Invalid page"})
+		}
+
+		pageSize, err := strconv.Atoi(pageSizeQuery)
+		if err != nil {
+			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusBadRequest, Message: "Invalid page size"})
+		}
+
+		filterParams["section_id__is"] = sectionID
+
+		sections, err := labSectionService.GetPagination(c.Context(), page, pageSize, sortBy, sortOrder, filterParams)
+		if err != nil {
+			return err
+		}
+
+		count, err := labSectionService.Count(c.Context(), filterParams)
+		if err != nil {
+			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Error getting labs count"})
+		}
+
+		return c.JSON(fiber.Map{
+			"pagination": fiber.Map{
+				"page":       page,
+				"total_page": math.Ceil(float64(count/pageSize) + 1),
+				"total_rows": count,
+			},
+			"data": sections,
 		})
 	})
 }
