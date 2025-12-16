@@ -16,6 +16,7 @@ import (
 )
 
 type labSectionSchema struct {
+	ID        string    `db:"id"`
 	LabID     string    `db:"lab_id"`
 	SectionID string    `db:"section_id"`
 	Position  int       `db:"position"`
@@ -31,9 +32,9 @@ func NewSqlxLabSectionRepository(db instance) repositories.LabSectionRepository 
 	return &sqlxLabSectionRepository{db: db}
 }
 
-func (ls *sqlxLabSectionRepository) Create(ctx context.Context, req *requests.SetLabSection) error {
-	query := `INSERT INTO lab_sections (lab_id, section_id, position) VALUES ($1, $2, $3)`
-	_, err := ls.db.ExecContext(ctx, query, req.LabID, req.SectionID, req.Position)
+func (ls *sqlxLabSectionRepository) Create(ctx context.Context, req *requests.SetLabSection, id string) error {
+	query := `INSERT INTO lab_sections (lab_id, section_id, position, id) VALUES ($1, $2, $3, $4)`
+	_, err := ls.db.ExecContext(ctx, query, req.LabID, req.SectionID, req.Position, id)
 	if err != nil {
 		return err
 	}
@@ -47,6 +48,7 @@ func (ls *sqlxLabSectionRepository) ShiftDownPositions(ctx context.Context, sect
 		SET position = position + 1
 		WHERE section_id = $1
 		  AND position >= $2
+			AND is_deleted = false
 	`, sectionID, position)
 	if err != nil {
 		return err
@@ -60,6 +62,7 @@ func (ls *sqlxLabSectionRepository) ShiftUpPositions(ctx context.Context, sectio
 		SET position = position - 1
 		WHERE section_id = $1
 		  AND position >= $2
+			AND is_deleted = false
 	`, sectionID, position)
 	if err != nil {
 		return err
@@ -67,14 +70,16 @@ func (ls *sqlxLabSectionRepository) ShiftUpPositions(ctx context.Context, sectio
 	return nil
 }
 
-func (ls *sqlxLabSectionRepository) GetMaxPosition(ctx context.Context, sectionID string) (int, error) {
+func (ls *sqlxLabSectionRepository) GetMaxPosition(ctx context.Context, sectionID string, labID string) (int, error) {
 	var max int
 
 	err := ls.db.QueryRowxContext(ctx, `
 		SELECT COALESCE(MAX(position), 0)
 		FROM lab_sections
 		WHERE section_id = $1 
-	`, sectionID).Scan(&max)
+			AND is_deleted = false
+			AND lab_id != $2
+	`, sectionID, labID).Scan(&max)
 
 	return max + 1, err
 }
@@ -82,7 +87,7 @@ func (ls *sqlxLabSectionRepository) GetMaxPosition(ctx context.Context, sectionI
 func (ls *sqlxLabSectionRepository) GetPagination(ctx context.Context, page int, limit int, sortBy string, sortOrder string, filters []sanitize.Filter) ([]models.LabSection, error) {
 	filterWhereClause, filterArgs := buildFilterWhereClause(filters, 1)
 
-	baseQuery := `SELECT lab_id, section_id, position, created_at, updated_at FROM lab_sections WHERE is_deleted = false`
+	baseQuery := `SELECT id, lab_id, section_id, position, created_at, updated_at FROM lab_sections WHERE is_deleted = false`
 	query := fmt.Sprintf(`%s%s
 		ORDER BY %s %s
 		OFFSET $%d
@@ -100,6 +105,7 @@ func (ls *sqlxLabSectionRepository) GetPagination(ctx context.Context, page int,
 	labSections := make([]models.LabSection, 0, len(labSectionsSchema))
 	for _, labSection := range labSectionsSchema {
 		labSections = append(labSections, models.LabSection{
+			ID:        labSection.ID,
 			LabID:     labSection.LabID,
 			SectionID: labSection.SectionID,
 			Position:  labSection.Position,
@@ -110,8 +116,9 @@ func (ls *sqlxLabSectionRepository) GetPagination(ctx context.Context, page int,
 	return labSections, nil
 }
 
-func (ls *sqlxLabSectionRepository) UpdateByID(ctx context.Context, labID string, sectionID string, req *requests.UpdateLabSection) error {
+func (ls *sqlxLabSectionRepository) UpdateByID(ctx context.Context, labID string, sectionID string, id string, req *requests.UpdateLabSection) error {
 	updatedSchema := &labSectionSchema{
+		ID:        id,
 		LabID:     labID,
 		SectionID: sectionID,
 		Position:  req.Position,
@@ -125,7 +132,8 @@ func (ls *sqlxLabSectionRepository) UpdateByID(ctx context.Context, labID string
 	query := fmt.Sprintf(`
 	UPDATE lab_sections
 	SET %s , updated_at = NOW()
-	WHERE lab_id = :lab_id AND section_id = :section_id
+		WHERE lab_id = :lab_id AND section_id = :section_id AND id = :id
+		AND is_deleted = false
 	`, updateFields)
 
 	query, args, err := sqlx.Named(query, updatedSchema)
@@ -143,9 +151,9 @@ func (ls *sqlxLabSectionRepository) UpdateByID(ctx context.Context, labID string
 	return nil
 }
 
-func (ls *sqlxLabSectionRepository) DeleteByID(ctx context.Context, labID string, sectionID string) error {
-	query := "UPDATE lab_sections SET is_deleted = true, deleted_at = NOW() WHERE lab_id = $1 AND section_id = $2"
-	_, err := ls.db.ExecContext(ctx, query, labID, sectionID)
+func (ls *sqlxLabSectionRepository) DeleteByID(ctx context.Context, id string) error {
+	query := "UPDATE lab_sections SET is_deleted = true, deleted_at = NOW() WHERE id = $1"
+	_, err := ls.db.ExecContext(ctx, query, id)
 	if err != nil {
 		return err
 	}
@@ -168,7 +176,7 @@ func (ls *sqlxLabSectionRepository) Count(ctx context.Context, filters []sanitiz
 }
 
 func (ls *sqlxLabSectionRepository) GetByID(ctx context.Context, labID string, sectionID string) (*models.LabSection, error) {
-	query := `SELECT lab_id, section_id, position, created_at, updated_at FROM lab_sections WHERE lab_id = $1 AND section_id = $2`
+	query := `SELECT id, lab_id, section_id, position, created_at, updated_at FROM lab_sections WHERE lab_id = $1 AND section_id = $2 AND is_deleted = false`
 
 	labSectionSchema := &labSectionSchema{}
 	err := ls.db.GetContext(ctx, labSectionSchema, query, labID, sectionID)
@@ -180,6 +188,7 @@ func (ls *sqlxLabSectionRepository) GetByID(ctx context.Context, labID string, s
 	}
 
 	return &models.LabSection{
+		ID:        labSectionSchema.ID,
 		LabID:     labSectionSchema.LabID,
 		SectionID: labSectionSchema.SectionID,
 		Position:  labSectionSchema.Position,
