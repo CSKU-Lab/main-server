@@ -371,6 +371,9 @@ table "semesters" {
 
 table "default_labs" {
   schema = schema.public
+  column "id" {
+    type = uuid
+  }
   column "course_id" {
     type = uuid
   }
@@ -397,7 +400,12 @@ table "default_labs" {
     null = true
   }
   primary_key  {
-    columns = [ column.course_id, column.lab_id ]
+    columns = [ column.id ]
+  }
+  index "unique_default_lab" {
+    columns = [ column.lab_id, column.course_id ]
+    where = "is_deleted = false"
+    unique = true
   }
   foreign_key "fk_course_id" {
     columns = [ column.course_id ]
@@ -458,6 +466,9 @@ table "labs" {
 
 table "lab_materials" {
   schema = schema.public
+  column "id" {
+    type = uuid
+  }
   column "lab_id" {
     type = uuid
   }
@@ -481,7 +492,12 @@ table "lab_materials" {
     null = true
   }
   primary_key  {
+    columns = [ column.id ]
+  }
+  index "unique_lab_material" {
     columns = [ column.lab_id, column.material_id ]
+    where = "is_deleted = false"
+    unique = true
   }
   foreign_key "fk_lab_id" {
     columns = [ column.lab_id ]
@@ -497,6 +513,9 @@ table "lab_materials" {
 
 table "lab_sections" {
   schema = schema.public
+  column "id" {
+    type = uuid
+  }
   column "lab_id" {
     type = uuid
   }
@@ -523,7 +542,12 @@ table "lab_sections" {
     null = true
   }
   primary_key  {
+    columns = [ column.id ]
+  }
+  index "unique_lab_section" {
     columns = [ column.lab_id, column.section_id ]
+    where = "is_deleted = false"
+    unique = true
   }
   foreign_key "fk_lab_id" {
     columns = [ column.lab_id ]

@@ -9,6 +9,7 @@ import (
 	"github.com/CSKU-Lab/main-server/domain/repositories"
 	"github.com/CSKU-Lab/main-server/internal/requests"
 	"github.com/CSKU-Lab/main-server/internal/sanitize"
+	"github.com/google/uuid"
 )
 
 type LabSectionService interface {
@@ -40,7 +41,7 @@ func NewLabSectionService(labSectionRepo repositories.LabSectionRepository, uowR
 	}
 }
 
-func (ls *labSectionService) rowExists(ctx context.Context, labID string, sectionID string) error {
+func (ls *labSectionService) rowExists(ctx context.Context, labID string, sectionID string, labSectionRepo repositories.LabSectionRepository) (*models.LabSection, error) {
 	err := ls.uowRepo.Execute(ctx, func(u repositories.UoWInstance) error {
 		_, err := u.Lab().GetByID(ctx, labID)
 		if err != nil {
@@ -53,9 +54,13 @@ func (ls *labSectionService) rowExists(ctx context.Context, labID string, sectio
 		return nil
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	labSection, err := ls.labSectionRepo.GetByID(ctx, labID, sectionID)
+	if err != nil {
+		return nil, err
+	}
+	return labSection, nil
 }
 
 func (ls *labSectionService) mutationPermission(ctx context.Context, userID string, sectionID string) error {
@@ -109,9 +114,9 @@ func (ls *labSectionService) mutationPermission(ctx context.Context, userID stri
 	return nil
 }
 
-func (ls *labSectionService) rearrangeUpdatedIndex(ctx context.Context, sectionID string, position *int) error {
+func (ls *labSectionService) rearrangeUpdatedIndex(ctx context.Context, sectionID string, position *int, labID string) error {
 	err := ls.uowRepo.Execute(ctx, func(u repositories.UoWInstance) error {
-		maxPos, err := ls.labSectionRepo.GetMaxPosition(ctx, sectionID)
+		maxPos, err := ls.labSectionRepo.GetMaxPosition(ctx, sectionID, labID)
 		if err != nil {
 			return err
 		}
@@ -141,9 +146,15 @@ func (ls *labSectionService) rearrangeDeletedIndex(ctx context.Context, sectionI
 }
 
 func (ls *labSectionService) Create(ctx context.Context, req *requests.SetLabSection, userID string) error {
-	err := ls.rowExists(ctx, req.LabID, req.SectionID)
-	if err != nil {
+	labSection, err := ls.rowExists(ctx, req.LabID, req.SectionID, ls.labSectionRepo)
+	if err != nil && labSection != nil {
 		return err
+	}
+	if labSection != nil {
+		return cserrors.New(&cserrors.Option{
+			HttpStatus: http.StatusConflict,
+			Message:    "Item already exists",
+		})
 	}
 
 	err = ls.mutationPermission(ctx, userID, req.SectionID)
@@ -151,12 +162,20 @@ func (ls *labSectionService) Create(ctx context.Context, req *requests.SetLabSec
 		return err
 	}
 
-	err = ls.rearrangeUpdatedIndex(ctx, req.SectionID, &req.Position)
+	err = ls.rearrangeUpdatedIndex(ctx, req.SectionID, &req.Position, req.LabID)
 	if err != nil {
 		return err
 	}
 
-	err = ls.labSectionRepo.Create(ctx, req)
+	ID, err := uuid.NewV7()
+	if err != nil {
+		return cserrors.New(&cserrors.Option{
+			HttpStatus: http.StatusInternalServerError,
+			Message:    "Cannot generate uuid",
+		})
+	}
+
+	err = ls.labSectionRepo.Create(ctx, req, ID.String())
 	if err != nil {
 		return err
 	}
@@ -206,7 +225,7 @@ func (ls *labSectionService) Count(ctx context.Context, filterParams map[string]
 }
 
 func (ls *labSectionService) UpdateByID(ctx context.Context, userID string, labID string, sectionID string, req *requests.UpdateLabSection) error {
-	err := ls.rowExists(ctx, labID, sectionID)
+	labSection, err := ls.rowExists(ctx, labID, sectionID, ls.labSectionRepo)
 	if err != nil {
 		return err
 	}
@@ -216,12 +235,12 @@ func (ls *labSectionService) UpdateByID(ctx context.Context, userID string, labI
 		return err
 	}
 
-	err = ls.rearrangeUpdatedIndex(ctx, sectionID, &req.Position)
+	err = ls.rearrangeUpdatedIndex(ctx, sectionID, &req.Position, labID)
 	if err != nil {
 		return err
 	}
 
-	err = ls.labSectionRepo.UpdateByID(ctx, labID, sectionID, req)
+	err = ls.labSectionRepo.UpdateByID(ctx, labID, sectionID, labSection.ID, req)
 	if err != nil {
 		return err
 	}
@@ -229,17 +248,12 @@ func (ls *labSectionService) UpdateByID(ctx context.Context, userID string, labI
 }
 
 func (ls *labSectionService) DeleteByID(ctx context.Context, labID string, sectionID string, userID string) error {
-	err := ls.rowExists(ctx, labID, sectionID)
+	labSection, err := ls.rowExists(ctx, labID, sectionID, ls.labSectionRepo)
 	if err != nil {
 		return err
 	}
 
 	err = ls.mutationPermission(ctx, userID, sectionID)
-	if err != nil {
-		return err
-	}
-
-	labSection, err := ls.labSectionRepo.GetByID(ctx, labID, sectionID)
 	if err != nil {
 		return err
 	}
@@ -249,7 +263,7 @@ func (ls *labSectionService) DeleteByID(ctx context.Context, labID string, secti
 		return err
 	}
 
-	err = ls.labSectionRepo.DeleteByID(ctx, labID, sectionID)
+	err = ls.labSectionRepo.DeleteByID(ctx, labSection.ID)
 	if err != nil {
 		return err
 	}

@@ -186,4 +186,58 @@ func NewCMSLabRoutes(router fiber.Router, labService services.LabService, labSec
 
 		return c.SendStatus(fiber.StatusCreated)
 	})
+
+	labRouter.Get("/:labID/materials", func(c *fiber.Ctx) error {
+		labID := c.Params("labID")
+
+		pageQuery := c.Query("page", "1")
+		pageSizeQuery := c.Query("page_size", "10")
+		sortBy := c.Query("sort_by", "created_at")
+		sortOrder := c.Query("sort_order", "asc")
+
+		filterParams := make(map[string]string)
+		for key, value := range c.Queries() {
+			if strings.Contains(key, "__") {
+				filterParams[key] = value
+			}
+		}
+
+		page, err := strconv.Atoi(pageQuery)
+		if err != nil {
+			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusBadRequest, Message: "Invalid page"})
+		}
+
+		pageSize, err := strconv.Atoi(pageSizeQuery)
+		if err != nil {
+			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusBadRequest, Message: "Invalid page size"})
+		}
+
+		filterParams["lab_id__is"] = labID
+
+		materials, err := labMaterialService.GetPagination(c.Context(), page, pageSize, sortBy, sortOrder, filterParams)
+		if err != nil {
+			return err
+		}
+
+		count, err := labMaterialService.Count(c.Context(), filterParams)
+		if err != nil {
+			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Error getting labs count"})
+		}
+
+		return c.JSON(fiber.Map{
+			"pagination": fiber.Map{
+				"page":       page,
+				"total_page": math.Ceil(float64(count/pageSize) + 1),
+				"total_rows": count,
+			},
+			"data": materials,
+		})
+	})
+
+	labRouter.Delete("/:labID/materials/:materialID", func(c *fiber.Ctx) error {
+		user := c.Locals("user").(*models.User)
+		labID := c.Params("labID")
+		materialID := c.Params("materialID")
+		return labMaterialService.DeleteByID(c.Context(), labID, materialID, user.ID)
+	})
 }
