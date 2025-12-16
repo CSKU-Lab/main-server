@@ -80,7 +80,7 @@ func (lm *labMaterialService) mutationPermission(ctx context.Context, userID str
 	return nil
 }
 
-func (lm *labMaterialService) rowExists(ctx context.Context, labID string, materialID string, labMaterialRepo repositories.LabMaterialRepository) (*models.LabMaterial, error) {
+func (lm *labMaterialService) rowExists(ctx context.Context, labID string, materialID string) (*models.LabMaterial, error) {
 	err := lm.uowRepo.Execute(ctx, func(u repositories.UoWInstance) error {
 		_, err := u.Lab().GetByID(ctx, labID)
 		if err != nil {
@@ -96,7 +96,7 @@ func (lm *labMaterialService) rowExists(ctx context.Context, labID string, mater
 	if err != nil {
 		return nil, err
 	}
-	labMaterial, err := labMaterialRepo.GetByID(ctx, labID, materialID)
+	labMaterial, err := lm.labMaterialRepo.GetByID(ctx, labID, materialID)
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +104,7 @@ func (lm *labMaterialService) rowExists(ctx context.Context, labID string, mater
 }
 
 func (lm *labMaterialService) Create(ctx context.Context, req *requests.SetLabMaterial, userID string) error {
-	labMaterial, err := lm.rowExists(ctx, req.LabID, req.MaterialID, lm.labMaterialRepo)
+	labMaterial, err := lm.rowExists(ctx, req.LabID, req.MaterialID)
 	if err != nil && labMaterial != nil {
 		return err
 	}
@@ -132,7 +132,7 @@ func (lm *labMaterialService) Create(ctx context.Context, req *requests.SetLabMa
 }
 
 func (lm *labMaterialService) DeleteByID(ctx context.Context, labID string, materialID string, userID string) error {
-	labMaterial, err := lm.rowExists(ctx, labID, materialID, lm.labMaterialRepo)
+	labMaterial, err := lm.rowExists(ctx, labID, materialID)
 	if err != nil {
 		return err
 	}
