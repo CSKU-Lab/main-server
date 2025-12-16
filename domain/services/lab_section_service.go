@@ -41,7 +41,7 @@ func NewLabSectionService(labSectionRepo repositories.LabSectionRepository, uowR
 	}
 }
 
-func (ls *labSectionService) rowExists(ctx context.Context, labID string, sectionID string, labSectionRepo repositories.LabSectionRepository) (*models.LabSection, error) {
+func (ls *labSectionService) rowExists(ctx context.Context, labID string, sectionID string) (*models.LabSection, error) {
 	err := ls.uowRepo.Execute(ctx, func(u repositories.UoWInstance) error {
 		_, err := u.Lab().GetByID(ctx, labID)
 		if err != nil {
@@ -146,7 +146,7 @@ func (ls *labSectionService) rearrangeDeletedIndex(ctx context.Context, sectionI
 }
 
 func (ls *labSectionService) Create(ctx context.Context, req *requests.SetLabSection, userID string) error {
-	labSection, err := ls.rowExists(ctx, req.LabID, req.SectionID, ls.labSectionRepo)
+	labSection, err := ls.rowExists(ctx, req.LabID, req.SectionID)
 	if err != nil && labSection != nil {
 		return err
 	}
@@ -225,7 +225,7 @@ func (ls *labSectionService) Count(ctx context.Context, filterParams map[string]
 }
 
 func (ls *labSectionService) UpdateByID(ctx context.Context, userID string, labID string, sectionID string, req *requests.UpdateLabSection) error {
-	labSection, err := ls.rowExists(ctx, labID, sectionID, ls.labSectionRepo)
+	labSection, err := ls.rowExists(ctx, labID, sectionID)
 	if err != nil {
 		return err
 	}
@@ -248,7 +248,7 @@ func (ls *labSectionService) UpdateByID(ctx context.Context, userID string, labI
 }
 
 func (ls *labSectionService) DeleteByID(ctx context.Context, labID string, sectionID string, userID string) error {
-	labSection, err := ls.rowExists(ctx, labID, sectionID, ls.labSectionRepo)
+	labSection, err := ls.rowExists(ctx, labID, sectionID)
 	if err != nil {
 		return err
 	}

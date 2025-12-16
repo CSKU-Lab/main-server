@@ -18,6 +18,7 @@ type UoWInstance interface {
 	MaterialTag() WriteMaterialTagRepository
 
 	Lab() LabRepository
+	LabSection() LabSectionRepository
 
 	CourseCreator() CourseCreatorRepository
 }

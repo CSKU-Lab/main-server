@@ -209,6 +209,34 @@ func (l *labService) DeleteByID(ctx context.Context, labID string, userID string
 		return err
 	}
 
+	err = l.uowRepo.Execute(ctx, func(u repositories.UoWInstance) error {
+		labSections, err := u.LabSection().GetByLabID(ctx, labID)
+		if err != nil {
+			return err
+		}
+
+		for _, labSection := range labSections {
+			data, err := u.LabSection().GetByID(ctx, labID, labSection.SectionID)
+			if err != nil {
+				return err
+			}
+
+			err = u.LabSection().ShiftUpPositions(ctx, labSection.SectionID, labSection.Position)
+			if err != nil {
+				return err
+			}
+
+			err = u.LabSection().DeleteByID(ctx, data.ID)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		return err
+	}
 	err = l.labRepo.DeleteByID(ctx, labID)
 	if err != nil {
 		return err

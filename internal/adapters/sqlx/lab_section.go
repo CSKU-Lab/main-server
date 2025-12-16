@@ -196,3 +196,35 @@ func (ls *sqlxLabSectionRepository) GetByID(ctx context.Context, labID string, s
 		UpdatedAt: labSectionSchema.UpdatedAt,
 	}, nil
 }
+
+func (ls *sqlxLabSectionRepository) GetByLabID(
+	ctx context.Context,
+	labID string,
+) ([]models.LabSection, error) {
+	query := `
+		SELECT id, lab_id, section_id, position, created_at, updated_at
+		FROM lab_sections
+		WHERE lab_id = $1 AND is_deleted = false
+	`
+
+	labSectionsSchema := []labSectionSchema{}
+
+	err := ls.db.SelectContext(ctx, &labSectionsSchema, query, labID)
+	if err != nil {
+		return nil, err
+	}
+
+	labSections := make([]models.LabSection, 0, len(labSectionsSchema))
+	for _, ls := range labSectionsSchema {
+		labSections = append(labSections, models.LabSection{
+			ID:        ls.ID,
+			LabID:     ls.LabID,
+			SectionID: ls.SectionID,
+			Position:  ls.Position,
+			CreatedAt: ls.CreatedAt,
+			UpdatedAt: ls.UpdatedAt,
+		})
+	}
+
+	return labSections, nil
+}

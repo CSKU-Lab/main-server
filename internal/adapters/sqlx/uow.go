@@ -74,6 +74,10 @@ func (u *uowInstance) CourseCreator() repositories.CourseCreatorRepository {
 	return NewCourseCreatorRepository(u.db)
 }
 
+func (u *uowInstance) LabSection() repositories.LabSectionRepository {
+	return NewSqlxLabSectionRepository(u.tx)
+}
+
 func (s *uowImpl) Execute(ctx context.Context, cb func(s repositories.UoWInstance) error) error {
 	tx, err := s.db.BeginTxx(ctx, &sql.TxOptions{})
 	if err != nil {
