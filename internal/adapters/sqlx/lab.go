@@ -35,7 +35,7 @@ func NewSqlxLabRepository(db instance) repositories.LabRepository {
 }
 
 func (l *sqlxLabRepository) GetByID(ctx context.Context, labID string) (*models.Lab, error) {
-	query := `SELECT id, display_name, course_id, created_by, created_at, updated_at FROM labs WHERE id = $1`
+	query := `SELECT id, display_name, course_id, created_by, created_at, updated_at FROM labs WHERE id = $1 AND is_deleted = false`
 
 	lab := &labSchema{}
 	err := l.db.GetContext(ctx, lab, query, labID)
@@ -69,7 +69,7 @@ func (l *sqlxLabRepository) Create(ctx context.Context, id string, req *requests
 func (l *sqlxLabRepository) GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string, filters []sanitize.Filter) ([]models.Lab, error) {
 	filterWhereClause, filterArgs := buildFilterWhereClause(filters, 2)
 
-	baseQuery := `SELECT id, display_name, course_id, created_by, created_at, updated_at FROM labs WHERE (display_name ILIKE $1)`
+	baseQuery := `SELECT id, display_name, course_id, created_by, created_at, updated_at FROM labs WHERE (display_name ILIKE $1) AND is_deleted = false`
 	query := fmt.Sprintf(`%s%s
 		ORDER BY %s %s
 		OFFSET $%d
@@ -102,7 +102,9 @@ func (l *sqlxLabRepository) Count(ctx context.Context, search string, filters []
 	filterWhereClause, filterArgs := buildFilterWhereClause(filters, 2)
 
 	baseQuery := `SELECT COUNT(*) FROM labs
-		WHERE (display_name ILIKE $1)`
+		WHERE (display_name ILIKE $1)
+		AND is_deleted = false
+	`
 
 	query := fmt.Sprintf(`%s%s`, baseQuery, filterWhereClause)
 
@@ -134,6 +136,7 @@ func (l *sqlxLabRepository) UpdateByID(ctx context.Context, labID string, req *r
 	UPDATE labs
 	SET %s , updated_at = NOW()
 	WHERE id = :id
+		AND is_deleted = false
 	`, updateFields)
 
 	query, args, err := sqlx.Named(query, updatedSchema)
