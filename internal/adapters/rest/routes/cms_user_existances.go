@@ -27,6 +27,7 @@ func NewCMSUserExistancesRoutes(router fiber.Router, userService services.UserSe
 
 		if res != nil {
 			return c.Status(fiber.StatusOK).JSON(fiber.Map{
+				"code":  "INVALID_USERS",
 				"error": "Some users are invalid",
 				"users": res,
 			})
