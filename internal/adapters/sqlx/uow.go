@@ -74,8 +74,16 @@ func (u *uowInstance) CourseCreator() repositories.CourseCreatorRepository {
 	return NewCourseCreatorRepository(u.db)
 }
 
+func (u *uowInstance) Course() repositories.CourseRepository {
+	return NewSqlxCourseRepository(u.db)
+}
+
 func (u *uowInstance) LabSection() repositories.LabSectionRepository {
 	return NewSqlxLabSectionRepository(u.tx)
+}
+
+func (u *uowInstance) DefaultLab() repositories.DefaultLabRepository {
+	return NewSqlxDefaultLabRepository(u.tx)
 }
 
 func (s *uowImpl) Execute(ctx context.Context, cb func(s repositories.UoWInstance) error) error {
@@ -85,7 +93,7 @@ func (s *uowImpl) Execute(ctx context.Context, cb func(s repositories.UoWInstanc
 	}
 	defer tx.Rollback()
 
-	uow := &uowInstance{tx: tx}
+	uow := &uowInstance{tx: tx, db: s.db}
 	err = cb(uow)
 	if err != nil {
 		return err

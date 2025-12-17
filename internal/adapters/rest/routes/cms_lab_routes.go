@@ -102,17 +102,6 @@ func NewCMSLabRoutes(router fiber.Router, labService services.LabService, labSec
 		return labService.DeleteByID(c.Context(), labID, user.ID)
 	})
 
-	labRouter.Post("/set-section", middlewares.ValidateMiddleware[requests.SetLabSection](), func(c *fiber.Ctx) error {
-		user := c.Locals("user").(*models.User)
-		req := c.Locals("body").(*requests.SetLabSection)
-		err := labSectionService.Create(c.Context(), req, user.ID)
-		if err != nil {
-			return err
-		}
-
-		return c.SendStatus(fiber.StatusCreated)
-	})
-
 	labRouter.Get("/:labID/sections", func(c *fiber.Ctx) error {
 		labID := c.Params("labID")
 
@@ -160,26 +149,11 @@ func NewCMSLabRoutes(router fiber.Router, labService services.LabService, labSec
 		})
 	})
 
-	labRouter.Patch("/:labID/sections/:sectionID", middlewares.ValidateMiddleware[requests.UpdateLabSection](), func(c *fiber.Ctx) error {
+	labRouter.Post("/:labID/materials", middlewares.ValidateMiddleware[requests.SetLabMaterial](), func(c *fiber.Ctx) error {
 		user := c.Locals("user").(*models.User)
 		labID := c.Params("labID")
-		sectionID := c.Params("sectionID")
-		req := c.Locals("body").(*requests.UpdateLabSection)
-
-		return labSectionService.UpdateByID(c.Context(), user.ID, labID, sectionID, req)
-	})
-
-	labRouter.Delete("/:labID/sections/:sectionID", func(c *fiber.Ctx) error {
-		user := c.Locals("user").(*models.User)
-		labID := c.Params("labID")
-		sectionID := c.Params("sectionID")
-		return labSectionService.DeleteByID(c.Context(), labID, sectionID, user.ID)
-	})
-
-	labRouter.Post("/set-material", middlewares.ValidateMiddleware[requests.SetLabMaterial](), func(c *fiber.Ctx) error {
-		user := c.Locals("user").(*models.User)
 		req := c.Locals("body").(*requests.SetLabMaterial)
-		err := labMaterialService.Create(c.Context(), req, user.ID)
+		err := labMaterialService.Create(c.Context(), req, user.ID, labID)
 		if err != nil {
 			return err
 		}
@@ -234,10 +208,10 @@ func NewCMSLabRoutes(router fiber.Router, labService services.LabService, labSec
 		})
 	})
 
-	labRouter.Delete("/:labID/materials/:materialID", func(c *fiber.Ctx) error {
+	labRouter.Post("/:labID/materials/delete", middlewares.ValidateMiddleware[requests.DeleteLabMaterial](), func(c *fiber.Ctx) error {
 		user := c.Locals("user").(*models.User)
 		labID := c.Params("labID")
-		materialID := c.Params("materialID")
-		return labMaterialService.DeleteByID(c.Context(), labID, materialID, user.ID)
+		req := c.Locals("body").(*requests.DeleteLabMaterial)
+		return labMaterialService.Delete(c.Context(), labID, user.ID, req)
 	})
 }

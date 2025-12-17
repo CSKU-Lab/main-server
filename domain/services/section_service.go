@@ -26,6 +26,7 @@ type SectionService interface {
 	AddStudents(ctx context.Context, sectionID string, studentUsernames []string) error
 	GetStudentsBySectionID(ctx context.Context, sectionID string) ([]models.Student, error)
 	RemoveStudents(ctx context.Context, sectionID string, studentIDs []string) error
+	SetDefaultLabs(ctx context.Context, sectionID string, courseID string) error
 }
 
 type sectionService struct {
@@ -50,6 +51,40 @@ func NewSectionService(config *configs.Config, repo repositories.SectionReposito
 		sectionStudentRepo:    sectionStudentRepo,
 		userRepo:              userRepo,
 	}
+}
+
+func (s *sectionService) SetDefaultLabs(ctx context.Context, sectionID string, courseID string) error {
+	err := s.uowRepo.Execute(ctx, func(u repositories.UoWInstance) error {
+		defaultLabs, err := u.DefaultLab().GetByCourseID(ctx, courseID)
+		if err != nil {
+			return err
+		}
+
+		for _, defaultLab := range defaultLabs {
+			labSecBody := &requests.SetLabSection{
+				LabID:    defaultLab.LabID,
+				Position: defaultLab.Position,
+			}
+			labSecID, err := uuid.NewV7()
+			if err != nil {
+				return cserrors.New(&cserrors.Option{
+					HttpStatus: http.StatusInternalServerError,
+					Message:    "Cannot generate uuid",
+				})
+			}
+
+			err = u.LabSection().Create(ctx, labSecBody, labSecID.String(), sectionID)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (s *sectionService) Create(ctx context.Context, req *requests.CreateSection) (string, error) {

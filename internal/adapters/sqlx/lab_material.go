@@ -32,9 +32,9 @@ func NewSqlxLabMaterialRepository(db instance) repositories.LabMaterialRepositor
 	}
 }
 
-func (lm *sqlxLabMaterialRepository) Create(ctx context.Context, req *requests.SetLabMaterial, id string) error {
+func (lm *sqlxLabMaterialRepository) Create(ctx context.Context, req *requests.SetLabMaterial, id string, labID string) error {
 	query := `INSERT INTO lab_materials (lab_id, material_id, id) VALUES ($1, $2, $3)`
-	_, err := lm.db.ExecContext(ctx, query, req.LabID, req.MaterialID, id)
+	_, err := lm.db.ExecContext(ctx, query, labID, req.MaterialID, id)
 	if err != nil {
 		return err
 	}

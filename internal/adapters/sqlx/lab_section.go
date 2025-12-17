@@ -32,9 +32,9 @@ func NewSqlxLabSectionRepository(db instance) repositories.LabSectionRepository 
 	return &sqlxLabSectionRepository{db: db}
 }
 
-func (ls *sqlxLabSectionRepository) Create(ctx context.Context, req *requests.SetLabSection, id string) error {
+func (ls *sqlxLabSectionRepository) Create(ctx context.Context, req *requests.SetLabSection, id string, sectionID string) error {
 	query := `INSERT INTO lab_sections (lab_id, section_id, position, id) VALUES ($1, $2, $3, $4)`
-	_, err := ls.db.ExecContext(ctx, query, req.LabID, req.SectionID, req.Position, id)
+	_, err := ls.db.ExecContext(ctx, query, req.LabID, sectionID, req.Position, id)
 	if err != nil {
 		return err
 	}
@@ -56,14 +56,15 @@ func (ls *sqlxLabSectionRepository) ShiftDownPositions(ctx context.Context, sect
 	return nil
 }
 
-func (ls *sqlxLabSectionRepository) ShiftUpPositions(ctx context.Context, sectionID string, position int) error {
+func (ls *sqlxLabSectionRepository) ShiftUpPositions(ctx context.Context, sectionID string, labID string, position int) error {
 	_, err := ls.db.ExecContext(ctx, `
 		UPDATE lab_sections
 		SET position = position - 1
 		WHERE section_id = $1
 		  AND position >= $2
 			AND is_deleted = false
-	`, sectionID, position)
+			AND lab_id != $3
+	`, sectionID, position, labID)
 	if err != nil {
 		return err
 	}

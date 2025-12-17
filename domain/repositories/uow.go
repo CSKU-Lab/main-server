@@ -21,6 +21,9 @@ type UoWInstance interface {
 	LabSection() LabSectionRepository
 
 	CourseCreator() CourseCreatorRepository
+	Course() CourseRepository
+
+	DefaultLab() DefaultLabRepository
 }
 
 type UoWRepository interface {
