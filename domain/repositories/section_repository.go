@@ -9,11 +9,11 @@ import (
 type SectionRepository interface {
 	Create(ctx context.Context, ID string, section *CreateSection) error
 	UpdateByID(ctx context.Context, ID string, section *UpdateSection) error
-	GetByID(ctx context.Context, ID string) (*models.Section, error)
+	GetByID(ctx context.Context, ID string) (*Section, error)
 	GetBySemesterID(ctx context.Context, semesterID string) ([]models.Section, error)
 	GetByCourseID(ctx context.Context, courseID string) ([]models.Section, error)
 	GetByCourseIDAndSemesterID(ctx context.Context, courseID string, semesterID string) ([]models.Section, error)
-	GetRawBySemesterID(ctx context.Context, semesterID string) ([]RawSection, error)
+	GetRawBySemesterID(ctx context.Context, semesterID string) ([]Section, error)
 	DeleteByID(ctx context.Context, ID string) error
 	DeleteByCourseID(ctx context.Context, courseID string) error
 	GetRawByID(ctx context.Context, ID string) (*RawSection, error)
@@ -31,12 +31,10 @@ type UpdateSection struct {
 	Banner     *string
 }
 
-type RawSection struct {
+type Section struct {
 	ID         string
 	Name       string
 	Banner     *string
-	CourseID   string
 	SemesterID string
-	CreatedAt  string
-	UpdatedAt  string
+	CourseID   string
 }
