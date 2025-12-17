@@ -84,6 +84,11 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 			return err
 		}
 
+		err = sectionService.SetDefaultLabs(c.Context(), ID, req.CourseID)
+		if err != nil {
+			return err
+		}
+
 		return c.Status(fiber.StatusCreated).JSON(fiber.Map{
 			"id": ID,
 		})
@@ -324,5 +329,32 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 			},
 			"data": sections,
 		})
+	})
+
+	cmsSectionRouter.Post("/:sectionID/labs", middlewares.ValidateMiddleware[requests.SetLabSection](), func(c *fiber.Ctx) error {
+		user := c.Locals("user").(*models.User)
+		sectionID := c.Params("sectionID")
+		req := c.Locals("body").(*requests.SetLabSection)
+		err := labSectionService.Create(c.Context(), req, user.ID, sectionID)
+		if err != nil {
+			return err
+		}
+
+		return c.SendStatus(fiber.StatusCreated)
+	})
+
+	cmsSectionRouter.Patch("/:sectionID/labs", middlewares.ValidateMiddleware[requests.UpdateLabSection](), func(c *fiber.Ctx) error {
+		user := c.Locals("user").(*models.User)
+		sectionID := c.Params("sectionID")
+		req := c.Locals("body").(*requests.UpdateLabSection)
+
+		return labSectionService.Update(c.Context(), user.ID, sectionID, req)
+	})
+
+	cmsSectionRouter.Post("/:sectionID/labs/delete", middlewares.ValidateMiddleware[requests.DeleteLabSection](), func(c *fiber.Ctx) error {
+		user := c.Locals("user").(*models.User)
+		sectionID := c.Params("sectionID")
+		req := c.Locals("body").(*requests.DeleteLabSection)
+		return labSectionService.Delete(c.Context(), sectionID, user.ID, req)
 	})
 }

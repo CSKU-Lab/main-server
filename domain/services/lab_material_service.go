@@ -13,8 +13,8 @@ import (
 )
 
 type LabMaterialService interface {
-	Create(ctx context.Context, req *requests.SetLabMaterial, userID string) error
-	DeleteByID(ctx context.Context, labID string, materialID string, userID string) error
+	Create(ctx context.Context, req *requests.SetLabMaterial, userID string, labID string) error
+	Delete(ctx context.Context, labID string, userID string, req *requests.DeleteLabMaterial) error
 	GetPagination(ctx context.Context, page int, limit int, sortBy string, sortOrder string, filterParams map[string]string) ([]models.LabMaterial, error)
 	Count(ctx context.Context, filterParams map[string]string) (int, error)
 }
@@ -99,12 +99,12 @@ func (lm *labMaterialService) rowExists(ctx context.Context, labID string, mater
 	return nil
 }
 
-func (lm *labMaterialService) Create(ctx context.Context, req *requests.SetLabMaterial, userID string) error {
-	err := lm.rowExists(ctx, req.LabID, req.MaterialID)
+func (lm *labMaterialService) Create(ctx context.Context, req *requests.SetLabMaterial, userID string, labID string) error {
+	err := lm.rowExists(ctx, labID, req.MaterialID)
 	if err != nil {
 		return err
 	}
-	labMaterial, err := lm.labMaterialRepo.GetByID(ctx, req.LabID, req.MaterialID)
+	labMaterial, err := lm.labMaterialRepo.GetByID(ctx, labID, req.MaterialID)
 	if err != nil && labMaterial != nil {
 		return err
 	}
@@ -115,7 +115,7 @@ func (lm *labMaterialService) Create(ctx context.Context, req *requests.SetLabMa
 		})
 	}
 
-	err = lm.mutationPermission(ctx, userID, req.LabID)
+	err = lm.mutationPermission(ctx, userID, labID)
 	if err != nil {
 		return err
 	}
@@ -128,16 +128,16 @@ func (lm *labMaterialService) Create(ctx context.Context, req *requests.SetLabMa
 		})
 	}
 
-	return lm.labMaterialRepo.Create(ctx, req, ID.String())
+	return lm.labMaterialRepo.Create(ctx, req, ID.String(), labID)
 }
 
-func (lm *labMaterialService) DeleteByID(ctx context.Context, labID string, materialID string, userID string) error {
-	err := lm.rowExists(ctx, labID, materialID)
+func (lm *labMaterialService) Delete(ctx context.Context, labID string, userID string, req *requests.DeleteLabMaterial) error {
+	err := lm.rowExists(ctx, labID, req.MaterialID)
 	if err != nil {
 		return err
 	}
 
-	labMaterial, err := lm.labMaterialRepo.GetByID(ctx, labID, materialID)
+	labMaterial, err := lm.labMaterialRepo.GetByID(ctx, labID, req.MaterialID)
 	if err != nil {
 		return err
 	}

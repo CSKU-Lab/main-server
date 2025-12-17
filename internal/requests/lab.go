@@ -31,30 +31,40 @@ func (l *BaseUpdateLab) Validate() error {
 
 type (
 	SetLabSection struct {
-		LabID     string `json:"lab_id"`
-		SectionID string `json:"section_id"`
-		Position  int    `json:"position"`
+		LabID    string `json:"lab_id"`
+		Position int    `json:"position"`
 	}
 	UpdateLabSection struct {
-		Position int `json:"position"`
+		Position int    `json:"position"`
+		LabID    string `json:"lab_id"`
+	}
+	DeleteLabSection struct {
+		LabID string `json:"lab_id"`
 	}
 )
 
 type (
 	SetLabMaterial struct {
-		LabID      string `json:"lab_id"`
+		MaterialID string `json:"material_id"`
+	}
+	DeleteLabMaterial struct {
 		MaterialID string `json:"material_id"`
 	}
 )
 
 type (
-	SetDefaultLab struct{}
+	SetDefaultLab struct {
+		LabID    string `json:"lab_id"`
+		Position int    `json:"position"`
+	}
+	DeleteDefaultLab struct {
+		LabID string `json:"lab_id"`
+	}
 )
 
 func (ls *SetLabSection) Validate() error {
 	return validation.ValidateStruct(ls,
 		validation.Field(&ls.LabID, validation.Required, is.UUID),
-		validation.Field(&ls.SectionID, validation.Required, is.UUID),
 		validation.Field(
 			&ls.Position,
 			validation.Required,
@@ -70,12 +80,41 @@ func (ls *UpdateLabSection) Validate() error {
 			validation.Required,
 			validation.Min(1),
 		),
+		validation.Field(&ls.LabID, validation.Required, is.UUID),
+	)
+}
+
+func (ls *DeleteLabSection) Validate() error {
+	return validation.ValidateStruct(ls,
+		validation.Field(&ls.LabID, validation.Required, is.UUID),
 	)
 }
 
 func (lm *SetLabMaterial) Validate() error {
 	return validation.ValidateStruct(lm,
-		validation.Field(&lm.LabID, validation.Required, is.UUID),
 		validation.Field(&lm.MaterialID, validation.Required, is.UUID),
+	)
+}
+
+func (lm *DeleteLabMaterial) Validate() error {
+	return validation.ValidateStruct(lm,
+		validation.Field(&lm.MaterialID, validation.Required, is.UUID),
+	)
+}
+
+func (dl *SetDefaultLab) Validate() error {
+	return validation.ValidateStruct(dl,
+		validation.Field(&dl.LabID, validation.Required, is.UUID),
+		validation.Field(
+			&dl.Position,
+			validation.Required,
+			validation.Min(1),
+		),
+	)
+}
+
+func (dl *DeleteDefaultLab) Validate() error {
+	return validation.ValidateStruct(dl,
+		validation.Field(&dl.LabID, validation.Required, is.UUID),
 	)
 }

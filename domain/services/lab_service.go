@@ -221,7 +221,7 @@ func (l *labService) DeleteByID(ctx context.Context, labID string, userID string
 				return err
 			}
 
-			err = u.LabSection().ShiftUpPositions(ctx, labSection.SectionID, labSection.Position)
+			err = u.LabSection().ShiftUpPositions(ctx, labSection.SectionID, labID, labSection.Position)
 			if err != nil {
 				return err
 			}
