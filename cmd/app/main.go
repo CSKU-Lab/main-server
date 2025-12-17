@@ -100,10 +100,11 @@ func main() {
 	sectionRepo := sqlx.NewSectionRepository(db)
 	sectionInstructorRepo := sqlx.NewSectionInstructorRepository(db)
 	sectionStudentRepo := sqlx.NewSectionStudentRepository(db)
-	sectionService := services.NewSectionService(config, sectionRepo, uowRepo, courseRepo, sectionInstructorRepo, sectionStudentRepo, minio, userRepo)
 
 	semesterRepo := sqlx.NewSqlxSemesterRepository(db)
 	semesterService := services.NewSemesterService(semesterRepo, sectionRepo, courseRepo)
+
+	sectionService := services.NewSectionService(config, sectionRepo, uowRepo, courseRepo, sectionInstructorRepo, sectionStudentRepo, minio, userRepo, semesterRepo)
 
 	materialRepo := sqlx.NewMaterialRepository(db)
 	readMaterialTagRepo := sqlx.NewReadMaterialTagRepository(db)
