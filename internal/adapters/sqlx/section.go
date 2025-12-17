@@ -18,9 +18,10 @@ type sqlxSectionRepository struct {
 }
 
 type sectionSchema struct {
-	ID     string  `db:"id"`
-	Name   string  `db:"name"`
-	Banner *string `db:"banner"`
+	ID         string  `db:"id"`
+	Name       string  `db:"name"`
+	Banner     *string `db:"banner"`
+	SemesterID string  `db:"semester_id"`
 }
 
 type rawSectionSchema struct {
@@ -63,9 +64,10 @@ func (s *sqlxSectionRepository) Create(ctx context.Context, ID string, section *
 
 func (s *sqlxSectionRepository) UpdateByID(ctx context.Context, ID string, section *repositories.UpdateSection) error {
 	updatedSchema := &sectionSchema{
-		ID:     ID,
-		Name:   section.Name,
-		Banner: section.Banner,
+		ID:         ID,
+		Name:       section.Name,
+		Banner:     section.Banner,
+		SemesterID: section.SemesterID,
 	}
 
 	updateFields := getUpdateFields(updatedSchema)
@@ -94,18 +96,19 @@ func (s *sqlxSectionRepository) UpdateByID(ctx context.Context, ID string, secti
 	return nil
 }
 
-func (s *sqlxSectionRepository) GetByID(ctx context.Context, ID string) (*models.Section, error) {
+func (s *sqlxSectionRepository) GetByID(ctx context.Context, ID string) (*repositories.Section, error) {
 	var section sectionSchema
-	query := "SELECT id, name, banner FROM sections WHERE id = $1 AND is_deleted = false"
+	query := "SELECT id, name, banner, semester_id FROM sections WHERE id = $1 AND is_deleted = false"
 	err := s.db.GetContext(ctx, &section, query, ID)
 	if err != nil {
 		return nil, cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Section not found"})
 	}
 
-	return &models.Section{
-		ID:     section.ID,
-		Name:   section.Name,
-		Banner: section.Banner,
+	return &repositories.Section{
+		ID:         section.ID,
+		Name:       section.Name,
+		Banner:     section.Banner,
+		SemesterID: section.SemesterID,
 	}, nil
 }
 
@@ -169,7 +172,7 @@ func (s *sqlxSectionRepository) GetByCourseID(ctx context.Context, courseID stri
 	return sections, nil
 }
 
-func (s *sqlxSectionRepository) GetRawBySemesterID(ctx context.Context, ID string) ([]repositories.RawSection, error) {
+func (s *sqlxSectionRepository) GetRawBySemesterID(ctx context.Context, ID string) ([]repositories.Section, error) {
 	var dbSections []rawSectionSchema
 	query := "SELECT id, name, banner, course_id, semester_id, created_at, updated_at FROM sections WHERE semester_id = $1 AND is_deleted = false"
 	err := s.db.SelectContext(ctx, &dbSections, query, ID)
@@ -177,16 +180,14 @@ func (s *sqlxSectionRepository) GetRawBySemesterID(ctx context.Context, ID strin
 		return nil, err
 	}
 
-	var sections []repositories.RawSection
+	var sections []repositories.Section
 	for _, dbSection := range dbSections {
-		sections = append(sections, repositories.RawSection{
+		sections = append(sections, repositories.Section{
 			ID:         dbSection.ID,
 			Name:       dbSection.Name,
 			Banner:     dbSection.Banner,
-			CourseID:   dbSection.CourseID,
 			SemesterID: dbSection.SemesterID,
-			CreatedAt:  dbSection.CreatedAt,
-			UpdatedAt:  dbSection.UpdatedAt,
+			CourseID:   dbSection.CourseID,
 		})
 	}
 

@@ -99,26 +99,6 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 			SemesterID: c.FormValue("semester_id"),
 		}
 
-		instructors := c.FormValue("instructors")
-		instructorList := []string{}
-		if instructors != "" {
-			for _, instructor := range strings.Split(instructors, ",") {
-				instructorList = append(instructorList, strings.TrimSpace(instructor))
-			}
-		}
-
-		req.Instructors = instructorList
-
-		students := c.FormValue("students")
-		studentList := []string{}
-		if students != "" {
-			for _, student := range strings.Split(students, ",") {
-				studentList = append(studentList, strings.TrimSpace(student))
-			}
-		}
-
-		req.Students = studentList
-
 		image, err := c.FormFile("banner")
 		if err == nil {
 			file, err := image.Open()
@@ -134,6 +114,18 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 				ContentType: image.Header.Get("Content-Type"),
 			}
 		}
+
+		form, err := c.MultipartForm()
+		if err != nil {
+			return nil
+
+		}
+
+		instructors := form.Value["instructors[]"]
+		req.Instructors = instructors
+
+		students := form.Value["students[]"]
+		req.Students = students
 
 		err = sectionService.UpdateByID(c.Context(), id, req, user.ID)
 		if err != nil {

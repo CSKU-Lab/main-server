@@ -20,7 +20,7 @@ type SectionService interface {
 	GetByID(ctx context.Context, ID string) (*models.Section, error)
 	GetBySemesterID(ctx context.Context, semesterID string) ([]models.Section, error)
 	GetByCourseIDAndSemesterID(ctx context.Context, courseID string, semesterID string) ([]models.Section, error)
-	GetRawBySemesterID(ctx context.Context, semesterID string) ([]repositories.RawSection, error)
+	GetRawBySemesterID(ctx context.Context, semesterID string) ([]repositories.Section, error)
 	DeleteByID(ctx context.Context, ID string, userID string) error
 }
 
@@ -33,9 +33,10 @@ type sectionService struct {
 	sectionInstructorRepo repositories.SectionInstructorRepository
 	sectionStudentRepo    repositories.SectionStudentRepository
 	userRepo              repositories.User
+	semesterRepo          repositories.SemesterRepository
 }
 
-func NewSectionService(config *configs.Config, repo repositories.SectionRepository, uowRepo repositories.UoWRepository, courseRepo repositories.CourseRepository, sectionInstructorRepo repositories.SectionInstructorRepository, sectionStudentRepo repositories.SectionStudentRepository, storage repositories.FileRepository, userRepo repositories.User) SectionService {
+func NewSectionService(config *configs.Config, repo repositories.SectionRepository, uowRepo repositories.UoWRepository, courseRepo repositories.CourseRepository, sectionInstructorRepo repositories.SectionInstructorRepository, sectionStudentRepo repositories.SectionStudentRepository, storage repositories.FileRepository, userRepo repositories.User, semesterRepo repositories.SemesterRepository) SectionService {
 	return &sectionService{
 		config:                config,
 		repo:                  repo,
@@ -45,6 +46,7 @@ func NewSectionService(config *configs.Config, repo repositories.SectionReposito
 		sectionInstructorRepo: sectionInstructorRepo,
 		sectionStudentRepo:    sectionStudentRepo,
 		userRepo:              userRepo,
+		semesterRepo:          semesterRepo,
 	}
 }
 
@@ -118,20 +120,20 @@ func (s *sectionService) UpdateByID(ctx context.Context, ID string, req *request
 		return err
 	}
 
-	return s.uowRepo.Execute(ctx, func(suow repositories.UoWInstance) error {
-		isAuthor := false
-		for _, i := range sectionInstructors {
-			if userID == i.ID {
-				isAuthor = true
-			}
+	isAuthor := false
+	for _, i := range sectionInstructors {
+		if userID == i.ID {
+			isAuthor = true
 		}
-		if !isAuthor {
-			return cserrors.New(&cserrors.Option{
-				HttpStatus: http.StatusUnauthorized,
-				Message:    "No Permission",
-			})
-		}
+	}
+	if !isAuthor {
+		return cserrors.New(&cserrors.Option{
+			HttpStatus: http.StatusUnauthorized,
+			Message:    "No Permission",
+		})
+	}
 
+	return s.uowRepo.Execute(ctx, func(suow repositories.UoWInstance) error {
 		if req.Banner != nil {
 			imagePath, err := s.storage.UploadFile(ctx, constants.SECTION_BANNER, req.Banner)
 			if err != nil {
@@ -191,19 +193,35 @@ func (s *sectionService) UpdateByID(ctx context.Context, ID string, req *request
 }
 
 func (s *sectionService) GetByID(ctx context.Context, ID string) (*models.Section, error) {
-	section, err := s.repo.GetByID(ctx, ID)
+	dbSection, err := s.repo.GetByID(ctx, ID)
 	if err != nil {
 		return nil, err
 	}
 
-	if section.Banner != nil {
-		bannerS3Path := converter.ToS3Path(s.config, *section.Banner)
+	section := &models.Section{
+		ID:   dbSection.ID,
+		Name: dbSection.Name,
+	}
+
+	if dbSection.Banner != nil {
+		bannerS3Path := converter.ToS3Path(s.config, *dbSection.Banner)
 		section.Banner = &bannerS3Path
 	}
 
 	instructors, err := s.sectionInstructorRepo.Get(ctx, section.ID)
 	if err != nil {
 		return nil, err
+	}
+
+	semester, err := s.semesterRepo.GetByID(ctx, dbSection.SemesterID)
+	if err != nil {
+		return nil, err
+	}
+
+	section.Semester = models.SectionSemester{
+		ID:   semester.ID,
+		Name: semester.Name,
+		Type: semester.Type,
 	}
 
 	section.Instructors = instructors
@@ -257,7 +275,7 @@ func (s *sectionService) GetByCourseIDAndSemesterID(ctx context.Context, courseI
 	return sections, nil
 }
 
-func (s *sectionService) GetRawBySemesterID(ctx context.Context, semesterID string) ([]repositories.RawSection, error) {
+func (s *sectionService) GetRawBySemesterID(ctx context.Context, semesterID string) ([]repositories.Section, error) {
 	return s.repo.GetRawBySemesterID(ctx, semesterID)
 }
 
