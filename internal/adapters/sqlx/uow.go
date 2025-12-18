@@ -70,14 +70,6 @@ func (u *uowInstance) Lab() repositories.LabRepository {
 	return NewSqlxLabRepository(u.tx)
 }
 
-func (u *uowInstance) CourseCreator() repositories.CourseCreatorRepository {
-	return NewCourseCreatorRepository(u.db)
-}
-
-func (u *uowInstance) Course() repositories.CourseRepository {
-	return NewSqlxCourseRepository(u.db)
-}
-
 func (u *uowInstance) LabSection() repositories.LabSectionRepository {
 	return NewSqlxLabSectionRepository(u.tx)
 }
@@ -93,7 +85,7 @@ func (s *uowImpl) Execute(ctx context.Context, cb func(s repositories.UoWInstanc
 	}
 	defer tx.Rollback()
 
-	uow := &uowInstance{tx: tx, db: s.db}
+	uow := &uowInstance{tx: tx}
 	err = cb(uow)
 	if err != nil {
 		return err
