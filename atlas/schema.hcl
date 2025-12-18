@@ -452,6 +452,11 @@ table "labs" {
   primary_key  {
     columns = [ column.id ]
   }
+  index "unique_display_name" {
+    columns = [ column.display_name ]
+    where = "is_deleted = false"
+    unique = true
+  }
   foreign_key "fk_created_by" {
     columns = [ column.created_by ]
     ref_columns = [ table.users.column.id ]
