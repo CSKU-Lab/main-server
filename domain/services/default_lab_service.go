@@ -22,14 +22,18 @@ type DefaultLabService interface {
 type defaultLabService struct {
 	defaultLabRepo      repositories.DefaultLabRepository
 	uowRepo             repositories.UoWRepository
+	courseRepo          repositories.CourseRepository
+	labRepo             repositories.LabRepository
 	allowedFilterFields map[string]bool
 	allowedSortFields   map[string]bool
 }
 
-func NewDefaultLabService(defaultLabRepo repositories.DefaultLabRepository, uowRepo repositories.UoWRepository) DefaultLabService {
+func NewDefaultLabService(defaultLabRepo repositories.DefaultLabRepository, uowRepo repositories.UoWRepository, courseRepo repositories.CourseRepository, labRepo repositories.LabRepository) DefaultLabService {
 	return &defaultLabService{
 		defaultLabRepo: defaultLabRepo,
 		uowRepo:        uowRepo,
+		courseRepo:     courseRepo,
+		labRepo:        labRepo,
 		allowedFilterFields: map[string]bool{
 			"lab_id":    true,
 			"course_id": true,
@@ -76,18 +80,12 @@ func (dl *defaultLabService) mutationPermission(ctx context.Context, userID stri
 }
 
 func (dl *defaultLabService) rowExists(ctx context.Context, labID string, courseID string) error {
-	err := dl.uowRepo.Execute(ctx, func(u repositories.UoWInstance) error {
-		_, err := u.Lab().GetByID(ctx, labID)
-		if err != nil {
-			return err
-		}
+	_, err := dl.labRepo.GetByID(ctx, labID)
+	if err != nil {
+		return err
+	}
 
-		_, err = u.Course().GetByID(ctx, courseID)
-		if err != nil {
-			return err
-		}
-		return nil
-	})
+	_, err = dl.courseRepo.GetByID(ctx, courseID)
 	if err != nil {
 		return err
 	}

@@ -130,13 +130,13 @@ func main() {
 	labService := services.NewLabService(labRepo, courseRepo, uowRepo)
 
 	labSectionRepo := sqlx.NewSqlxLabSectionRepository(db)
-	labSectionService := services.NewLabSectionService(labSectionRepo, uowRepo)
+	labSectionService := services.NewLabSectionService(labSectionRepo, uowRepo, labRepo, sectionRepo)
 
 	labMaterialRepo := sqlx.NewSqlxLabMaterialRepository(db)
-	labMaterialService := services.NewLabMaterialService(labMaterialRepo, uowRepo)
+	labMaterialService := services.NewLabMaterialService(labMaterialRepo, uowRepo, labRepo, materialRepo)
 
 	defaultLabRepo := sqlx.NewSqlxDefaultLabRepository(db)
-	defaultLabService := services.NewDefaultLabService(defaultLabRepo, uowRepo)
+	defaultLabService := services.NewDefaultLabService(defaultLabRepo, uowRepo, courseRepo, labRepo)
 
 	app := fiber.New(fiber.Config{
 		ErrorHandler: errHandlerMiddleware.ErrorHandler,
