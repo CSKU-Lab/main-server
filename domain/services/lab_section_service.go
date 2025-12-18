@@ -23,14 +23,18 @@ type LabSectionService interface {
 type labSectionService struct {
 	labSectionRepo      repositories.LabSectionRepository
 	uowRepo             repositories.UoWRepository
+	labRepo             repositories.LabRepository
+	sectionRepo         repositories.SectionRepository
 	allowedFilterFields map[string]bool
 	allowedSortFields   map[string]bool
 }
 
-func NewLabSectionService(labSectionRepo repositories.LabSectionRepository, uowRepo repositories.UoWRepository) LabSectionService {
+func NewLabSectionService(labSectionRepo repositories.LabSectionRepository, uowRepo repositories.UoWRepository, labRepo repositories.LabRepository, sectionRepo repositories.SectionRepository) LabSectionService {
 	return &labSectionService{
 		labSectionRepo: labSectionRepo,
 		uowRepo:        uowRepo,
+		labRepo:        labRepo,
+		sectionRepo:    sectionRepo,
 		allowedFilterFields: map[string]bool{
 			"lab_id":     true,
 			"section_id": true,
@@ -42,17 +46,11 @@ func NewLabSectionService(labSectionRepo repositories.LabSectionRepository, uowR
 }
 
 func (ls *labSectionService) rowExists(ctx context.Context, labID string, sectionID string) error {
-	err := ls.uowRepo.Execute(ctx, func(u repositories.UoWInstance) error {
-		_, err := u.Lab().GetByID(ctx, labID)
-		if err != nil {
-			return err
-		}
-		_, err = u.Section().GetByID(ctx, sectionID)
-		if err != nil {
-			return err
-		}
-		return nil
-	})
+	_, err := ls.labRepo.GetByID(ctx, labID)
+	if err != nil {
+		return err
+	}
+	_, err = ls.sectionRepo.GetByID(ctx, sectionID)
 	if err != nil {
 		return err
 	}

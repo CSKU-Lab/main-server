@@ -22,14 +22,18 @@ type LabMaterialService interface {
 type labMaterialService struct {
 	labMaterialRepo     repositories.LabMaterialRepository
 	uowRepo             repositories.UoWRepository
+	labRepo             repositories.LabRepository
+	materialRepo        repositories.MaterialRepository
 	allowedFilterFields map[string]bool
 	allowedSortFields   map[string]bool
 }
 
-func NewLabMaterialService(labMaterialRepo repositories.LabMaterialRepository, uowRepo repositories.UoWRepository) LabMaterialService {
+func NewLabMaterialService(labMaterialRepo repositories.LabMaterialRepository, uowRepo repositories.UoWRepository, labRepo repositories.LabRepository, materialRepo repositories.MaterialRepository) LabMaterialService {
 	return &labMaterialService{
 		labMaterialRepo: labMaterialRepo,
 		uowRepo:         uowRepo,
+		labRepo:         labRepo,
+		materialRepo:    materialRepo,
 		allowedFilterFields: map[string]bool{
 			"lab_id":      true,
 			"material_id": true,
@@ -81,18 +85,12 @@ func (lm *labMaterialService) mutationPermission(ctx context.Context, userID str
 }
 
 func (lm *labMaterialService) rowExists(ctx context.Context, labID string, materialID string) error {
-	err := lm.uowRepo.Execute(ctx, func(u repositories.UoWInstance) error {
-		_, err := u.Lab().GetByID(ctx, labID)
-		if err != nil {
-			return err
-		}
+	_, err := lm.labRepo.GetByID(ctx, labID)
+	if err != nil {
+		return err
+	}
 
-		_, err = u.Material().GetByID(ctx, materialID)
-		if err != nil {
-			return err
-		}
-		return nil
-	})
+	_, err = lm.materialRepo.GetByID(ctx, materialID)
 	if err != nil {
 		return err
 	}
