@@ -102,6 +102,12 @@ func (lm *labMaterialService) Create(ctx context.Context, req *requests.SetLabMa
 	if err != nil {
 		return err
 	}
+
+	err = lm.mutationPermission(ctx, userID, labID)
+	if err != nil {
+		return err
+	}
+
 	labMaterial, err := lm.labMaterialRepo.GetByID(ctx, labID, req.MaterialID)
 	if err != nil && labMaterial != nil {
 		return err
@@ -111,11 +117,6 @@ func (lm *labMaterialService) Create(ctx context.Context, req *requests.SetLabMa
 			HttpStatus: http.StatusConflict,
 			Message:    "Item already exists",
 		})
-	}
-
-	err = lm.mutationPermission(ctx, userID, labID)
-	if err != nil {
-		return err
 	}
 
 	ID, err := uuid.NewV7()
@@ -135,11 +136,12 @@ func (lm *labMaterialService) Delete(ctx context.Context, labID string, userID s
 		return err
 	}
 
-	labMaterial, err := lm.labMaterialRepo.GetByID(ctx, labID, req.MaterialID)
+	err = lm.mutationPermission(ctx, userID, labID)
 	if err != nil {
 		return err
 	}
-	err = lm.mutationPermission(ctx, userID, labID)
+
+	labMaterial, err := lm.labMaterialRepo.GetByID(ctx, labID, req.MaterialID)
 	if err != nil {
 		return err
 	}

@@ -227,12 +227,13 @@ func (ls *labSectionService) Update(ctx context.Context, userID string, sectionI
 	if err != nil {
 		return err
 	}
-	labSection, err := ls.labSectionRepo.GetByID(ctx, req.LabID, sectionID)
+
+	err = ls.mutationPermission(ctx, userID, sectionID)
 	if err != nil {
 		return err
 	}
 
-	err = ls.mutationPermission(ctx, userID, sectionID)
+	labSection, err := ls.labSectionRepo.GetByID(ctx, req.LabID, sectionID)
 	if err != nil {
 		return err
 	}
@@ -254,12 +255,13 @@ func (ls *labSectionService) Delete(ctx context.Context, sectionID string, userI
 	if err != nil {
 		return err
 	}
-	labSection, err := ls.labSectionRepo.GetByID(ctx, req.LabID, sectionID)
+
+	err = ls.mutationPermission(ctx, userID, sectionID)
 	if err != nil {
 		return err
 	}
 
-	err = ls.mutationPermission(ctx, userID, sectionID)
+	labSection, err := ls.labSectionRepo.GetByID(ctx, req.LabID, sectionID)
 	if err != nil {
 		return err
 	}
