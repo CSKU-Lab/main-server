@@ -120,6 +120,12 @@ func (dl *defaultLabService) Create(ctx context.Context, req *requests.SetDefaul
 	if err != nil {
 		return err
 	}
+
+	err = dl.mutationPermission(ctx, userID, courseID)
+	if err != nil {
+		return err
+	}
+
 	defaultLab, err := dl.defaultLabRepo.GetByID(ctx, req.LabID, courseID)
 	if err != nil && defaultLab != nil {
 		return err
@@ -129,11 +135,6 @@ func (dl *defaultLabService) Create(ctx context.Context, req *requests.SetDefaul
 			HttpStatus: http.StatusConflict,
 			Message:    "Item already exists",
 		})
-	}
-
-	err = dl.mutationPermission(ctx, userID, courseID)
-	if err != nil {
-		return err
 	}
 
 	err = dl.rearrangeUpdatedIndex(ctx, courseID, &req.Position, req.LabID)
@@ -198,11 +199,12 @@ func (dl *defaultLabService) Delete(ctx context.Context, req *requests.DeleteDef
 		return err
 	}
 
-	defaultLab, err := dl.defaultLabRepo.GetByID(ctx, req.LabID, courseID)
+	err = dl.mutationPermission(ctx, userID, courseID)
 	if err != nil {
 		return err
 	}
-	err = dl.mutationPermission(ctx, userID, courseID)
+
+	defaultLab, err := dl.defaultLabRepo.GetByID(ctx, req.LabID, courseID)
 	if err != nil {
 		return err
 	}
