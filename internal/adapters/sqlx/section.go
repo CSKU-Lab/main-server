@@ -188,6 +188,8 @@ func (s *sqlxSectionRepository) GetRawBySemesterID(ctx context.Context, ID strin
 			Banner:     dbSection.Banner,
 			SemesterID: dbSection.SemesterID,
 			CourseID:   dbSection.CourseID,
+			CreatedAt:  dbSection.CreatedAt,
+			UpdatedAt:  dbSection.UpdatedAt,
 		})
 	}
 
