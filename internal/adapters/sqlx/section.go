@@ -96,7 +96,7 @@ func (s *sqlxSectionRepository) UpdateByID(ctx context.Context, ID string, secti
 	return nil
 }
 
-func (s *sqlxSectionRepository) GetByID(ctx context.Context, ID string) (*repositories.Section, error) {
+func (s *sqlxSectionRepository) GetByID(ctx context.Context, ID string) (*repositories.RawSection, error) {
 	var section sectionSchema
 	query := "SELECT id, name, banner, semester_id FROM sections WHERE id = $1 AND is_deleted = false"
 	err := s.db.GetContext(ctx, &section, query, ID)
@@ -104,7 +104,7 @@ func (s *sqlxSectionRepository) GetByID(ctx context.Context, ID string) (*reposi
 		return nil, cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Section not found"})
 	}
 
-	return &repositories.Section{
+	return &repositories.RawSection{
 		ID:         section.ID,
 		Name:       section.Name,
 		Banner:     section.Banner,
@@ -172,7 +172,7 @@ func (s *sqlxSectionRepository) GetByCourseID(ctx context.Context, courseID stri
 	return sections, nil
 }
 
-func (s *sqlxSectionRepository) GetRawBySemesterID(ctx context.Context, ID string) ([]repositories.Section, error) {
+func (s *sqlxSectionRepository) GetRawBySemesterID(ctx context.Context, ID string) ([]repositories.RawSection, error) {
 	var dbSections []rawSectionSchema
 	query := "SELECT id, name, banner, course_id, semester_id, created_at, updated_at FROM sections WHERE semester_id = $1 AND is_deleted = false"
 	err := s.db.SelectContext(ctx, &dbSections, query, ID)
@@ -180,9 +180,9 @@ func (s *sqlxSectionRepository) GetRawBySemesterID(ctx context.Context, ID strin
 		return nil, err
 	}
 
-	var sections []repositories.Section
+	var sections []repositories.RawSection
 	for _, dbSection := range dbSections {
-		sections = append(sections, repositories.Section{
+		sections = append(sections, repositories.RawSection{
 			ID:         dbSection.ID,
 			Name:       dbSection.Name,
 			Banner:     dbSection.Banner,

@@ -21,7 +21,7 @@ type SectionService interface {
 	GetByID(ctx context.Context, ID string) (*models.Section, error)
 	GetBySemesterID(ctx context.Context, semesterID string) ([]models.Section, error)
 	GetByCourseIDAndSemesterID(ctx context.Context, courseID string, semesterID string) ([]models.Section, error)
-	GetRawBySemesterID(ctx context.Context, semesterID string) ([]repositories.Section, error)
+	GetRawBySemesterID(ctx context.Context, semesterID string) ([]repositories.RawSection, error)
 	DeleteByID(ctx context.Context, ID string, userID string) error
 	AddStudents(ctx context.Context, sectionID string, studentUsernames []string) error
 	GetStudentsBySectionID(ctx context.Context, sectionID string) ([]models.Student, error)
@@ -300,7 +300,7 @@ func (s *sectionService) GetByCourseIDAndSemesterID(ctx context.Context, courseI
 	return sections, nil
 }
 
-func (s *sectionService) GetRawBySemesterID(ctx context.Context, semesterID string) ([]repositories.Section, error) {
+func (s *sectionService) GetRawBySemesterID(ctx context.Context, semesterID string) ([]repositories.RawSection, error) {
 	return s.repo.GetRawBySemesterID(ctx, semesterID)
 }
 
