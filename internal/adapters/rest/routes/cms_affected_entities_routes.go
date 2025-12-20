@@ -19,10 +19,7 @@ func NewCMSAffectedEntitiesRoutes(router fiber.Router, affectedEntitiesService s
 
 		res, err := affectedEntitiesService.GetAffectedEntities(c.Context(), req)
 		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"message": "Error fetching affected entities",
-				"error":   err.Error(),
-			})
+			return err
 		}
 
 		return c.Status(fiber.StatusOK).JSON(res)

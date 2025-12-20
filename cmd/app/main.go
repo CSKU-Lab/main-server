@@ -119,9 +119,11 @@ func main() {
 	affectedEntitiesFactory := registries.NewAffectedEntityFactory()
 	deletedCourseAffected := registrables.NewDeletedCourseAffected(courseRepo, sectionRepo)
 	deletedSemesterAffected := registrables.NewDeletedSemesterAffected(semesterRepo, sectionRepo, courseRepo)
+	deletedSectionAffected := registrables.NewDeletedSectionAffected(sectionStudentRepo)
 
 	affectedEntitiesFactory.Register("course", deletedCourseAffected)
 	affectedEntitiesFactory.Register("semester", deletedSemesterAffected)
+	affectedEntitiesFactory.Register("section", deletedSectionAffected)
 
 	affectedEntitiesService := services.NewAffectedEntitiesService(affectedEntitiesFactory)
 
