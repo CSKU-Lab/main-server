@@ -167,7 +167,7 @@ func (s *sectionService) UpdateByID(ctx context.Context, ID string, req *request
 	}
 	if !isAuthor {
 		return cserrors.New(&cserrors.Option{
-			HttpStatus: http.StatusUnauthorized,
+			HttpStatus: http.StatusForbidden,
 			Message:    "No Permission",
 		})
 	}
@@ -323,7 +323,7 @@ func (s *sectionService) DeleteByID(ctx context.Context, ID string, userID strin
 	}
 	if !isAuthor {
 		return cserrors.New(&cserrors.Option{
-			HttpStatus: http.StatusUnauthorized,
+			HttpStatus: http.StatusForbidden,
 			Message:    "No Permission",
 		})
 	}

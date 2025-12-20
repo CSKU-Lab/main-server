@@ -242,7 +242,7 @@ func (s *materialService) UpdateByID(ctx context.Context, ID string, req *reques
 	}
 	if mat.CreatedBy != userID {
 		return cserrors.New(&cserrors.Option{
-			HttpStatus: http.StatusUnauthorized,
+			HttpStatus: http.StatusForbidden,
 			Message:    "No Permission",
 		})
 	}
@@ -283,7 +283,7 @@ func (s *materialService) DeleteByID(ctx context.Context, ID string, userID stri
 	}
 	if mat.CreatedBy != userID {
 		return cserrors.New(&cserrors.Option{
-			HttpStatus: http.StatusUnauthorized,
+			HttpStatus: http.StatusForbidden,
 			Message:    "No Permission",
 		})
 	}
