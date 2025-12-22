@@ -39,7 +39,8 @@ func NewDefaultLabService(defaultLabRepo repositories.DefaultLabRepository, uowR
 			"course_id": true,
 		},
 		allowedSortFields: map[string]bool{
-			"position": true,
+			"position":   true,
+			"created_at": true,
 		},
 	}
 }
