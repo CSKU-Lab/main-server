@@ -40,6 +40,7 @@ func NewLabService(
 		uowRepo:    uowRepo,
 		allowedFilterFields: map[string]bool{
 			"display_name": true,
+			"course_id":    true,
 		},
 		allowedSortFields: map[string]bool{
 			"display_name": true,
