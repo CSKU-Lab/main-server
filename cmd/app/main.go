@@ -100,11 +100,13 @@ func main() {
 	sectionRepo := sqlx.NewSectionRepository(db)
 	sectionInstructorRepo := sqlx.NewSectionInstructorRepository(db)
 	sectionStudentRepo := sqlx.NewSectionStudentRepository(db)
+	sectionLogRepo := sqlx.NewSectionLogRepository(db)
 
 	semesterRepo := sqlx.NewSqlxSemesterRepository(db)
 	semesterService := services.NewSemesterService(semesterRepo, sectionRepo, courseRepo)
 
-	sectionService := services.NewSectionService(config, sectionRepo, uowRepo, courseRepo, sectionInstructorRepo, sectionStudentRepo, minio, userRepo, semesterRepo)
+	sectionLogService := services.NewSectionLogService(sectionLogRepo)
+	sectionService := services.NewSectionService(config, sectionRepo, uowRepo, courseRepo, sectionInstructorRepo, sectionStudentRepo, minio, userRepo, semesterRepo, sectionLogService)
 
 	materialRepo := sqlx.NewMaterialRepository(db)
 	readMaterialTagRepo := sqlx.NewReadMaterialTagRepository(db)
@@ -313,6 +315,7 @@ func main() {
 		LabSectionService:       labSectionService,
 		LabMaterialService:      labMaterialService,
 		DefaultLabService:       defaultLabService,
+		SectionLogService:       sectionLogService,
 	})
 
 	port := fmt.Sprintf(":%v", config.Port)

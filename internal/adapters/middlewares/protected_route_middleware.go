@@ -1,9 +1,11 @@
 package middlewares
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
+	contextkeys "github.com/CSKU-Lab/main-server/context_keys"
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
 	"github.com/CSKU-Lab/main-server/domain/models"
 	"github.com/CSKU-Lab/main-server/infrastructure/auth"
@@ -38,6 +40,15 @@ func ProtectedRouteMiddleware(secret string) func(*fiber.Ctx) error {
 			if err != nil {
 				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusUnauthorized, Message: "Something went wrong"})
 			}
+
+			ctx := context.WithValue(c.Context(), contextkeys.UserKey, contextkeys.User{
+				Username:    claims.Username,
+				DisplayName: claims.DisplayName,
+				ID:          claims.Subject,
+				IP_Address:  c.IP(),
+			})
+
+			c.SetUserContext(ctx)
 
 			c.Locals("user", &models.User{
 				ID:           claims.Subject,

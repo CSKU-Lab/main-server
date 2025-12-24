@@ -10,6 +10,7 @@ type UoWInstance interface {
 	Section() SectionRepository
 	SectionInstructor() SectionInstructorRepository
 	SectionStudent() SectionStudentRepository
+	SectionLog() SectionLogRepository
 
 	Course() CourseRepository
 	CourseCreator() CourseCreatorRepository

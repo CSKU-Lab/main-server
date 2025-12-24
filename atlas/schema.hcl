@@ -324,6 +324,43 @@ table "section_students" {
   }
 }
 
+table "section_logs" {
+  schema = schema.public
+  column "id" {
+    type = uuid
+  }
+  column "user_id" {
+    type = uuid
+    null = true
+  }
+  column "section_id" {
+    type = uuid
+  }
+  column "action" {
+    type = text
+  }
+  column "timestamp" {
+    type = timestamp
+    default = sql("CURRENT_TIMESTAMP")
+  }
+  column "ip_address" {
+    type = inet
+  }
+  primary_key  {
+    columns = [ column.id ]
+  }
+  foreign_key "fk_user_id" {
+    columns = [ column.user_id ]
+    ref_columns = [ table.users.column.id ]
+    on_delete = SET_NULL
+  }
+  foreign_key "fk_section_id" {
+    columns = [ column.section_id ]
+    ref_columns = [ table.sections.column.id ]
+    on_delete = CASCADE
+  }
+}
+
 enum "semester_type" {
   schema = schema.public
   values = [ "first" , "second" , "summer" ]
