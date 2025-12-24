@@ -15,7 +15,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionService, semesterService services.SemesterService, labSectionService services.LabSectionService) {
+func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionService, semesterService services.SemesterService, labSectionService services.LabSectionService, sectionLogService services.SectionLogService) {
 	cmsSectionRouter := router.Group("/sections", middlewares.RBACMiddleware([]models.Role{
 		models.ADMIN,
 		models.INSTRUCTOR,
@@ -79,12 +79,14 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 			})
 		}
 
-		ID, err := sectionService.Create(c.Context(), req)
+		ctx := c.UserContext()
+
+		ID, err := sectionService.Create(ctx, req)
 		if err != nil {
 			return err
 		}
 
-		err = sectionService.SetDefaultLabs(c.Context(), ID, req.CourseID)
+		err = sectionService.SetDefaultLabs(ctx, ID, req.CourseID)
 		if err != nil {
 			return err
 		}
@@ -130,7 +132,8 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 		students := form.Value["students[]"]
 		req.Students = students
 
-		err = sectionService.UpdateByID(c.Context(), id, req, user.ID)
+		ctx := c.UserContext()
+		err = sectionService.UpdateByID(ctx, id, req, user.ID)
 		if err != nil {
 			return err
 		}
@@ -227,7 +230,9 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 	cmsSectionRouter.Delete("/:id", func(c *fiber.Ctx) error {
 		user := c.Locals("user").(*models.User)
 		id := c.Params("id")
-		if err := sectionService.DeleteByID(c.Context(), id, user.ID); err != nil {
+
+		ctx := c.UserContext()
+		if err := sectionService.DeleteByID(ctx, id, user.ID); err != nil {
 			return err
 		}
 
@@ -251,7 +256,8 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 		sectionID := c.Params("id")
 		body := c.Locals("body").(*requests.SectionStudents)
 
-		err := sectionService.AddStudents(c.Context(), sectionID, body.StudentUsernames)
+		ctx := c.UserContext()
+		err := sectionService.AddStudents(ctx, sectionID, body.StudentUsernames)
 		if err != nil {
 			log.Println(err)
 			return err
@@ -266,7 +272,8 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 		sectionID := c.Params("id")
 		body := c.Locals("body").(*requests.RemoveStudent)
 
-		err := sectionService.RemoveStudents(c.Context(), sectionID, body.StudentIDs)
+		ctx := c.UserContext()
+		err := sectionService.RemoveStudents(ctx, sectionID, body.StudentIDs)
 		if err != nil {
 			return err
 		}
@@ -327,7 +334,9 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 		user := c.Locals("user").(*models.User)
 		sectionID := c.Params("sectionID")
 		req := c.Locals("body").(*requests.SetLabSection)
-		err := labSectionService.Create(c.Context(), req, user.ID, sectionID)
+
+		ctx := c.UserContext()
+		err := labSectionService.Create(ctx, req, user.ID, sectionID)
 		if err != nil {
 			return err
 		}
@@ -340,13 +349,62 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 		sectionID := c.Params("sectionID")
 		req := c.Locals("body").(*requests.UpdateLabSection)
 
-		return labSectionService.Update(c.Context(), user.ID, sectionID, req)
+		ctx := c.UserContext()
+		return labSectionService.Update(ctx, user.ID, sectionID, req)
 	})
 
 	cmsSectionRouter.Post("/:sectionID/labs/delete", middlewares.ValidateMiddleware[requests.DeleteLabSection](), func(c *fiber.Ctx) error {
 		user := c.Locals("user").(*models.User)
 		sectionID := c.Params("sectionID")
 		req := c.Locals("body").(*requests.DeleteLabSection)
-		return labSectionService.Delete(c.Context(), sectionID, user.ID, req)
+
+		ctx := c.UserContext()
+		return labSectionService.Delete(ctx, sectionID, user.ID, req)
+	})
+
+	cmsSectionRouter.Get("/:sectionID/logs", func(c *fiber.Ctx) error {
+		sectionID := c.Params("sectionID")
+
+		pageQuery := c.Query("page", "1")
+		pageSizeQuery := c.Query("page_size", "10")
+		search := c.Query("search", "")
+		sortBy := c.Query("sort_by", "timestamp")
+		sortOrder := c.Query("sort_order", "desc")
+
+		filterParams := make(map[string]string)
+		for key, value := range c.Queries() {
+			if strings.Contains(key, "__") {
+				filterParams[key] = value
+			}
+		}
+
+		page, err := strconv.Atoi(pageQuery)
+		if err != nil {
+			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusBadRequest, Message: "Invalid page"})
+		}
+
+		pageSize, err := strconv.Atoi(pageSizeQuery)
+		if err != nil {
+			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusBadRequest, Message: "Invalid page size"})
+		}
+
+		logs, err := sectionLogService.GetPaginationBySectionID(c.Context(), sectionID, page, pageSize, search, sortBy, sortOrder, filterParams)
+		if err != nil {
+			return err
+		}
+
+		count, err := sectionLogService.CountBySectionID(c.Context(), sectionID, search, filterParams)
+		if err != nil {
+			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Error getting semesters count"})
+		}
+
+		return c.JSON(fiber.Map{
+			"pagination": fiber.Map{
+				"page":       page,
+				"total_page": math.Ceil(float64(count/pageSize) + 1),
+				"total_rows": count,
+			},
+			"data": logs,
+		})
 	})
 }

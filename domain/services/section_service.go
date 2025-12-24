@@ -39,9 +39,10 @@ type sectionService struct {
 	sectionStudentRepo    repositories.SectionStudentRepository
 	userRepo              repositories.User
 	semesterRepo          repositories.SemesterRepository
+	sectionLogService     SectionLogService
 }
 
-func NewSectionService(config *configs.Config, repo repositories.SectionRepository, uowRepo repositories.UoWRepository, courseRepo repositories.CourseRepository, sectionInstructorRepo repositories.SectionInstructorRepository, sectionStudentRepo repositories.SectionStudentRepository, storage repositories.FileRepository, userRepo repositories.User, semesterRepo repositories.SemesterRepository) SectionService {
+func NewSectionService(config *configs.Config, repo repositories.SectionRepository, uowRepo repositories.UoWRepository, courseRepo repositories.CourseRepository, sectionInstructorRepo repositories.SectionInstructorRepository, sectionStudentRepo repositories.SectionStudentRepository, storage repositories.FileRepository, userRepo repositories.User, semesterRepo repositories.SemesterRepository, sectionLogService SectionLogService) SectionService {
 	return &sectionService{
 		config:                config,
 		repo:                  repo,
@@ -52,6 +53,7 @@ func NewSectionService(config *configs.Config, repo repositories.SectionReposito
 		sectionStudentRepo:    sectionStudentRepo,
 		userRepo:              userRepo,
 		semesterRepo:          semesterRepo,
+		sectionLogService:     sectionLogService,
 	}
 }
 
@@ -79,6 +81,12 @@ func (s *sectionService) SetDefaultLabs(ctx context.Context, sectionID string, c
 			if err != nil {
 				return err
 			}
+
+		}
+
+		err = s.sectionLogService.Create(ctx, sectionID, "Updated default labs for section")
+		if err != nil {
+			return err
 		}
 
 		return nil
@@ -143,6 +151,19 @@ func (s *sectionService) Create(ctx context.Context, req *requests.CreateSection
 			}
 		}
 
+		// we can't use service inside uow so we need to use repo directly and generate log here because section didn't exist before
+		// we commit the section creation so if log creation fail, section creation will be rolled back
+		id, err := uuid.NewV7()
+		if err != nil {
+			return cserrors.New(&cserrors.Option{
+				HttpStatus: http.StatusInternalServerError,
+				Message:    "Cannot generate uuid",
+			})
+		}
+		err = suow.SectionLog().Create(ctx, id.String(), ID.String(), "Created section")
+		if err != nil {
+			return err
+		}
 		return nil
 	})
 
@@ -210,10 +231,15 @@ func (s *sectionService) UpdateByID(ctx context.Context, ID string, req *request
 			}
 		}
 
-		return suow.Section().UpdateByID(ctx, ID, &repositories.UpdateSection{
+		err = suow.Section().UpdateByID(ctx, ID, &repositories.UpdateSection{
 			Name:       req.Name,
 			SemesterID: req.SemesterID,
 		})
+		if err != nil {
+			return err
+		}
+
+		return s.sectionLogService.Create(ctx, ID, "Updated section")
 	})
 }
 
@@ -327,7 +353,12 @@ func (s *sectionService) DeleteByID(ctx context.Context, ID string, userID strin
 			Message:    "No Permission",
 		})
 	}
-	return s.repo.DeleteByID(ctx, ID)
+	err = s.repo.DeleteByID(ctx, ID)
+	if err != nil {
+		return err
+	}
+
+	return s.sectionLogService.Create(ctx, ID, "Deleted section")
 }
 
 func (s *sectionService) AddStudents(ctx context.Context, sectionID string, studentUsernames []string) error {
@@ -358,7 +389,8 @@ func (s *sectionService) AddStudents(ctx context.Context, sectionID string, stud
 				}
 			}
 		}
-		return nil
+
+		return s.sectionLogService.Create(ctx, sectionID, "Added students to section")
 	})
 }
 
@@ -374,6 +406,6 @@ func (s *sectionService) RemoveStudents(ctx context.Context, sectionID string, s
 				return err
 			}
 		}
-		return nil
+		return s.sectionLogService.Create(ctx, sectionID, "Removed students from section")
 	})
 }

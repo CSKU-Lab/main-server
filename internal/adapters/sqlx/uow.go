@@ -50,6 +50,10 @@ func (u *uowInstance) SectionStudent() repositories.SectionStudentRepository {
 	return NewSectionStudentRepository(u.tx)
 }
 
+func (u *uowInstance) SectionLog() repositories.SectionLogRepository {
+	return NewSectionLogRepository(u.tx)
+}
+
 func (u *uowInstance) Course() repositories.CourseRepository {
 	return NewCourseRepository(u.tx)
 }
