@@ -230,6 +230,7 @@ func NewCMSCourseRoutes(router fiber.Router, courseService services.CourseServic
 
 		pageQuery := c.Query("page", "1")
 		pageSizeQuery := c.Query("page_size", "10")
+		search := c.Query("search", "")
 		sortBy := c.Query("sort_by", "position")
 		sortOrder := c.Query("sort_order", "asc")
 
@@ -252,7 +253,7 @@ func NewCMSCourseRoutes(router fiber.Router, courseService services.CourseServic
 
 		filterParams["course_id__is"] = courseID
 
-		materials, err := defaultLabService.GetPagination(c.Context(), page, pageSize, sortBy, sortOrder, filterParams)
+		defaultLabs, err := defaultLabService.GetPagination(c.Context(), page, pageSize, search, sortBy, sortOrder, filterParams)
 		if err != nil {
 			return err
 		}
@@ -268,7 +269,7 @@ func NewCMSCourseRoutes(router fiber.Router, courseService services.CourseServic
 				"total_page": math.Ceil(float64(count/pageSize) + 1),
 				"total_rows": count,
 			},
-			"data": materials,
+			"data": defaultLabs,
 		})
 	})
 
@@ -277,6 +278,13 @@ func NewCMSCourseRoutes(router fiber.Router, courseService services.CourseServic
 		courseID := c.Params("courseID")
 		req := c.Locals("body").(*requests.DeleteDefaultLab)
 		return defaultLabService.Delete(c.Context(), req, user.ID, courseID)
+	})
+
+	courseRouter.Patch("/:courseID/default-labs", middlewares.ValidateMiddleware[requests.UpdateDefaultLab](), func(c *fiber.Ctx) error {
+		user := c.Locals("user").(*models.User)
+		courseID := c.Params("courseID")
+		req := c.Locals("body").(*requests.UpdateDefaultLab)
+		return defaultLabService.Update(c.Context(), req, user.ID, courseID)
 	})
 
 	courseRouter.Get("/:courseID/labs", func(c *fiber.Ctx) error {

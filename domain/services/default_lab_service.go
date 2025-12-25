@@ -14,7 +14,8 @@ import (
 
 type DefaultLabService interface {
 	Create(ctx context.Context, req *requests.SetDefaultLab, userID string, courseID string) error
-	GetPagination(ctx context.Context, page int, limit int, sortBy string, sortOrder string, filterParams map[string]string) ([]models.DefaultLab, error)
+	Update(ctx context.Context, req *requests.UpdateDefaultLab, userID string, courseID string) error
+	GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string, filterParams map[string]string) ([]models.DefaultLab, error)
 	Delete(ctx context.Context, req *requests.DeleteDefaultLab, userID string, courseID string) error
 	Count(ctx context.Context, filterParams map[string]string) (int, error)
 }
@@ -93,23 +94,31 @@ func (dl *defaultLabService) rowExists(ctx context.Context, labID string, course
 	return nil
 }
 
-func (dl *defaultLabService) rearrangeUpdatedIndex(ctx context.Context, courseID string, position *int, labID string) error {
+func (dl *defaultLabService) rearrangeCreatedIndex(ctx context.Context, courseID string, labID string, position int) (int, error) {
 	err := dl.uowRepo.Execute(ctx, func(u repositories.UoWInstance) error {
 		maxPos, err := dl.defaultLabRepo.GetMaxPosition(ctx, courseID, labID)
 		if err != nil {
 			return err
 		}
 
-		if maxPos < *position {
-			*position = maxPos
+		if maxPos < position || position <= 0 {
+			position = maxPos
 		}
 
-		err = dl.defaultLabRepo.ShiftDownPositions(ctx, courseID, *position)
+		err = dl.defaultLabRepo.ShiftDownPositions(ctx, courseID, position)
 		if err != nil {
 			return err
 		}
 		return nil
 	})
+	if err != nil {
+		return 0, err
+	}
+	return position, nil
+}
+
+func (dl *defaultLabService) rearrangeUpdatedIndex(ctx context.Context, courseID string, labID string, currPos int, reqPos int) error {
+	err := dl.defaultLabRepo.ShiftInsertedPositions(ctx, courseID, currPos, reqPos)
 	if err != nil {
 		return err
 	}
@@ -127,6 +136,11 @@ func (dl *defaultLabService) Create(ctx context.Context, req *requests.SetDefaul
 		return err
 	}
 
+	lab, err := dl.labRepo.GetByID(ctx, req.LabID)
+	if err != nil {
+		return err
+	}
+
 	defaultLab, err := dl.defaultLabRepo.GetByID(ctx, req.LabID, courseID)
 	if err != nil && defaultLab != nil {
 		return err
@@ -138,10 +152,15 @@ func (dl *defaultLabService) Create(ctx context.Context, req *requests.SetDefaul
 		})
 	}
 
-	err = dl.rearrangeUpdatedIndex(ctx, courseID, &req.Position, req.LabID)
+	position := 0
+	if req.Position != nil {
+		position = *req.Position
+	}
+	index, err := dl.rearrangeCreatedIndex(ctx, courseID, req.LabID, position)
 	if err != nil {
 		return err
 	}
+	req.Position = &index
 
 	ID, err := uuid.NewV7()
 	if err != nil {
@@ -150,8 +169,63 @@ func (dl *defaultLabService) Create(ctx context.Context, req *requests.SetDefaul
 			Message:    "Cannot generate uuid",
 		})
 	}
+	err = dl.defaultLabRepo.Create(ctx, req, ID.String(), courseID, lab.DisplayName)
+	if err != nil {
+		return err
+	}
 
-	return dl.defaultLabRepo.Create(ctx, req, ID.String(), courseID)
+	err = dl.uowRepo.Execute(ctx, func(u repositories.UoWInstance) error {
+		defaultValue := true
+		err = u.Lab().UpdateByID(ctx, req.LabID, &requests.BaseUpdateLab{
+			lab.DisplayName,
+			lab.CourseID,
+			&defaultValue,
+		})
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (dl *defaultLabService) Update(ctx context.Context, req *requests.UpdateDefaultLab, userID string, courseID string) error {
+	err := dl.rowExists(ctx, req.LabID, courseID)
+	if err != nil {
+		return err
+	}
+
+	err = dl.mutationPermission(ctx, userID, courseID)
+	if err != nil {
+		return err
+	}
+
+	_, err = dl.labRepo.GetByID(ctx, req.LabID)
+	if err != nil {
+		return err
+	}
+
+	defaultLab, err := dl.defaultLabRepo.GetByID(ctx, req.LabID, courseID)
+	if err != nil {
+		return err
+	}
+
+	reqPos := req.Position
+	currPos := defaultLab.Position
+	err = dl.rearrangeUpdatedIndex(ctx, courseID, req.LabID, currPos, reqPos)
+	if err != nil {
+		return err
+	}
+
+	err = dl.defaultLabRepo.Update(ctx, req, defaultLab.ID)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (dl *defaultLabService) rearrangeDeletedIndex(ctx context.Context, courseID string, labID string, position int) error {
@@ -162,7 +236,7 @@ func (dl *defaultLabService) rearrangeDeletedIndex(ctx context.Context, courseID
 	return nil
 }
 
-func (dl *defaultLabService) GetPagination(ctx context.Context, page int, limit int, sortBy string, sortOrder string, filterParams map[string]string) ([]models.DefaultLab, error) {
+func (dl *defaultLabService) GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string, filterParams map[string]string) ([]models.DefaultLab, error) {
 	sanitizedSortBy, err := sanitize.SortBy(sortBy, dl.allowedSortFields)
 	if err != nil {
 		return nil, cserrors.New(
@@ -186,12 +260,12 @@ func (dl *defaultLabService) GetPagination(ctx context.Context, page int, limit 
 		return nil, err
 	}
 
-	defaultLab, err := dl.defaultLabRepo.GetPagination(ctx, page, limit, sanitizedSortBy, sanitizedSortOrder, sanitizedFilters)
+	defaultLabs, err := dl.defaultLabRepo.GetPagination(ctx, page, limit, search, sanitizedSortBy, sanitizedSortOrder, sanitizedFilters)
 	if err != nil {
 		return nil, err
 	}
 
-	return defaultLab, nil
+	return defaultLabs, nil
 }
 
 func (dl *defaultLabService) Delete(ctx context.Context, req *requests.DeleteDefaultLab, userID string, courseID string) error {
@@ -211,6 +285,21 @@ func (dl *defaultLabService) Delete(ctx context.Context, req *requests.DeleteDef
 	}
 
 	err = dl.rearrangeDeletedIndex(ctx, courseID, req.LabID, defaultLab.Position)
+	if err != nil {
+		return err
+	}
+
+	err = dl.uowRepo.Execute(ctx, func(u repositories.UoWInstance) error {
+		defaultValue := false
+		err := u.Lab().UpdateByID(ctx, req.LabID, &requests.BaseUpdateLab{
+			CourseID:  courseID,
+			IsDefault: &defaultValue,
+		})
+		if err != nil {
+			return err
+		}
+		return nil
+	})
 	if err != nil {
 		return err
 	}

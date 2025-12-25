@@ -417,6 +417,9 @@ table "default_labs" {
   column "lab_id" {
     type = uuid
   }
+  column "lab_name" {
+    type = text
+  }
   column "position" {
     type = int
   }
@@ -463,6 +466,10 @@ table "labs" {
   }
   column "display_name" {
     type = text
+  }
+  column "is_default" {
+    type = boolean
+    default = false
   }
   column "course_id" {
     type = uuid

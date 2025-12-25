@@ -161,6 +161,15 @@ func NewCMSLabRoutes(router fiber.Router, labService services.LabService, labSec
 		return c.SendStatus(fiber.StatusCreated)
 	})
 
+	labRouter.Get("/:labID/materials/all", func(c *fiber.Ctx) error {
+		labID := c.Params("labID")
+		labMaterials, err := labMaterialService.GetByLabID(c.Context(), labID)
+		if err != nil {
+			return err
+		}
+		return c.JSON(labMaterials)
+	})
+
 	labRouter.Get("/:labID/materials", func(c *fiber.Ctx) error {
 		labID := c.Params("labID")
 

@@ -82,6 +82,10 @@ func (u *uowInstance) DefaultLab() repositories.DefaultLabRepository {
 	return NewSqlxDefaultLabRepository(u.tx)
 }
 
+func (u *uowInstance) LabMaterial() repositories.LabMaterialRepository {
+	return NewSqlxLabMaterialRepository(u.tx)
+}
+
 func (s *uowImpl) Execute(ctx context.Context, cb func(s repositories.UoWInstance) error) error {
 	tx, err := s.db.BeginTxx(ctx, &sql.TxOptions{})
 	if err != nil {

@@ -13,5 +13,6 @@ type LabMaterialRepository interface {
 	GetByID(ctx context.Context, labID string, materilaID string) (*models.LabMaterial, error)
 	DeleteByID(ctx context.Context, id string) error
 	GetPagination(ctx context.Context, page int, limit int, sortBy string, sortOrder string, filterParams []sanitize.Filter) ([]models.LabMaterial, error)
+	GetByLabID(ctx context.Context, labID string) ([]models.LabMaterial, error)
 	Count(ctx context.Context, filterParams []sanitize.Filter) (int, error)
 }

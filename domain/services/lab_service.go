@@ -118,6 +118,21 @@ func (l *labService) GetPagination(ctx context.Context, page int, limit int, sea
 		return nil, err
 	}
 
+	err = l.uowRepo.Execute(ctx, func(u repositories.UoWInstance) error {
+		for i := range labs {
+			userData, err := u.User().GetByID(ctx, labs[i].CreatedBy)
+			if err != nil {
+				return err
+			}
+			labs[i].CreatedBy = userData.DisplayName
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	return labs, nil
 }
 
@@ -216,6 +231,7 @@ func (l *labService) DeleteByID(ctx context.Context, labID string, userID string
 			return err
 		}
 
+		// lab sections
 		for _, labSection := range labSections {
 			data, err := u.LabSection().GetByID(ctx, labID, labSection.SectionID)
 			if err != nil {
@@ -231,14 +247,52 @@ func (l *labService) DeleteByID(ctx context.Context, labID string, userID string
 			if err != nil {
 				return err
 			}
+
 		}
 
+		// lab materials
+		labMats, err := u.LabMaterial().GetByLabID(ctx, labID)
+		if err != nil {
+			return err
+		}
+
+		for _, labMat := range labMats {
+			err := u.LabMaterial().DeleteByID(ctx, labMat.ID)
+			if err != nil {
+				return err
+			}
+		}
+
+		defLabs, err := u.DefaultLab().GetByLabID(ctx, labID)
+		if err != nil {
+			return err
+		}
+
+		// default labs
+		for _, defLab := range defLabs {
+			data, err := u.DefaultLab().GetByID(ctx, labID, defLab.CourseID)
+			if err != nil {
+				return err
+			}
+
+			err = u.DefaultLab().ShiftUpPositions(ctx, defLab.CourseID, labID, defLab.Position)
+			if err != nil {
+				return err
+			}
+
+			err = u.DefaultLab().DeleteByID(ctx, data.ID)
+			if err != nil {
+				return err
+			}
+
+		}
+
+		err = u.Lab().DeleteByID(ctx, labID)
+		if err != nil {
+			return err
+		}
 		return nil
 	})
-	if err != nil {
-		return err
-	}
-	err = l.labRepo.DeleteByID(ctx, labID)
 	if err != nil {
 		return err
 	}

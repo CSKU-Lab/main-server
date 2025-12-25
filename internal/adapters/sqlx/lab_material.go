@@ -72,6 +72,27 @@ func (lm *sqlxLabMaterialRepository) DeleteByID(ctx context.Context, id string) 
 	return nil
 }
 
+func (lm *sqlxLabMaterialRepository) GetByLabID(ctx context.Context, labID string) ([]models.LabMaterial, error) {
+	query := `SELECT id, lab_id, material_id, created_at, updated_at FROM lab_materials WHERE lab_id = $1 AND is_deleted = false`
+
+	labMaterialsSchema := []labMaterialSchema{}
+	err := lm.db.SelectContext(ctx, &labMaterialsSchema, query, labID)
+	if err != nil {
+		return nil, err
+	}
+	labMaterials := make([]models.LabMaterial, 0, len(labMaterialsSchema))
+	for _, labMaterial := range labMaterialsSchema {
+		labMaterials = append(labMaterials, models.LabMaterial{
+			ID:         labMaterial.ID,
+			LabID:      labMaterial.LabID,
+			MaterialID: labMaterial.MaterialID,
+			CreatedAt:  labMaterial.CreatedAt,
+			UpdatedAt:  labMaterial.UpdatedAt,
+		})
+	}
+	return labMaterials, nil
+}
+
 func (lm *sqlxLabMaterialRepository) GetPagination(ctx context.Context, page int, limit int, sortBy string, sortOrder string, filters []sanitize.Filter) ([]models.LabMaterial, error) {
 	filterWhereClause, filterArgs := buildFilterWhereClause(filters, 1)
 

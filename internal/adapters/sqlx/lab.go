@@ -19,6 +19,7 @@ type labSchema struct {
 	ID          string    `db:"id"`
 	DisplayName string    `db:"display_name"`
 	CourseID    string    `db:"course_id"`
+	IsDefault   *bool     `db:"is_default"`
 	CreatedBy   string    `db:"created_by"`
 	CreatedAt   time.Time `db:"created_at"`
 	UpdatedAt   time.Time `db:"updated_at"`
@@ -69,7 +70,7 @@ func (l *sqlxLabRepository) Create(ctx context.Context, id string, req *requests
 func (l *sqlxLabRepository) GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string, filters []sanitize.Filter) ([]models.Lab, error) {
 	filterWhereClause, filterArgs := buildFilterWhereClause(filters, 2)
 
-	baseQuery := `SELECT id, display_name, course_id, created_by, created_at, updated_at FROM labs WHERE (display_name ILIKE $1) AND is_deleted = false`
+	baseQuery := `SELECT id, display_name, course_id, is_default, created_by, created_at, updated_at FROM labs WHERE (display_name ILIKE $1) AND is_deleted = false`
 	query := fmt.Sprintf(`%s%s
 		ORDER BY %s %s
 		OFFSET $%d
@@ -90,6 +91,7 @@ func (l *sqlxLabRepository) GetPagination(ctx context.Context, page int, limit i
 			ID:          s.ID,
 			DisplayName: s.DisplayName,
 			CourseID:    s.CourseID,
+			IsDefault:   *s.IsDefault,
 			CreatedBy:   s.CreatedBy,
 			CreatedAt:   s.CreatedAt,
 			UpdatedAt:   s.UpdatedAt,
@@ -125,6 +127,7 @@ func (l *sqlxLabRepository) UpdateByID(ctx context.Context, labID string, req *r
 		ID:          labID,
 		DisplayName: req.DisplayName,
 		CourseID:    req.CourseID,
+		IsDefault:   req.IsDefault,
 	}
 
 	updateFields := getUpdateFields(updatedSchema)

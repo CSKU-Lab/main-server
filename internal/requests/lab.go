@@ -20,12 +20,14 @@ func (l *CreateLab) Validate() error {
 type BaseUpdateLab struct {
 	DisplayName string `json:"display_name"`
 	CourseID    string `json:"course_id"`
+	IsDefault   *bool  `json:"is_default"`
 }
 
 func (l *BaseUpdateLab) Validate() error {
 	return validation.ValidateStruct(l,
-		validation.Field(&l.DisplayName, validation.NilOrNotEmpty),
+		validation.Field(&l.DisplayName, validation.Skip.When(l.DisplayName == ""), validation.Length(1, 0)),
 		validation.Field(&l.CourseID, validation.Skip.When(l.CourseID == ""), is.UUID),
+		validation.Field(&l.IsDefault, validation.Skip.When(l.IsDefault == nil), validation.In(true, false)),
 	)
 }
 
@@ -54,6 +56,10 @@ type (
 
 type (
 	SetDefaultLab struct {
+		LabID    string `json:"lab_id"`
+		Position *int   `json:"position"`
+	}
+	UpdateDefaultLab struct {
 		LabID    string `json:"lab_id"`
 		Position int    `json:"position"`
 	}
@@ -103,6 +109,17 @@ func (lm *DeleteLabMaterial) Validate() error {
 }
 
 func (dl *SetDefaultLab) Validate() error {
+	return validation.ValidateStruct(dl,
+		validation.Field(&dl.LabID, validation.Required, is.UUID),
+		validation.Field(
+			&dl.Position,
+			validation.NilOrNotEmpty,
+			validation.Min(1),
+		),
+	)
+}
+
+func (dl *UpdateDefaultLab) Validate() error {
 	return validation.ValidateStruct(dl,
 		validation.Field(&dl.LabID, validation.Required, is.UUID),
 		validation.Field(

@@ -12,11 +12,13 @@ import (
 	"github.com/CSKU-Lab/main-server/domain/repositories"
 	"github.com/CSKU-Lab/main-server/internal/requests"
 	"github.com/CSKU-Lab/main-server/internal/sanitize"
+	"github.com/jmoiron/sqlx"
 )
 
 type defaultLabSchema struct {
 	ID        string    `db:"id"`
 	LabID     string    `db:"lab_id"`
+	LabName   string    `db:"lab_name"`
 	CourseID  string    `db:"course_id"`
 	Position  int       `db:"position"`
 	CreatedAt time.Time `db:"created_at"`
@@ -33,9 +35,43 @@ func NewSqlxDefaultLabRepository(db instance) repositories.DefaultLabRepository 
 	}
 }
 
-func (dl *sqlxDefaultLabRepository) Create(ctx context.Context, req *requests.SetDefaultLab, id string, courseID string) error {
-	query := `INSERT INTO default_labs (lab_id, course_id, id, position) VALUES ($1, $2, $3, $4)`
-	_, err := dl.db.ExecContext(ctx, query, req.LabID, courseID, id, req.Position)
+func (dl *sqlxDefaultLabRepository) Create(ctx context.Context, req *requests.SetDefaultLab, id string, courseID string, labName string) error {
+	query := `INSERT INTO default_labs (lab_id, course_id, id, position, lab_name) VALUES ($1, $2, $3, $4, $5)`
+	_, err := dl.db.ExecContext(ctx, query, req.LabID, courseID, id, req.Position, labName)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (dl *sqlxDefaultLabRepository) Update(ctx context.Context, req *requests.UpdateDefaultLab, id string) error {
+	updatedSchema := &defaultLabSchema{
+		ID:       id,
+		LabID:    req.LabID,
+		Position: req.Position,
+	}
+
+	updateFields := getUpdateFields(updatedSchema)
+	if len(updateFields) == 0 {
+		return nil
+	}
+
+	query := fmt.Sprintf(`
+	UPDATE default_labs
+	SET %s , updated_at = NOW()
+	WHERE id = :id
+		AND is_deleted = false
+	`, updateFields)
+
+	query, args, err := sqlx.Named(query, updatedSchema)
+	if err != nil {
+		return err
+	}
+
+	query = dl.db.Rebind(query)
+
+	_, err = dl.db.ExecContext(ctx, query, args...)
 	if err != nil {
 		return err
 	}
@@ -74,35 +110,74 @@ func (dl *sqlxDefaultLabRepository) DeleteByID(ctx context.Context, id string) e
 	return nil
 }
 
-func (dl *sqlxDefaultLabRepository) GetPagination(ctx context.Context, page int, limit int, sortBy string, sortOrder string, filters []sanitize.Filter) ([]models.DefaultLab, error) {
-	filterWhereClause, filterArgs := buildFilterWhereClause(filters, 1)
+func (dl *sqlxDefaultLabRepository) GetPagination(
+	ctx context.Context,
+	page int,
+	limit int,
+	search string,
+	sortBy string,
+	sortOrder string,
+	filters []sanitize.Filter,
+) ([]models.DefaultLab, error) {
+	filterWhereClause, filterArgs := buildFilterWhereClause(filters, 2)
+	baseQuery := `
+		SELECT id, lab_id, lab_name, course_id, position, created_at, updated_at
+		FROM default_labs
+		WHERE is_deleted = false
+		  AND lab_name ILIKE $1
+	`
 
-	baseQuery := `SELECT id, lab_id, course_id, position, created_at, updated_at FROM default_labs WHERE is_deleted = false`
-	query := fmt.Sprintf(`%s%s
-		ORDER BY %s %s
-		OFFSET $%d
-		LIMIT $%d`, baseQuery, filterWhereClause, sortBy, sortOrder, len(filterArgs)+1, len(filterArgs)+2)
-
-	args := make([]any, 0, len(filterArgs)+2)
+	args := []any{"%" + search + "%"}
 	args = append(args, filterArgs...)
-	args = append(args, (page-1)*limit, limit)
+
+	var query string
+
+	if limit == -1 {
+		query = fmt.Sprintf(`
+			%s%s
+			ORDER BY %s %s
+		`,
+			baseQuery,
+			filterWhereClause,
+			sortBy,
+			sortOrder,
+		)
+	} else {
+		query = fmt.Sprintf(`
+			%s%s
+			ORDER BY %s %s
+			OFFSET $%d
+			LIMIT $%d
+		`,
+			baseQuery,
+			filterWhereClause,
+			sortBy,
+			sortOrder,
+			len(args)+1,
+			len(args)+2,
+		)
+
+		args = append(args, (page-1)*limit, limit)
+	}
 
 	defaultLabsSchema := []defaultLabSchema{}
-	err := dl.db.SelectContext(ctx, &defaultLabsSchema, query, args...)
-	if err != nil {
+	if err := dl.db.SelectContext(ctx, &defaultLabsSchema, query, args...); err != nil {
 		return nil, err
 	}
+
 	defaultLabs := make([]models.DefaultLab, 0, len(defaultLabsSchema))
-	for _, defaultLab := range defaultLabsSchema {
+	for _, dl := range defaultLabsSchema {
 		defaultLabs = append(defaultLabs, models.DefaultLab{
-			ID:        defaultLab.ID,
-			LabID:     defaultLab.LabID,
-			CourseID:  defaultLab.CourseID,
-			Position:  defaultLab.Position,
-			CreatedAt: defaultLab.CreatedAt,
-			UpdatedAt: defaultLab.UpdatedAt,
+			ID:        dl.ID,
+			LabID:     dl.LabID,
+			LabName:   dl.LabName,
+			CourseID:  dl.CourseID,
+			Position:  dl.Position,
+			CreatedAt: dl.CreatedAt,
+			UpdatedAt: dl.UpdatedAt,
 		})
 	}
+
 	return defaultLabs, nil
 }
 
@@ -121,12 +196,46 @@ func (dl *sqlxDefaultLabRepository) Count(ctx context.Context, filters []sanitiz
 	return count, nil
 }
 
+func (dl *sqlxDefaultLabRepository) ShiftInsertedPositions(
+	ctx context.Context,
+	courseID string,
+	currPos int,
+	reqPos int,
+) error {
+	if currPos == reqPos {
+		return nil
+	}
+
+	if currPos > reqPos {
+		_, err := dl.db.ExecContext(ctx, `
+			UPDATE default_labs
+			SET position = position + 1
+			WHERE course_id = $1
+			  AND position >= $2
+			  AND position < $3
+			  AND is_deleted = false
+		`, courseID, reqPos, currPos)
+		return err
+	}
+
+	_, err := dl.db.ExecContext(ctx, `
+		UPDATE default_labs
+		SET position = position - 1
+		WHERE course_id = $1
+		  AND position > $2
+		  AND position <= $3
+		  AND is_deleted = false
+	`, courseID, currPos, reqPos)
+
+	return err
+}
+
 func (dl *sqlxDefaultLabRepository) ShiftDownPositions(ctx context.Context, courseID string, position int) error {
 	_, err := dl.db.ExecContext(ctx, `
 		UPDATE default_labs
 		SET position = position + 1
 		WHERE course_id = $1
-		  AND position >= $2
+		  AND position >= $2 
 			AND is_deleted = false
 	`, courseID, position)
 	if err != nil {
@@ -166,12 +275,44 @@ func (dl *sqlxDefaultLabRepository) GetMaxPosition(ctx context.Context, courseID
 
 func (dl *sqlxDefaultLabRepository) GetByCourseID(
 	ctx context.Context,
-	labID string,
+	courseID string,
 ) ([]models.DefaultLab, error) {
 	query := `
 		SELECT id, lab_id, course_id, position, created_at, updated_at
 		FROM default_labs
 		WHERE course_id = $1 AND is_deleted = false
+	`
+
+	defaultLabsSchema := []defaultLabSchema{}
+
+	err := dl.db.SelectContext(ctx, &defaultLabsSchema, query, courseID)
+	if err != nil {
+		return nil, err
+	}
+
+	defaultLabs := make([]models.DefaultLab, 0, len(defaultLabsSchema))
+	for _, ls := range defaultLabsSchema {
+		defaultLabs = append(defaultLabs, models.DefaultLab{
+			ID:        ls.ID,
+			LabID:     ls.LabID,
+			CourseID:  ls.CourseID,
+			Position:  ls.Position,
+			CreatedAt: ls.CreatedAt,
+			UpdatedAt: ls.UpdatedAt,
+		})
+	}
+
+	return defaultLabs, nil
+}
+
+func (dl *sqlxDefaultLabRepository) GetByLabID(
+	ctx context.Context,
+	labID string,
+) ([]models.DefaultLab, error) {
+	query := `
+		SELECT id, lab_id, course_id, position, created_at, updated_at
+		FROM default_labs
+		WHERE lab_id = $1 AND is_deleted = false
 	`
 
 	defaultLabsSchema := []defaultLabSchema{}
