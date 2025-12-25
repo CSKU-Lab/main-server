@@ -118,19 +118,6 @@ func main() {
 
 	materialService := services.NewMaterialService(materialRepo, readMaterialTagRepo, uowRepo, userRepo, materialRegistry)
 
-	affectedEntitiesFactory := registries.NewAffectedEntityFactory()
-	deletedCourseAffected := registrables.NewDeletedCourseAffected(courseRepo, sectionRepo)
-	deletedSemesterAffected := registrables.NewDeletedSemesterAffected(semesterRepo, sectionRepo, courseRepo)
-	deletedSectionAffected := registrables.NewDeletedSectionAffected(sectionStudentRepo)
-
-	affectedEntitiesFactory.Register("course", deletedCourseAffected)
-	affectedEntitiesFactory.Register("semester", deletedSemesterAffected)
-	affectedEntitiesFactory.Register("section", deletedSectionAffected)
-
-	affectedEntitiesService := services.NewAffectedEntitiesService(affectedEntitiesFactory)
-
-	errHandlerMiddleware := middlewares.NewErrorHandlerMiddleware(config)
-
 	labRepo := sqlx.NewSqlxLabRepository(db)
 	labService := services.NewLabService(labRepo, courseRepo, uowRepo)
 
@@ -138,10 +125,25 @@ func main() {
 	labSectionService := services.NewLabSectionService(labSectionRepo, uowRepo, labRepo, sectionRepo)
 
 	labMaterialRepo := sqlx.NewSqlxLabMaterialRepository(db)
-	labMaterialService := services.NewLabMaterialService(labMaterialRepo, uowRepo, labRepo, materialRepo)
+	labMaterialService := services.NewLabMaterialService(labMaterialRepo, uowRepo, labRepo, materialRepo, readMaterialTagRepo)
 
 	defaultLabRepo := sqlx.NewSqlxDefaultLabRepository(db)
 	defaultLabService := services.NewDefaultLabService(defaultLabRepo, uowRepo, courseRepo, labRepo)
+
+	affectedEntitiesFactory := registries.NewAffectedEntityFactory()
+	deletedCourseAffected := registrables.NewDeletedCourseAffected(courseRepo, sectionRepo)
+	deletedSemesterAffected := registrables.NewDeletedSemesterAffected(semesterRepo, sectionRepo, courseRepo)
+	deletedSectionAffected := registrables.NewDeletedSectionAffected(sectionStudentRepo)
+	deletedLabAffected := registrables.NewDeletedLabAffected(labRepo, labSectionRepo, labMaterialRepo, defaultLabRepo)
+
+	affectedEntitiesFactory.Register("course", deletedCourseAffected)
+	affectedEntitiesFactory.Register("semester", deletedSemesterAffected)
+	affectedEntitiesFactory.Register("section", deletedSectionAffected)
+	affectedEntitiesFactory.Register("lab", deletedLabAffected)
+
+	affectedEntitiesService := services.NewAffectedEntitiesService(affectedEntitiesFactory)
+
+	errHandlerMiddleware := middlewares.NewErrorHandlerMiddleware(config)
 
 	app := fiber.New(fiber.Config{
 		ErrorHandler: errHandlerMiddleware.ErrorHandler,

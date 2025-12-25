@@ -20,6 +20,7 @@ type UoWInstance interface {
 
 	Lab() LabRepository
 	LabSection() LabSectionRepository
+	LabMaterial() LabMaterialRepository
 
 	DefaultLab() DefaultLabRepository
 }
