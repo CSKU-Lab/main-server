@@ -134,7 +134,7 @@ func main() {
 	deletedCourseAffected := registrables.NewDeletedCourseAffected(courseRepo, sectionRepo)
 	deletedSemesterAffected := registrables.NewDeletedSemesterAffected(semesterRepo, sectionRepo, courseRepo)
 	deletedSectionAffected := registrables.NewDeletedSectionAffected(sectionStudentRepo)
-	deletedLabAffected := registrables.NewDeletedLabAffected(labRepo, labSectionRepo, labMaterialRepo, defaultLabRepo)
+	deletedLabAffected := registrables.NewDeletedLabAffected(labRepo, labSectionRepo, labMaterialRepo, defaultLabRepo, uowRepo)
 
 	affectedEntitiesFactory.Register("course", deletedCourseAffected)
 	affectedEntitiesFactory.Register("semester", deletedSemesterAffected)

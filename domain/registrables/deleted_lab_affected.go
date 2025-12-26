@@ -14,6 +14,7 @@ type deletedLabAffected struct {
 	labSectionRepo  repositories.LabSectionRepository
 	labMaterialRepo repositories.LabMaterialRepository
 	defaultLabRepo  repositories.DefaultLabRepository
+	uowRepo         repositories.UoWRepository
 }
 
 func NewDeletedLabAffected(
@@ -21,12 +22,14 @@ func NewDeletedLabAffected(
 	labSectionRepo repositories.LabSectionRepository,
 	labMaterialRepo repositories.LabMaterialRepository,
 	defaultLabRepo repositories.DefaultLabRepository,
+	uowRepo repositories.UoWRepository,
 ) registries.AffectedEntities {
 	return &deletedLabAffected{
 		labRepo:         labRepo,
 		labSectionRepo:  labSectionRepo,
 		labMaterialRepo: labMaterialRepo,
 		defaultLabRepo:  defaultLabRepo,
+		uowRepo:         uowRepo,
 	}
 }
 
@@ -65,24 +68,52 @@ func (d *deletedLabAffected) GetByTypeAndID(
 		Data: []models.EntityDetail{},
 	}
 
-	for _, s := range labSecs {
-		labSecsRes.Data = append(labSecsRes.Data, models.EntityDetail{
-			Name:     s.ID,
-			Children: nil,
-		})
-	}
-	for _, s := range labMats {
-		labMatsRes.Data = append(labMatsRes.Data, models.EntityDetail{
-			Name:     s.ID,
-			Children: nil,
-		})
-	}
-	for _, s := range defaultLabs {
-		defaultLabsRes.Data = append(defaultLabsRes.Data, models.EntityDetail{
-			Name:     s.ID,
-			Children: nil,
-		})
-	}
+	d.uowRepo.Execute(ctx, func(u repositories.UoWInstance) error {
+		for _, s := range labSecs {
+			lab, err := u.Lab().GetByID(ctx, s.LabID)
+			if err != nil {
+				return err
+			}
+			sec, err := u.Section().GetByID(ctx, s.SectionID)
+			if err != nil {
+				return err
+			}
+			labSecsRes.Data = append(labSecsRes.Data, models.EntityDetail{
+				Name:     lab.DisplayName + " - " + sec.Name,
+				Children: nil,
+			})
+		}
+		for _, s := range labMats {
+			lab, err := u.Lab().GetByID(ctx, s.LabID)
+			if err != nil {
+				return err
+			}
+			mat, err := u.Material().GetByID(ctx, s.MaterialID)
+			if err != nil {
+				return err
+			}
+			labMatsRes.Data = append(labMatsRes.Data, models.EntityDetail{
+				Name:     lab.DisplayName + " - " + mat.Name,
+				Children: nil,
+			})
+		}
+		for _, s := range defaultLabs {
+			lab, err := u.Lab().GetByID(ctx, s.LabID)
+			if err != nil {
+				return err
+			}
+			course, err := u.Course().GetByID(ctx, s.CourseID)
+			if err != nil {
+				return err
+			}
+			defaultLabsRes.Data = append(defaultLabsRes.Data, models.EntityDetail{
+				Name:     lab.DisplayName + " - " + course.Name,
+				Children: nil,
+			})
+		}
+
+		return nil
+	})
 
 	res := []models.AffectedEntity{labSecsRes, labMatsRes, defaultLabsRes}
 	return res, nil
