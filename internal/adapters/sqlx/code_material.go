@@ -3,7 +3,9 @@ package sqlx
 import (
 	"context"
 	"database/sql"
+	"net/http"
 
+	"github.com/CSKU-Lab/main-server/domain/cserrors"
 	"github.com/CSKU-Lab/main-server/domain/raw"
 	"github.com/CSKU-Lab/main-server/domain/repositories"
 	"github.com/jmoiron/sqlx"
@@ -37,7 +39,10 @@ func (c *codeMaterialRepo) GetByID(ctx context.Context, materialID string) (*raw
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, nil
+			return nil, cserrors.New(&cserrors.Option{
+				Message:    "code material not found",
+				HttpStatus: http.StatusInternalServerError,
+			})
 		}
 		return nil, err
 	}
