@@ -14,7 +14,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func NewCMSMaterialRoutes(router fiber.Router, materialService services.MaterialService) {
+func NewCMSMaterialRoutes(router fiber.Router, materialService services.MaterialService, materialAssetService services.MaterialAssetService) {
 	materialRouter := router.Group("/materials")
 
 	materialRouter.Post("/", middlewares.RBACMiddleware([]models.Role{
@@ -112,5 +112,40 @@ func NewCMSMaterialRoutes(router fiber.Router, materialService services.Material
 		user := c.Locals("user").(*models.User)
 		id := c.Params("id")
 		return materialService.DeleteByID(c.Context(), id, user.ID)
+	})
+
+	materialRouter.Post("/:id/assets", middlewares.RBACMiddleware([]models.Role{
+		models.ADMIN,
+		models.INSTRUCTOR,
+	}), func(c *fiber.Ctx) error {
+		filePayload, err := c.FormFile("file")
+		if err != nil {
+			return err
+		}
+
+		file, err := filePayload.Open()
+		if err != nil {
+			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Failed to open image file"})
+		}
+
+		defer file.Close()
+
+		imageFile := &requests.File{
+			Name:        filePayload.Filename,
+			Size:        filePayload.Size,
+			Reader:      file,
+			ContentType: filePayload.Header.Get("Content-Type"),
+		}
+
+		id := c.Params("id")
+
+		fileURL, err := materialAssetService.UploadFile(c.Context(), id, imageFile)
+		if err != nil {
+			return err
+		}
+
+		return c.JSON(fiber.Map{
+			"url": fileURL,
+		})
 	})
 }

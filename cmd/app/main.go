@@ -117,6 +117,7 @@ func main() {
 	materialRegistry.Register("code", codeMaterial)
 
 	materialService := services.NewMaterialService(materialRepo, readMaterialTagRepo, uowRepo, userRepo, materialRegistry)
+	materialAssetService := services.NewMaterialAssetService(config, minio)
 
 	labRepo := sqlx.NewSqlxLabRepository(db)
 	labService := services.NewLabService(labRepo, courseRepo, uowRepo)
@@ -320,6 +321,7 @@ func main() {
 		LabMaterialService:      labMaterialService,
 		DefaultLabService:       defaultLabService,
 		SectionLogService:       sectionLogService,
+		MaterialAssetService:    materialAssetService,
 	})
 
 	port := fmt.Sprintf(":%v", config.Port)
