@@ -65,10 +65,6 @@ func (s *sectionService) SetDefaultLabs(ctx context.Context, sectionID string, c
 		}
 
 		for _, defaultLab := range defaultLabs {
-			labSecBody := &requests.SetLabSection{
-				LabID:    defaultLab.LabID,
-				Position: defaultLab.Position,
-			}
 			labSecID, err := uuid.NewV7()
 			if err != nil {
 				return cserrors.New(&cserrors.Option{
@@ -77,7 +73,7 @@ func (s *sectionService) SetDefaultLabs(ctx context.Context, sectionID string, c
 				})
 			}
 
-			err = u.LabSection().Create(ctx, labSecBody, labSecID.String(), sectionID)
+			err = u.LabSection().Create(ctx, defaultLab.LabID, defaultLab.Position, labSecID.String(), sectionID)
 			if err != nil {
 				return err
 			}

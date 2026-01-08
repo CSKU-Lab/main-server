@@ -15,7 +15,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionService, semesterService services.SemesterService, labSectionService services.LabSectionService, sectionLogService services.SectionLogService) {
+func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionService, semesterService services.SemesterService, labSectionService services.LabSectionService, sectionLogService services.SectionLogService, labService services.LabService) {
 	cmsSectionRouter := router.Group("/sections", middlewares.RBACMiddleware([]models.Role{
 		models.ADMIN,
 		models.INSTRUCTOR,
@@ -320,13 +320,37 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Error getting labs count"})
 		}
 
+		type labSectionResponse struct {
+			ID        string `json:"id"`
+			LabID     string `json:"lab_id"`
+			SectionID string `json:"section_id"`
+			Position  int    `json:"position"`
+			LabName   string `json:"lab_name"`
+		}
+
+		responseSections := make([]labSectionResponse, len(sections))
+		for i, section := range sections {
+			lab, err := labService.GetByID(c.Context(), section.LabID)
+			if err != nil {
+				return err
+			}
+
+			responseSections[i] = labSectionResponse{
+				ID:        section.ID,
+				LabID:     section.LabID,
+				SectionID: section.SectionID,
+				Position:  section.Position,
+				LabName:   lab.DisplayName,
+			}
+		}
+
 		return c.JSON(fiber.Map{
 			"pagination": fiber.Map{
 				"page":       page,
 				"total_page": math.Ceil(float64(count/pageSize) + 1),
 				"total_rows": count,
 			},
-			"data": sections,
+			"data": responseSections,
 		})
 	})
 

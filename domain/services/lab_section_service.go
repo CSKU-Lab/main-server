@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"net/http"
+	"sort"
 
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
 	"github.com/CSKU-Lab/main-server/domain/models"
@@ -140,42 +141,47 @@ func (ls *labSectionService) rearrangeDeletedIndex(ctx context.Context, sectionI
 }
 
 func (ls *labSectionService) Create(ctx context.Context, req *requests.SetLabSection, userID string, sectionID string) error {
-	err := ls.rowExists(ctx, req.LabID, sectionID)
-	if err != nil {
-		return err
-	}
-	labSection, err := ls.labSectionRepo.GetByID(ctx, req.LabID, sectionID)
-	if err != nil && labSection != nil {
-		return err
-	}
-	if labSection != nil {
-		return cserrors.New(&cserrors.Option{
-			HttpStatus: http.StatusConflict,
-			Message:    "Item already exists",
-		})
-	}
-
-	err = ls.mutationPermission(ctx, userID, sectionID)
+	err := ls.mutationPermission(ctx, userID, sectionID)
 	if err != nil {
 		return err
 	}
 
-	err = ls.rearrangeUpdatedIndex(ctx, sectionID, &req.Position, req.LabID)
-	if err != nil {
-		return err
-	}
+	for _, labID := range req.LabIDs {
+		err := ls.rowExists(ctx, labID, sectionID)
+		if err != nil {
+			return err
+		}
+		labSection, err := ls.labSectionRepo.GetByID(ctx, labID, sectionID)
+		if err != nil && labSection != nil {
+			return err
+		}
+		if labSection != nil {
+			return cserrors.New(&cserrors.Option{
+				HttpStatus: http.StatusConflict,
+				Message:    "Item already exists",
+			})
+		}
 
-	ID, err := uuid.NewV7()
-	if err != nil {
-		return cserrors.New(&cserrors.Option{
-			HttpStatus: http.StatusInternalServerError,
-			Message:    "Cannot generate uuid",
-		})
-	}
+		// Get the max position and append at the end
+		maxPos, err := ls.labSectionRepo.GetMaxPosition(ctx, sectionID, "")
+		if err != nil {
+			return err
+		}
 
-	err = ls.labSectionRepo.Create(ctx, req, ID.String(), sectionID)
-	if err != nil {
-		return err
+		position := maxPos
+
+		ID, err := uuid.NewV7()
+		if err != nil {
+			return cserrors.New(&cserrors.Option{
+				HttpStatus: http.StatusInternalServerError,
+				Message:    "Cannot generate uuid",
+			})
+		}
+
+		err = ls.labSectionRepo.Create(ctx, labID, position, ID.String(), sectionID)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -251,29 +257,53 @@ func (ls *labSectionService) Update(ctx context.Context, userID string, sectionI
 }
 
 func (ls *labSectionService) Delete(ctx context.Context, sectionID string, userID string, req *requests.DeleteLabSection) error {
-	err := ls.rowExists(ctx, req.LabID, sectionID)
+	err := ls.mutationPermission(ctx, userID, sectionID)
 	if err != nil {
 		return err
 	}
 
-	err = ls.mutationPermission(ctx, userID, sectionID)
-	if err != nil {
-		return err
+	// Collect labSections with their positions
+	type labToDelete struct {
+		labID    string
+		position int
+		id       string
+	}
+	var labsToDelete []labToDelete
+
+	for _, labID := range req.LabIDs {
+		err := ls.rowExists(ctx, labID, sectionID)
+		if err != nil {
+			return err
+		}
+
+		labSection, err := ls.labSectionRepo.GetByID(ctx, labID, sectionID)
+		if err != nil {
+			return err
+		}
+
+		labsToDelete = append(labsToDelete, labToDelete{
+			labID:    labID,
+			position: labSection.Position,
+			id:       labSection.ID,
+		})
 	}
 
-	labSection, err := ls.labSectionRepo.GetByID(ctx, req.LabID, sectionID)
-	if err != nil {
-		return err
+	// Sort by position descending to delete from highest first
+	sort.Slice(labsToDelete, func(i, j int) bool {
+		return labsToDelete[i].position > labsToDelete[j].position
+	})
+
+	for _, lab := range labsToDelete {
+		err = ls.rearrangeDeletedIndex(ctx, sectionID, lab.labID, lab.position)
+		if err != nil {
+			return err
+		}
+
+		err = ls.labSectionRepo.DeleteByID(ctx, lab.id)
+		if err != nil {
+			return err
+		}
 	}
 
-	err = ls.rearrangeDeletedIndex(ctx, sectionID, req.LabID, labSection.Position)
-	if err != nil {
-		return err
-	}
-
-	err = ls.labSectionRepo.DeleteByID(ctx, labSection.ID)
-	if err != nil {
-		return err
-	}
 	return nil
 }

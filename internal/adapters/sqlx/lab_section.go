@@ -32,9 +32,9 @@ func NewSqlxLabSectionRepository(db instance) repositories.LabSectionRepository 
 	return &sqlxLabSectionRepository{db: db}
 }
 
-func (ls *sqlxLabSectionRepository) Create(ctx context.Context, req *requests.SetLabSection, id string, sectionID string) error {
+func (ls *sqlxLabSectionRepository) Create(ctx context.Context, labID string, position int, id string, sectionID string) error {
 	query := `INSERT INTO lab_sections (lab_id, section_id, position, id) VALUES ($1, $2, $3, $4)`
-	_, err := ls.db.ExecContext(ctx, query, req.LabID, sectionID, req.Position, id)
+	_, err := ls.db.ExecContext(ctx, query, labID, sectionID, position, id)
 	if err != nil {
 		return err
 	}
@@ -79,8 +79,7 @@ func (ls *sqlxLabSectionRepository) GetMaxPosition(ctx context.Context, sectionI
 		FROM lab_sections
 		WHERE section_id = $1 
 			AND is_deleted = false
-			AND lab_id != $2
-	`, sectionID, labID).Scan(&max)
+	`, sectionID).Scan(&max)
 
 	return max + 1, err
 }
