@@ -11,7 +11,7 @@ import (
 type LabSectionRepository interface {
 	ShiftUpPositions(ctx context.Context, sectionID string, labID string, position int) error
 	ShiftDownPositions(ctx context.Context, sectionID string, position int) error
-	Create(ctx context.Context, req *requests.SetLabSection, id string, sectionID string) error
+	Create(ctx context.Context, labID string, position int, id string, sectionID string) error
 	GetMaxPosition(ctx context.Context, sectionID string, labID string) (int, error)
 	GetPagination(ctx context.Context, page int, limit int, sortBy string, sortOrder string, filters []sanitize.Filter) ([]models.LabSection, error)
 	GetByID(ctx context.Context, labID string, sectionID string) (*models.LabSection, error)

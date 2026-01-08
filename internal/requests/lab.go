@@ -33,15 +33,14 @@ func (l *BaseUpdateLab) Validate() error {
 
 type (
 	SetLabSection struct {
-		LabID    string `json:"lab_id"`
-		Position int    `json:"position"`
+		LabIDs []string `json:"lab_ids"`
 	}
 	UpdateLabSection struct {
 		Position int    `json:"position"`
 		LabID    string `json:"lab_id"`
 	}
 	DeleteLabSection struct {
-		LabID string `json:"lab_id"`
+		LabIDs []string `json:"lab_ids"`
 	}
 )
 
@@ -70,12 +69,7 @@ type (
 
 func (ls *SetLabSection) Validate() error {
 	return validation.ValidateStruct(ls,
-		validation.Field(&ls.LabID, validation.Required, is.UUID),
-		validation.Field(
-			&ls.Position,
-			validation.Required,
-			validation.Min(1),
-		),
+		validation.Field(&ls.LabIDs, validation.Required, validation.Length(1, 0), validation.Each(is.UUID)),
 	)
 }
 
@@ -92,7 +86,7 @@ func (ls *UpdateLabSection) Validate() error {
 
 func (ls *DeleteLabSection) Validate() error {
 	return validation.ValidateStruct(ls,
-		validation.Field(&ls.LabID, validation.Required, is.UUID),
+		validation.Field(&ls.LabIDs, validation.Required, validation.Length(1, 0), validation.Each(is.UUID)),
 	)
 }
 
