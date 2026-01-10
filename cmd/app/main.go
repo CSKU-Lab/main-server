@@ -41,10 +41,16 @@ type RunnerConfigDetail struct {
 	RunScript   string `json:"run_script"`
 }
 
+// temporaly files
+type TmpFile struct {
+	Name    string `json:"name"`
+	Content string `json:"content"`
+}
+
 type RunExecutionRequest struct {
-	Code     string `json:"code"`
-	Input    string `json:"input"`
-	RunnerID string `json:"runner_id"`
+	Files    []TmpFile `json:"files"`
+	Input    string    `json:"input"`
+	RunnerID string    `json:"runner_id"`
 }
 
 type CompareConfig struct {
@@ -224,14 +230,17 @@ func main() {
 			return fiber.NewError(fiber.StatusBadRequest, "runner_id is required")
 		}
 
+		graderFiles := make([]*graderPB.File, 0, len(req.Files))
+		for _, f := range req.Files {
+			graderFiles = append(graderFiles, &graderPB.File{
+				Name:    f.Name,
+				Content: f.Content,
+			})
+		}
+
 		runReq := &graderPB.RunRequest{
-			Input: req.Input,
-			Files: []*graderPB.File{
-				{
-					Name:    "main.py",
-					Content: req.Code,
-				},
-			},
+			Input:    req.Input,
+			Files:    graderFiles,
 			RunnerId: req.RunnerID,
 		}
 

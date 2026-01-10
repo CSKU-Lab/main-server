@@ -28,8 +28,8 @@ type TestCase struct {
 }
 
 type File struct {
-	Name    string
-	Content string
+	Name    string `json:"name"`
+	Content string `json:"content"`
 }
 
 type Limit struct {
@@ -66,11 +66,12 @@ type CompareScript struct {
 }
 
 type CodeMaterialResponse struct {
-	Description    *string       `json:"description"`
-	SolutionFiles  []File        `json:"solution_files"`
-	TestCases      []TestCase    `json:"test_cases"`
-	AllowedRunners []Runner      `json:"allowed_runners"`
-	CompareScript  CompareScript `json:"compare_script"`
+	Description      *string       `json:"description"`
+	SolutionFiles    []File        `json:"solution_files"`
+	SolutionRunnerID *string       `json:"solution_runner_id"`
+	TestCases        []TestCase    `json:"test_cases"`
+	AllowedRunners   []Runner      `json:"allowed_runners"`
+	CompareScript    CompareScript `json:"compare_script"`
 }
 
 func NewCodeMaterial(repo repositories.CodeMaterialRepository, taskGRPCClient taskPB.TaskServiceClient, configGRPCClient configPB.ConfigServiceClient, graderGRPCClient graderPB.GraderServiceClient) registries.MaterialRegisterable {
@@ -119,9 +120,10 @@ func (c *codeMaterial) GetByID(ctx context.Context, ID string) (any, error) {
 	}
 
 	res := &CodeMaterialResponse{
-		Description:   codeMat.Description,
-		TestCases:     make([]TestCase, len(task.GetTestcases())),
-		SolutionFiles: solutionFilesRes,
+		Description:      codeMat.Description,
+		TestCases:        make([]TestCase, len(task.GetTestcases())),
+		SolutionFiles:    solutionFilesRes,
+		SolutionRunnerID: task.SolutionRunnerId,
 	}
 
 	allowedRunners := make([]Runner, len(task.AllowedRunnerIds))
