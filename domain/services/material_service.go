@@ -47,13 +47,13 @@ func NewMaterialService(repo repositories.MaterialRepository, readMaterialTagRep
 }
 
 func (s *materialService) Create(ctx context.Context, createdByUserID string, req *requests.CreateMaterial) (string, error) {
-	// materialHandler, exists := s.materialRegistry.GetHandler(req.Type)
-	// if !exists {
-	// 	return "", cserrors.New(&cserrors.Option{
-	// 		HttpStatus: http.StatusBadRequest,
-	// 		Message:    "Unsupported material type",
-	// 	})
-	// }
+	materialHandler, exists := s.materialRegistry.GetHandler(req.Type)
+	if !exists {
+		return "", cserrors.New(&cserrors.Option{
+			HttpStatus: http.StatusBadRequest,
+			Message:    "Unsupported material type",
+		})
+	}
 
 	var matID string
 	err := s.uowRepo.Execute(ctx, func(u repositories.UoWInstance) error {
@@ -82,11 +82,10 @@ func (s *materialService) Create(ctx context.Context, createdByUserID string, re
 		return "", err
 	}
 
-	// I think there is other way to do this with more conistency. Stay tuned !
-	// err = materialHandler.Create(ctx, matID, req, nil)
-	// if err != nil {
-	// 	return "", err
-	// }
+	err = materialHandler.Create(ctx, matID, req, nil)
+	if err != nil {
+		return "", err
+	}
 
 	return matID, nil
 }

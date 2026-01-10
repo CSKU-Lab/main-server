@@ -3,7 +3,6 @@ package registrables
 import (
 	"context"
 	"encoding/json"
-	"io"
 	"net/http"
 
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
@@ -28,12 +27,30 @@ type TestCase struct {
 	Output string `json:"output"`
 }
 
+type File struct {
+	Name    string
+	Content string
+}
+
+type Limit struct {
+	CpuTime      float32 `json:"cpu_time"`
+	CpuExtraTime float32 `json:"cpu_extra_time"`
+	WallTime     float32 `json:"wall_time"`
+	Memory       int32   `json:"memory"`
+	Stack        int32   `json:"stack"`
+	MaxOpenFiles int32   `json:"max_open_files"`
+	MaxFileSize  float32 `json:"max_file_size"`
+	NetworkAllow bool    `json:"network_allow"`
+}
+
 type CodeMaterialPayload struct {
 	Description      *string     `json:"description,omitempty"`
-	Solution         *string     `json:"solution,omitempty"`
 	TestCases        *[]TestCase `json:"test_cases,omitempty"`
 	AllowedRunnerIDs []string    `json:"allowed_runner_ids,omitempty"`
 	CompareScriptID  *string     `json:"compare_script_id,omitempty"`
+	SolutionRunnerID *string     `json:"solution_runner_id,omitempty"`
+	SolutionFiles    []File      `json:"solution_files,omitempty"`
+	Limit            *Limit      `json:"limit,omitempty"`
 }
 
 type Runner struct {
@@ -50,7 +67,7 @@ type CompareScript struct {
 
 type CodeMaterialResponse struct {
 	Description    *string       `json:"description"`
-	Solution       string        `json:"solution"`
+	SolutionFiles  []File        `json:"solution_files"`
 	TestCases      []TestCase    `json:"test_cases"`
 	AllowedRunners []Runner      `json:"allowed_runners"`
 	CompareScript  CompareScript `json:"compare_script"`
@@ -93,10 +110,18 @@ func (c *codeMaterial) GetByID(ctx context.Context, ID string) (any, error) {
 		return nil, err
 	}
 
+	solutionFilesRes := make([]File, 0, len(task.GetSolutionFiles()))
+	for _, f := range task.GetSolutionFiles() {
+		solutionFilesRes = append(solutionFilesRes, File{
+			Name:    f.GetName(),
+			Content: f.GetContent(),
+		})
+	}
+
 	res := &CodeMaterialResponse{
-		Description: codeMat.Description,
-		Solution:    task.GetSolution(),
-		TestCases:   make([]TestCase, len(task.GetTestcases())),
+		Description:   codeMat.Description,
+		TestCases:     make([]TestCase, len(task.GetTestcases())),
+		SolutionFiles: solutionFilesRes,
 	}
 
 	allowedRunners := make([]Runner, len(task.AllowedRunnerIds))
@@ -117,9 +142,9 @@ func (c *codeMaterial) GetByID(ctx context.Context, ID string) (any, error) {
 	}
 	res.AllowedRunners = allowedRunners
 
-	if task.CompareScriptId != "" {
+	if task.CompareScriptId != nil {
 		script, err := c.configGRPCCLient.GetCompare(ctx, &configPB.GetCompareRequest{
-			Id: task.CompareScriptId,
+			Id: task.GetCompareScriptId(),
 		})
 		if err != nil {
 			return nil, err
@@ -144,7 +169,7 @@ func (c *codeMaterial) GetByID(ctx context.Context, ID string) (any, error) {
 }
 
 func (c *codeMaterial) Create(ctx context.Context, matID string, req *requests.CreateMaterial, rawReq []byte) error {
-	res, err := c.taskGRPCClient.UpsertTask(ctx, &taskPB.UpsertTaskRequest{})
+	res, err := c.taskGRPCClient.CreateTask(ctx, nil)
 	if err != nil {
 		return err
 	}
@@ -177,73 +202,50 @@ func (c *codeMaterial) UpdateByID(ctx context.Context, ID string, req *requests.
 		}
 	}
 
-	task, err := c.taskGRPCClient.GetTask(ctx, &taskPB.GetTaskRequest{
-		Id: codeMat.TaskID,
+	var testCases []*taskPB.TestCase
+	if payload.TestCases != nil {
+		testCases = make([]*taskPB.TestCase, 0, len(*payload.TestCases))
+		for _, tc := range *payload.TestCases {
+			testCases = append(testCases, &taskPB.TestCase{
+				Order: tc.Order,
+				Input: tc.Input,
+			})
+		}
+	}
+
+	taskPBSolutionFiles := make([]*taskPB.SolutionFile, 0, len(payload.SolutionFiles))
+	for _, f := range payload.SolutionFiles {
+		taskPBSolutionFiles = append(taskPBSolutionFiles, &taskPB.SolutionFile{
+			Name:    f.Name,
+			Content: f.Content,
+		})
+	}
+
+	var limit *taskPB.Limit
+	if payload.Limit != nil {
+		limit = &taskPB.Limit{
+			CpuTime:      payload.Limit.CpuTime,
+			CpuExtraTime: payload.Limit.CpuExtraTime,
+			WallTime:     payload.Limit.WallTime,
+			Memory:       payload.Limit.Memory,
+			Stack:        payload.Limit.Stack,
+			MaxOpenFiles: payload.Limit.MaxOpenFiles,
+			MaxFileSize:  payload.Limit.MaxFileSize,
+			NetworkAllow: payload.Limit.NetworkAllow,
+		}
+	}
+
+	_, err = c.taskGRPCClient.UpdateTask(ctx, &taskPB.UpdateTaskRequest{
+		Id:               &codeMat.TaskID,
+		Testcases:        testCases,
+		AllowedRunnerIds: payload.AllowedRunnerIDs,
+		SolutionFiles:    taskPBSolutionFiles,
+		SolutionRunnerId: payload.SolutionRunnerID,
+		CompareScriptId:  payload.CompareScriptID,
+		Limit:            limit,
 	})
 	if err != nil {
 		return err
-	}
-
-	if payload.Solution != nil || payload.TestCases != nil || payload.AllowedRunnerIDs != nil || payload.CompareScriptID != nil {
-		var testCases []*taskPB.TestCase
-		if payload.TestCases != nil {
-			testCases = make([]*taskPB.TestCase, 0, len(*payload.TestCases))
-			for _, tc := range *payload.TestCases {
-				testCases = append(testCases, &taskPB.TestCase{
-					Order:  tc.Order,
-					Input:  tc.Input,
-					Output: tc.Output,
-				})
-			}
-		}
-
-		if (payload.Solution != nil || payload.TestCases != nil) && len(task.GetAllowedRunnerIds()) > 0 {
-			for i, tc := range testCases {
-				stream, err := c.graderGRPCClient.Run(ctx, &graderPB.RunRequest{
-					Input: tc.Input,
-					Files: []*graderPB.File{
-						{
-							Name:    "main.py",
-							Content: *payload.Solution,
-						},
-					},
-					RunnerId: task.GetAllowedRunnerIds()[0], // HARDCODED
-				})
-				if err != nil {
-					return err
-				}
-
-				for {
-					result, err := stream.Recv()
-					if err != nil {
-						if err == io.EOF {
-							break
-						}
-						return cserrors.New(&cserrors.Option{
-							Message:    "solution validation failed",
-							HttpStatus: http.StatusBadRequest,
-						})
-					}
-					if result.GetStatus() != graderPB.ExecutionStatus_STATUS_QUEUED && result.GetStatus() != graderPB.ExecutionStatus_STATUS_RUNNING {
-						testCases[i].Output = result.GetOutput()
-						break
-					}
-				}
-
-			}
-		}
-
-		_, err = c.taskGRPCClient.UpsertTask(ctx, &taskPB.UpsertTaskRequest{
-			Id:               &codeMat.TaskID,
-			Solution:         payload.Solution,
-			Testcases:        testCases,
-			AllowedRunnerIds: payload.AllowedRunnerIDs,
-			CompareId:        payload.CompareScriptID,
-		})
-		if err != nil {
-			return err
-		}
-
 	}
 
 	return nil
