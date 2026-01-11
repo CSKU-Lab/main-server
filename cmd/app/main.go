@@ -209,7 +209,7 @@ func main() {
 			return err
 		}
 
-		var compareConfigs []CompareConfig
+		compareConfigs := make([]CompareConfig, 0, len(compares.Compares))
 		for _, compare := range compares.Compares {
 			compareConfigs = append(compareConfigs, CompareConfig{
 				ID:   compare.GetId(),

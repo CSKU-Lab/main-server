@@ -66,12 +66,13 @@ type CompareScript struct {
 }
 
 type CodeMaterialResponse struct {
-	Description      *string       `json:"description"`
-	SolutionFiles    []File        `json:"solution_files"`
-	SolutionRunnerID *string       `json:"solution_runner_id"`
-	TestCases        []TestCase    `json:"test_cases"`
-	AllowedRunners   []Runner      `json:"allowed_runners"`
-	CompareScript    CompareScript `json:"compare_script"`
+	Description      *string        `json:"description"`
+	SolutionFiles    []File         `json:"solution_files"`
+	SolutionRunnerID *string        `json:"solution_runner_id"`
+	TestCases        []TestCase     `json:"test_cases"`
+	AllowedRunners   []Runner       `json:"allowed_runners"`
+	CompareScript    *CompareScript `json:"compare_script"`
+	Limit            *Limit         `json:"limit"`
 }
 
 func NewCodeMaterial(repo repositories.CodeMaterialRepository, taskGRPCClient taskPB.TaskServiceClient, configGRPCClient configPB.ConfigServiceClient, graderGRPCClient graderPB.GraderServiceClient) registries.MaterialRegisterable {
@@ -119,11 +120,26 @@ func (c *codeMaterial) GetByID(ctx context.Context, ID string) (any, error) {
 		})
 	}
 
+	var limit *Limit
+	if task.Limit != nil {
+		limit = &Limit{
+			CpuTime:      task.GetLimit().GetCpuTime(),
+			CpuExtraTime: task.GetLimit().GetCpuExtraTime(),
+			WallTime:     task.GetLimit().GetWallTime(),
+			Memory:       task.GetLimit().GetMemory(),
+			Stack:        task.GetLimit().GetStack(),
+			MaxOpenFiles: task.GetLimit().GetMaxOpenFiles(),
+			MaxFileSize:  task.GetLimit().GetMaxFileSize(),
+			NetworkAllow: task.GetLimit().GetNetworkAllow(),
+		}
+	}
+
 	res := &CodeMaterialResponse{
 		Description:      codeMat.Description,
-		TestCases:        make([]TestCase, len(task.GetTestcases())),
+		TestCases:        make([]TestCase, len(task.GetTestCases())),
 		SolutionFiles:    solutionFilesRes,
 		SolutionRunnerID: task.SolutionRunnerId,
+		Limit:            limit,
 	}
 
 	allowedRunners := make([]Runner, len(task.AllowedRunnerIds))
@@ -152,14 +168,13 @@ func (c *codeMaterial) GetByID(ctx context.Context, ID string) (any, error) {
 			return nil, err
 		}
 
-		compareScript := CompareScript{
+		res.CompareScript = &CompareScript{
 			ID:   script.GetId(),
 			Name: script.GetName(),
 		}
-		res.CompareScript = compareScript
 	}
 
-	for i, tc := range task.GetTestcases() {
+	for i, tc := range task.GetTestCases() {
 		res.TestCases[i] = TestCase{
 			Order:  tc.GetOrder(),
 			Input:  tc.GetInput(),
@@ -239,7 +254,7 @@ func (c *codeMaterial) UpdateByID(ctx context.Context, ID string, req *requests.
 
 	_, err = c.taskGRPCClient.UpdateTask(ctx, &taskPB.UpdateTaskRequest{
 		Id:               &codeMat.TaskID,
-		Testcases:        testCases,
+		TestCases:        testCases,
 		AllowedRunnerIds: payload.AllowedRunnerIDs,
 		SolutionFiles:    taskPBSolutionFiles,
 		SolutionRunnerId: payload.SolutionRunnerID,
