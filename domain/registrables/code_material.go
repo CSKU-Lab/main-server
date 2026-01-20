@@ -22,9 +22,19 @@ type codeMaterial struct {
 }
 
 type TestCase struct {
-	Order  int32  `json:"order"`
-	Input  string `json:"input"`
-	Output string `json:"output"`
+	ID       string `json:"id"`
+	Order    int32  `json:"order"`
+	Input    string `json:"input"`
+	Output   string `json:"output"`
+	IsHidden bool   `json:"is_hidden"`
+}
+
+type TestCaseGroup struct {
+	ID        string     `json:"id"`
+	Name      string     `json:"name"`
+	Score     int32      `json:"score"`
+	Order     int32      `json:"order"`
+	TestCases []TestCase `json:"test_cases"`
 }
 
 type File struct {
@@ -44,13 +54,13 @@ type Limit struct {
 }
 
 type CodeMaterialPayload struct {
-	Description      *string     `json:"description,omitempty"`
-	TestCases        *[]TestCase `json:"test_cases,omitempty"`
-	AllowedRunnerIDs []string    `json:"allowed_runner_ids,omitempty"`
-	CompareScriptID  *string     `json:"compare_script_id,omitempty"`
-	SolutionRunnerID *string     `json:"solution_runner_id,omitempty"`
-	SolutionFiles    []File      `json:"solution_files,omitempty"`
-	Limit            *Limit      `json:"limit,omitempty"`
+	Description      *string          `json:"description,omitempty"`
+	TestCaseGroups   *[]TestCaseGroup `json:"test_case_groups,omitempty"`
+	AllowedRunnerIDs []string         `json:"allowed_runner_ids,omitempty"`
+	CompareScriptID  *string          `json:"compare_script_id,omitempty"`
+	SolutionRunnerID *string          `json:"solution_runner_id,omitempty"`
+	SolutionFiles    []File           `json:"solution_files,omitempty"`
+	Limit            *Limit           `json:"limit,omitempty"`
 }
 
 type Runner struct {
@@ -66,13 +76,13 @@ type CompareScript struct {
 }
 
 type CodeMaterialResponse struct {
-	Description      *string        `json:"description"`
-	SolutionFiles    []File         `json:"solution_files"`
-	SolutionRunnerID *string        `json:"solution_runner_id"`
-	TestCases        []TestCase     `json:"test_cases"`
-	AllowedRunners   []Runner       `json:"allowed_runners"`
-	CompareScript    *CompareScript `json:"compare_script"`
-	Limit            *Limit         `json:"limit"`
+	Description      *string         `json:"description"`
+	SolutionFiles    []File          `json:"solution_files"`
+	SolutionRunnerID *string         `json:"solution_runner_id"`
+	TestCaseGroups   []TestCaseGroup `json:"test_case_groups"`
+	AllowedRunners   []Runner        `json:"allowed_runners"`
+	CompareScript    *CompareScript  `json:"compare_script"`
+	Limit            *Limit          `json:"limit"`
 }
 
 func NewCodeMaterial(repo repositories.CodeMaterialRepository, taskGRPCClient taskPB.TaskServiceClient, configGRPCClient configPB.ConfigServiceClient, graderGRPCClient graderPB.GraderServiceClient) registries.MaterialRegisterable {
@@ -136,7 +146,7 @@ func (c *codeMaterial) GetByID(ctx context.Context, ID string) (any, error) {
 
 	res := &CodeMaterialResponse{
 		Description:      codeMat.Description,
-		TestCases:        make([]TestCase, len(task.GetTestCases())),
+		TestCaseGroups:   make([]TestCaseGroup, len(task.GetTestCaseGroups())),
 		SolutionFiles:    solutionFilesRes,
 		SolutionRunnerID: task.SolutionRunnerId,
 		Limit:            limit,
@@ -174,11 +184,23 @@ func (c *codeMaterial) GetByID(ctx context.Context, ID string) (any, error) {
 		}
 	}
 
-	for i, tc := range task.GetTestCases() {
-		res.TestCases[i] = TestCase{
-			Order:  tc.GetOrder(),
-			Input:  tc.GetInput(),
-			Output: tc.GetOutput(),
+	for i, tc := range task.GetTestCaseGroups() {
+		res.TestCaseGroups[i] = TestCaseGroup{
+			ID:        tc.GetId(),
+			Name:      tc.GetName(),
+			Order:     tc.GetOrder(),
+			Score:     tc.GetScore(),
+			TestCases: make([]TestCase, len(tc.GetTestCases())),
+		}
+
+		for j, tcase := range tc.GetTestCases() {
+			res.TestCaseGroups[i].TestCases[j] = TestCase{
+				ID:       tcase.GetId(),
+				Order:    tcase.GetOrder(),
+				Input:    tcase.GetInput(),
+				Output:   tcase.GetOutput(),
+				IsHidden: tcase.GetIsHidden(),
+			}
 		}
 	}
 
@@ -219,14 +241,29 @@ func (c *codeMaterial) UpdateByID(ctx context.Context, ID string, req *requests.
 		}
 	}
 
-	var testCases []*taskPB.TestCase
-	if payload.TestCases != nil {
-		testCases = make([]*taskPB.TestCase, 0, len(*payload.TestCases))
-		for _, tc := range *payload.TestCases {
-			testCases = append(testCases, &taskPB.TestCase{
-				Order: tc.Order,
-				Input: tc.Input,
-			})
+	var testCaseGroups []*taskPB.TestCaseGroup
+	if payload.TestCaseGroups != nil {
+		for _, g := range *payload.TestCaseGroups {
+			testCaseGroup := &taskPB.TestCaseGroup{
+				Id:        g.ID,
+				Name:      g.Name,
+				Score:     g.Score,
+				Order:     g.Order,
+				TestCases: make([]*taskPB.TestCase, len(g.TestCases)),
+			}
+
+			for i, tc := range g.TestCases {
+				testCase := &taskPB.TestCase{
+					Id:       tc.ID,
+					Order:    tc.Order,
+					Input:    tc.Input,
+					Output:   tc.Output,
+					IsHidden: tc.IsHidden,
+				}
+				testCaseGroup.TestCases[i] = testCase
+			}
+
+			testCaseGroups = append(testCaseGroups, testCaseGroup)
 		}
 	}
 
@@ -254,7 +291,7 @@ func (c *codeMaterial) UpdateByID(ctx context.Context, ID string, req *requests.
 
 	_, err = c.taskGRPCClient.UpdateTask(ctx, &taskPB.UpdateTaskRequest{
 		Id:               &codeMat.TaskID,
-		TestCases:        testCases,
+		TestCaseGroups:   testCaseGroups,
 		AllowedRunnerIds: payload.AllowedRunnerIDs,
 		SolutionFiles:    taskPBSolutionFiles,
 		SolutionRunnerId: payload.SolutionRunnerID,
