@@ -16,7 +16,7 @@ type LabMaterialService interface {
 	Create(ctx context.Context, req *requests.SetLabMaterial, userID string, labID string) error
 	Delete(ctx context.Context, labID string, userID string, req *requests.DeleteLabMaterial) error
 	GetPagination(ctx context.Context, page int, limit int, sortBy string, sortOrder string, filterParams map[string]string) ([]models.LabMaterial, error)
-	GetByLabID(ctx context.Context, labID string) ([]models.LabMaterial, error)
+	GetByLabID(ctx context.Context, labID string) ([]models.Material, error)
 	Count(ctx context.Context, filterParams map[string]string) (int, error)
 }
 
@@ -156,7 +156,7 @@ func (lm *labMaterialService) Delete(ctx context.Context, labID string, userID s
 	return nil
 }
 
-func (lm *labMaterialService) GetByLabID(ctx context.Context, labID string) ([]models.LabMaterial, error) {
+func (lm *labMaterialService) GetByLabID(ctx context.Context, labID string) ([]models.Material, error) {
 	_, err := lm.labRepo.GetByID(ctx, labID)
 	if err != nil {
 		return nil, err

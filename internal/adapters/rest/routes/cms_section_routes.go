@@ -123,7 +123,6 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 		form, err := c.MultipartForm()
 		if err != nil {
 			return nil
-
 		}
 
 		instructors := form.Value["instructors[]"]
@@ -310,7 +309,7 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 
 		filterParams["section_id__is"] = sectionID
 
-		sections, err := labSectionService.GetPagination(c.Context(), page, pageSize, sortBy, sortOrder, filterParams)
+		labSections, err := labSectionService.GetPagination(c.Context(), page, pageSize, sortBy, sortOrder, filterParams)
 		if err != nil {
 			return err
 		}
@@ -328,8 +327,8 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 			LabName   string `json:"lab_name"`
 		}
 
-		responseSections := make([]labSectionResponse, len(sections))
-		for i, section := range sections {
+		responseSections := make([]labSectionResponse, len(labSections))
+		for i, section := range labSections {
 			lab, err := labService.GetByID(c.Context(), section.LabID)
 			if err != nil {
 				return err

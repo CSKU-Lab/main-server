@@ -6,6 +6,7 @@ type Section struct {
 	Banner      *string             `json:"banner"`
 	Semester    SectionSemester     `json:"semester"`
 	Instructors []SectionInstructor `json:"instructors"`
+	CourseID    string              `json:"course_id"`
 }
 
 type SectionInstructor struct {

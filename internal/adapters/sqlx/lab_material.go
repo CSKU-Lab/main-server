@@ -22,6 +22,15 @@ type labMaterialSchema struct {
 	UpdatedAt  time.Time `db:"updated_at"`
 }
 
+type dbMaterial struct {
+	ID         string    `db:"id"`
+	Name       string    `db:"name"`
+	Type       string    `db:"type"`
+	Visibility string    `db:"visibility"`
+	CreatedAt  time.Time `db:"created_at"`
+	CreatedBy  string    `db:"created_by"`
+}
+
 type sqlxLabMaterialRepository struct {
 	db instance
 }
@@ -72,22 +81,27 @@ func (lm *sqlxLabMaterialRepository) DeleteByID(ctx context.Context, id string) 
 	return nil
 }
 
-func (lm *sqlxLabMaterialRepository) GetByLabID(ctx context.Context, labID string) ([]models.LabMaterial, error) {
-	query := `SELECT id, lab_id, material_id, created_at, updated_at FROM lab_materials WHERE lab_id = $1 AND is_deleted = false`
+func (lm *sqlxLabMaterialRepository) GetByLabID(ctx context.Context, labID string) ([]models.Material, error) {
+	query := `
+		SELECT m.id, name, type, visibility, m.created_at, m.created_by FROM lab_materials lm
+		JOIN materials m ON lm.material_id = m.id
+		WHERE lab_id = $1 AND lm.is_deleted = false
+	`
 
-	labMaterialsSchema := []labMaterialSchema{}
-	err := lm.db.SelectContext(ctx, &labMaterialsSchema, query, labID)
+	dbMaterials := []dbMaterial{}
+	err := lm.db.SelectContext(ctx, &dbMaterials, query, labID)
 	if err != nil {
 		return nil, err
 	}
-	labMaterials := make([]models.LabMaterial, 0, len(labMaterialsSchema))
-	for _, labMaterial := range labMaterialsSchema {
-		labMaterials = append(labMaterials, models.LabMaterial{
-			ID:         labMaterial.ID,
-			LabID:      labMaterial.LabID,
-			MaterialID: labMaterial.MaterialID,
-			CreatedAt:  labMaterial.CreatedAt,
-			UpdatedAt:  labMaterial.UpdatedAt,
+	labMaterials := make([]models.Material, 0, len(dbMaterials))
+	for _, dbMat := range dbMaterials {
+		labMaterials = append(labMaterials, models.Material{
+			ID:         dbMat.ID,
+			Name:       dbMat.Name,
+			Type:       dbMat.Type,
+			Visibility: dbMat.Visibility,
+			CreatedAt:  dbMat.CreatedAt,
+			CreatedBy:  dbMat.CreatedBy,
 		})
 	}
 	return labMaterials, nil

@@ -129,7 +129,7 @@ func main() {
 	labService := services.NewLabService(labRepo, courseRepo, uowRepo)
 
 	labSectionRepo := sqlx.NewSqlxLabSectionRepository(db)
-	labSectionService := services.NewLabSectionService(labSectionRepo, uowRepo, labRepo, sectionRepo)
+	labSectionService := services.NewLabSectionService(labSectionRepo, uowRepo, labRepo, sectionRepo, sectionStudentRepo)
 
 	labMaterialRepo := sqlx.NewSqlxLabMaterialRepository(db)
 	labMaterialService := services.NewLabMaterialService(labMaterialRepo, uowRepo, labRepo, materialRepo, readMaterialTagRepo)
@@ -153,6 +153,8 @@ func main() {
 	affectedEntitiesService := services.NewAffectedEntitiesService(affectedEntitiesFactory)
 
 	errHandlerMiddleware := middlewares.NewErrorHandlerMiddleware(config)
+
+	sidebarService := services.NewSidebarService(courseRepo, sectionStudentRepo, labSectionRepo, labMaterialRepo)
 
 	app := fiber.New(fiber.Config{
 		ErrorHandler: errHandlerMiddleware.ErrorHandler,
@@ -331,6 +333,17 @@ func main() {
 		DefaultLabService:       defaultLabService,
 		SectionLogService:       sectionLogService,
 		MaterialAssetService:    materialAssetService,
+	})
+
+	rest.NewCoreRouter(&rest.CoreRouter{
+		Router:                protectedApi,
+		SectionService:        sectionService,
+		LabSectionService:     labSectionService,
+		LabService:            labService,
+		SectionStudentService: sectionStudentRepo,
+		LabMaterialService:    labMaterialService,
+		CourseService:         courseService,
+		SidebarService:        sidebarService,
 	})
 
 	port := fmt.Sprintf(":%v", config.Port)

@@ -22,6 +22,7 @@ type sectionSchema struct {
 	Name       string  `db:"name"`
 	Banner     *string `db:"banner"`
 	SemesterID string  `db:"semester_id"`
+	CourseID   string  `db:"course_id"`
 }
 
 type rawSectionSchema struct {
@@ -98,7 +99,7 @@ func (s *sqlxSectionRepository) UpdateByID(ctx context.Context, ID string, secti
 
 func (s *sqlxSectionRepository) GetByID(ctx context.Context, ID string) (*repositories.RawSection, error) {
 	var section sectionSchema
-	query := "SELECT id, name, banner, semester_id FROM sections WHERE id = $1 AND is_deleted = false"
+	query := "SELECT id, name, banner, semester_id, course_id FROM sections WHERE id = $1 AND is_deleted = false"
 	err := s.db.GetContext(ctx, &section, query, ID)
 	if err != nil {
 		return nil, cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Section not found"})
@@ -109,6 +110,7 @@ func (s *sqlxSectionRepository) GetByID(ctx context.Context, ID string) (*reposi
 		Name:       section.Name,
 		Banner:     section.Banner,
 		SemesterID: section.SemesterID,
+		CourseID:   section.CourseID,
 	}, nil
 }
 

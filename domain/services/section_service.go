@@ -12,6 +12,7 @@ import (
 	"github.com/CSKU-Lab/main-server/domain/repositories"
 	"github.com/CSKU-Lab/main-server/internal/converter"
 	"github.com/CSKU-Lab/main-server/internal/requests"
+	"github.com/CSKU-Lab/main-server/internal/sanitize"
 	"github.com/google/uuid"
 )
 
@@ -27,6 +28,8 @@ type SectionService interface {
 	GetStudentsBySectionID(ctx context.Context, sectionID string) ([]models.Student, error)
 	RemoveStudents(ctx context.Context, sectionID string, studentIDs []string) error
 	SetDefaultLabs(ctx context.Context, sectionID string, courseID string) error
+	GetSectionsPagination(ctx context.Context, page int, limit int, sortBy string, sortOrder string, filterParams map[string]string) ([]models.Section, error)
+	Count(ctx context.Context, filterParams map[string]string) (int, error)
 }
 
 type sectionService struct {
@@ -40,6 +43,8 @@ type sectionService struct {
 	userRepo              repositories.User
 	semesterRepo          repositories.SemesterRepository
 	sectionLogService     SectionLogService
+	allowedFilterFields   map[string]bool
+	allowedSortFields     map[string]bool
 }
 
 func NewSectionService(config *configs.Config, repo repositories.SectionRepository, uowRepo repositories.UoWRepository, courseRepo repositories.CourseRepository, sectionInstructorRepo repositories.SectionInstructorRepository, sectionStudentRepo repositories.SectionStudentRepository, storage repositories.FileRepository, userRepo repositories.User, semesterRepo repositories.SemesterRepository, sectionLogService SectionLogService) SectionService {
@@ -54,7 +59,79 @@ func NewSectionService(config *configs.Config, repo repositories.SectionReposito
 		userRepo:              userRepo,
 		semesterRepo:          semesterRepo,
 		sectionLogService:     sectionLogService,
+		allowedFilterFields: map[string]bool{
+			"student_id": true,
+		},
+		allowedSortFields: map[string]bool{
+			"created_at": true,
+		},
 	}
+}
+
+func (s *sectionService) Count(ctx context.Context, filterParams map[string]string) (int, error) {
+	filters, err := sanitize.Filters(filterParams, s.allowedFilterFields)
+	if err != nil {
+		return 0, err
+	}
+
+	return s.sectionStudentRepo.Count(ctx, filters)
+}
+
+func (s *sectionService) GetSectionsPagination(ctx context.Context, page int, limit int, sortBy string, sortOrder string, filterParams map[string]string) ([]models.Section, error) {
+	sanitizedSortBy, err := sanitize.SortBy(sortBy, s.allowedSortFields)
+	if err != nil {
+		return nil, cserrors.New(
+			&cserrors.Option{
+				HttpStatus: http.StatusBadRequest,
+				Message:    "Invalid sort by field",
+			})
+	}
+
+	sanitizedSortOrder, err := sanitize.SortOrder(sortOrder)
+	if err != nil {
+		return nil, cserrors.New(
+			&cserrors.Option{
+				HttpStatus: http.StatusBadRequest,
+				Message:    "Invalid sort order",
+			})
+	}
+
+	sanitizedFilters, err := sanitize.Filters(filterParams, s.allowedFilterFields)
+	if err != nil {
+		return nil, err
+	}
+
+	rawSection, err := s.sectionStudentRepo.GetSectionsPagination(ctx, page, limit, sanitizedSortBy, sanitizedSortOrder, sanitizedFilters)
+	if err != nil {
+		return nil, err
+	}
+
+	sections := make([]models.Section, 0, len(rawSection))
+	for _, rs := range rawSection {
+		semester, err := s.semesterRepo.GetByID(ctx, rs.SemesterID)
+		if err != nil {
+			return nil, err
+		}
+
+		instructors, err := s.sectionInstructorRepo.Get(ctx, rs.ID)
+		if err != nil {
+			return nil, err
+		}
+
+		sections = append(sections, models.Section{
+			ID:     rs.ID,
+			Name:   rs.Name,
+			Banner: rs.Banner,
+			Semester: models.SectionSemester{
+				ID:   semester.ID,
+				Name: semester.Name,
+				Type: semester.Type,
+			},
+			Instructors: instructors,
+		})
+	}
+
+	return sections, nil
 }
 
 func (s *sectionService) SetDefaultLabs(ctx context.Context, sectionID string, courseID string) error {
@@ -246,8 +323,9 @@ func (s *sectionService) GetByID(ctx context.Context, ID string) (*models.Sectio
 	}
 
 	section := &models.Section{
-		ID:   dbSection.ID,
-		Name: dbSection.Name,
+		ID:       dbSection.ID,
+		Name:     dbSection.Name,
+		CourseID: dbSection.CourseID,
 	}
 
 	if dbSection.Banner != nil {

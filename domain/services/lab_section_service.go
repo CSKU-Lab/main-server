@@ -16,6 +16,7 @@ import (
 type LabSectionService interface {
 	Create(ctx context.Context, req *requests.SetLabSection, userID string, sectionID string) error
 	GetPagination(ctx context.Context, page int, limit int, sortBy string, sortOrder string, filterParams map[string]string) ([]models.LabSection, error)
+	GetByLabAndSectionID(ctx context.Context, labID string, sectionID string) (*models.LabSection, error)
 	Update(ctx context.Context, userID string, sectionID string, req *requests.UpdateLabSection) error
 	Delete(ctx context.Context, sectionID string, userID string, req *requests.DeleteLabSection) error
 	Count(ctx context.Context, filterParams map[string]string) (int, error)
@@ -23,6 +24,7 @@ type LabSectionService interface {
 
 type labSectionService struct {
 	labSectionRepo      repositories.LabSectionRepository
+	sectionStudentRepo  repositories.SectionStudentRepository
 	uowRepo             repositories.UoWRepository
 	labRepo             repositories.LabRepository
 	sectionRepo         repositories.SectionRepository
@@ -30,12 +32,13 @@ type labSectionService struct {
 	allowedSortFields   map[string]bool
 }
 
-func NewLabSectionService(labSectionRepo repositories.LabSectionRepository, uowRepo repositories.UoWRepository, labRepo repositories.LabRepository, sectionRepo repositories.SectionRepository) LabSectionService {
+func NewLabSectionService(labSectionRepo repositories.LabSectionRepository, uowRepo repositories.UoWRepository, labRepo repositories.LabRepository, sectionRepo repositories.SectionRepository, sectionStudentRepo repositories.SectionStudentRepository) LabSectionService {
 	return &labSectionService{
-		labSectionRepo: labSectionRepo,
-		uowRepo:        uowRepo,
-		labRepo:        labRepo,
-		sectionRepo:    sectionRepo,
+		labSectionRepo:     labSectionRepo,
+		sectionStudentRepo: sectionStudentRepo,
+		uowRepo:            uowRepo,
+		labRepo:            labRepo,
+		sectionRepo:        sectionRepo,
 		allowedFilterFields: map[string]bool{
 			"lab_id":     true,
 			"section_id": true,
@@ -44,6 +47,18 @@ func NewLabSectionService(labSectionRepo repositories.LabSectionRepository, uowR
 			"position": true,
 		},
 	}
+}
+
+func (ls *labSectionService) GetByLabAndSectionID(ctx context.Context, labID string, sectionID string) (*models.LabSection, error) {
+	err := ls.rowExists(ctx, labID, sectionID)
+	if err != nil {
+		return nil, err
+	}
+	labSec, err := ls.labSectionRepo.GetByID(ctx, labID, sectionID)
+	if err != nil {
+		return nil, err
+	}
+	return labSec, nil
 }
 
 func (ls *labSectionService) rowExists(ctx context.Context, labID string, sectionID string) error {
