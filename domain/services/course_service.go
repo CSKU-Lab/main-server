@@ -154,7 +154,6 @@ func (s *courseService) UpdateByID(ctx context.Context, ID string, c *requests.U
 
 		return u.Course().UpdateByID(ctx, ID, c)
 	})
-
 }
 
 func (s *courseService) DeleteByID(ctx context.Context, ID string) error {

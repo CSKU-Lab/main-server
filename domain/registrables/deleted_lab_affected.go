@@ -84,11 +84,11 @@ func (d *deletedLabAffected) GetByTypeAndID(
 			})
 		}
 		for _, s := range labMats {
-			lab, err := u.Lab().GetByID(ctx, s.LabID)
+			lab, err := u.Lab().GetByID(ctx, req.ID)
 			if err != nil {
 				return err
 			}
-			mat, err := u.Material().GetByID(ctx, s.MaterialID)
+			mat, err := u.Material().GetByID(ctx, s.ID)
 			if err != nil {
 				return err
 			}

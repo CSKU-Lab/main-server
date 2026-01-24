@@ -2,6 +2,7 @@ package requests
 
 import (
 	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/go-ozzo/ozzo-validation/v4/is"
 )
 
 type CreateSection struct {
@@ -39,5 +40,15 @@ func (req *UpdateSection) Validate() error {
 		validation.Field(&req.SemesterID, validation.NilOrNotEmpty),
 		validation.Field(&req.Banner, validation.NilOrNotEmpty),
 		validation.Field(&req.Students, validation.NilOrNotEmpty, validation.Length(1, 0)),
+	)
+}
+
+type GetSection struct {
+	SectionID string `json:"section_id"`
+}
+
+func (req *GetSection) Validate() error {
+	return validation.ValidateStruct(req,
+		validation.Field(&req.SectionID, validation.Required, is.UUID),
 	)
 }
