@@ -118,10 +118,16 @@ func (s *sectionService) GetSectionsPagination(ctx context.Context, page int, li
 			return nil, err
 		}
 
+		var banner *string
+		if rs.Banner != nil {
+			_banner := converter.ToS3Path(s.config, *rs.Banner)
+			banner = &_banner
+		}
+
 		sections = append(sections, models.Section{
 			ID:     rs.ID,
 			Name:   rs.Name,
-			Banner: rs.Banner,
+			Banner: banner,
 			Semester: models.SectionSemester{
 				ID:   semester.ID,
 				Name: semester.Name,
