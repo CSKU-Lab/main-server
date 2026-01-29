@@ -29,18 +29,6 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
-// temporaly way to just make it work for openhouse :D and need to clean this later
-type RunnerConfig struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-}
-
-type RunnerConfigDetail struct {
-	RunnerConfig
-	BuildScript string `json:"build_script"`
-	RunScript   string `json:"run_script"`
-}
-
 // temporaly files
 type TmpFile struct {
 	Name    string `json:"name"`
@@ -51,11 +39,6 @@ type RunExecutionRequest struct {
 	Files    []TmpFile `json:"files"`
 	Input    string    `json:"input"`
 	RunnerID string    `json:"runner_id"`
-}
-
-type CompareConfig struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
 }
 
 func main() {
@@ -169,59 +152,6 @@ func main() {
 
 	api := app.Group("/api/v1")
 
-	api.Get("cms/config/runners", func(c *fiber.Ctx) error {
-		includeScriptQuery := c.Query("include_script", "false")
-
-		runners, err := configGRPCClient.GetRunners(c.Context(), &configPB.GetRunnersRequest{
-			IncludeName: true,
-		})
-		if err != nil {
-			return err
-		}
-
-		if includeScriptQuery == "true" {
-			var runnerConfigs []RunnerConfigDetail
-			for _, runner := range runners.Runners {
-				runnerConfigs = append(runnerConfigs, RunnerConfigDetail{
-					RunnerConfig: RunnerConfig{
-						ID:   runner.GetId(),
-						Name: runner.GetName(),
-					},
-					BuildScript: runner.GetBuildScript(),
-					RunScript:   runner.GetRunScript(),
-				})
-			}
-			return c.JSON(runnerConfigs)
-		}
-
-		var runnerConfigs []RunnerConfig
-		for _, runner := range runners.Runners {
-			runnerConfigs = append(runnerConfigs, RunnerConfig{
-				ID:   runner.GetId(),
-				Name: runner.GetName(),
-			})
-		}
-
-		return c.JSON(runnerConfigs)
-	})
-
-	api.Get("/cms/config/compare-scripts", func(c *fiber.Ctx) error {
-		compares, err := configGRPCClient.GetCompares(c.Context(), nil)
-		if err != nil {
-			return err
-		}
-
-		compareConfigs := make([]CompareConfig, 0, len(compares.Compares))
-		for _, compare := range compares.Compares {
-			compareConfigs = append(compareConfigs, CompareConfig{
-				ID:   compare.GetId(),
-				Name: compare.GetName(),
-			})
-		}
-
-		return c.JSON(compareConfigs)
-	})
-
 	api.Post("/playground/execute", func(c *fiber.Ctx) error {
 		var req RunExecutionRequest
 		if err := c.BodyParser(&req); err != nil {
@@ -333,6 +263,7 @@ func main() {
 		DefaultLabService:       defaultLabService,
 		SectionLogService:       sectionLogService,
 		MaterialAssetService:    materialAssetService,
+		ConfigGRPCClient:        configGRPCClient,
 	})
 
 	rest.NewCoreRouter(&rest.CoreRouter{

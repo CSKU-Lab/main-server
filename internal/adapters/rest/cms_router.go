@@ -2,6 +2,7 @@ package rest
 
 import (
 	"github.com/CSKU-Lab/main-server/domain/services"
+	configPB "github.com/CSKU-Lab/main-server/genproto/config/v1"
 	"github.com/CSKU-Lab/main-server/internal/adapters/rest/routes"
 	"github.com/gofiber/fiber/v2"
 )
@@ -20,6 +21,7 @@ type CMSRouter struct {
 	DefaultLabService       services.DefaultLabService
 	SectionLogService       services.SectionLogService
 	MaterialAssetService    services.MaterialAssetService
+	ConfigGRPCClient        configPB.ConfigServiceClient
 }
 
 func NewCMSRouter(r *CMSRouter) {
@@ -32,4 +34,5 @@ func NewCMSRouter(r *CMSRouter) {
 	routes.NewCMSUserExistancesRoutes(cmsRouter, r.UserService)
 	routes.NewCMSCourseRoutes(cmsRouter, r.CourseService, r.SectionService, r.SemesterService, r.DefaultLabService, r.LabService)
 	routes.NewCMSLabRoutes(cmsRouter, r.LabService, r.LabSectionService, r.LabMaterialService)
+	routes.NewCMSConfigRoutes(cmsRouter, r.ConfigGRPCClient)
 }
