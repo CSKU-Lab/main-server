@@ -27,6 +27,7 @@ type Config struct {
 	GRADER_SERVER_URL  string
 	CONFIG_SERVER_URL  string
 	TASK_SERVER_URL    string
+	RBMQ_SERVER_URL    string
 }
 
 func NewConfig() *Config {
@@ -55,5 +56,6 @@ func NewConfig() *Config {
 		GRADER_SERVER_URL:  os.Getenv("GRADER_SERVER_URL"),
 		CONFIG_SERVER_URL:  os.Getenv("CONFIG_SERVER_URL"),
 		TASK_SERVER_URL:    os.Getenv("TASK_SERVER_URL"),
+		RBMQ_SERVER_URL:    os.Getenv("RBMQ_SERVER_URL"),
 	}
 }

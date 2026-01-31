@@ -3,9 +3,9 @@ testdata_dir = "testdata"
 tmp_dir = "tmp"
 
 [build]
-  args_bin = []
+  args_bin = ["mode", "all"]
   bin = "./tmp/main"
-  cmd = "go build -o ./tmp/main ./cmd/app/main.go"
+  cmd = "go build -o ./tmp/main ./cmd/app"
   delay = 1000
   exclude_dir = ["assets", "tmp", "vendor", "testdata", "docker/minio/"]
   exclude_file = []

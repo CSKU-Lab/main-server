@@ -47,4 +47,8 @@ func NewCoreRouter(r *CoreRouter) {
 		coreRouter,
 		r.SidebarService,
 	)
+
+	routes.NewCoreSubmissionRoutes(
+		coreRouter,
+	)
 }

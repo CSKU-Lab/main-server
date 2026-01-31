@@ -103,7 +103,7 @@ table "user_refresh_tokens" {
 table "user_passwords" {
   schema = schema.public
   column "user_id" {
-    type = uuid 
+    type = uuid
   }
   column "password" {
     type = varchar(80)
@@ -750,5 +750,87 @@ table "auth_logs" {
   foreign_key "fk_user_id" {
     columns = [ column.user_id ]
     ref_columns = [ table.users.column.id ]
+  }
+}
+
+enum "submission_status" {
+  schema = schema.public
+  values = [ "queued", "running", "passed", "failed"]
+}
+
+table "submissions" {
+  schema = schema.public
+  column "id" {
+    type = uuid
+  }
+  column "user_id" {
+    type = uuid
+  }
+  column "material_id" {
+    type = uuid
+  }
+  column "section_id" {
+    type = uuid
+    null = true
+  }
+  column "course_id" {
+    type = uuid
+  }
+  column "created_at" {
+    type = timestamp
+  }
+  column "updated_at" {
+    type = timestamp
+  }
+  column "status"{
+    type = enum.submission_status
+  }
+  primary_key {
+    columns = [ column.id ]
+  }
+  foreign_key "fk_user_id" {
+    columns = [ column.user_id ]
+    ref_columns = [ table.users.column.id ]
+  }
+  foreign_key "fk_material_id" {
+    columns = [ column.material_id ]
+    ref_columns = [ table.materials.column.id ]
+  }
+  foreign_key "fk_section_id" {
+    columns = [ column.section_id ]
+    ref_columns = [ table.sections.column.id ]
+  }
+  foreign_key "fk_course_id" {
+    columns = [ column.course_id ]
+    ref_columns = [ table.courses.column.id ]
+  }
+}
+
+table "code_submissions" {
+  schema = schema.public
+  column "submission_id" {
+    type = uuid
+  }
+  column "code" {
+    type = text
+  }
+  column "status"{
+    type = text
+  }
+  column "avg_wall_time" {
+    type = float
+  }
+  column "avg_memory" {
+    type = int
+  }
+  column "test_case_groups" {
+    type = jsonb
+  }
+  primary_key {
+    columns = [ column.submission_id ]
+  }
+  foreign_key "fk_submission_id" {
+    columns = [ column.submission_id ]
+    ref_columns = [ table.submissions.column.id ]
   }
 }

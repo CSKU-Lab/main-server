@@ -1,6 +1,6 @@
 module github.com/CSKU-Lab/main-server
 
-go 1.25.1
+go 1.25.5
 
 require (
 	github.com/google/uuid v1.6.0
@@ -30,6 +30,7 @@ require (
 	github.com/minio/md5-simd v1.1.2 // indirect
 	github.com/philhofer/fwd v1.2.0 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
+	github.com/rabbitmq/amqp091-go v1.10.0 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/rs/xid v1.6.0 // indirect
 	github.com/tinylib/msgp v1.3.0 // indirect
@@ -41,6 +42,7 @@ require (
 )
 
 require (
+	github.com/CSKU-Lab/queue v0.1.1
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0
 	github.com/gofiber/fiber/v2 v2.52.5
 	github.com/golang-jwt/jwt/v5 v5.2.1
