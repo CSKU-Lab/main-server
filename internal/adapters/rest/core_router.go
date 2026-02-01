@@ -17,6 +17,7 @@ type CoreRouter struct {
 	LabMaterialService    services.LabMaterialService
 	CourseService         services.CourseService
 	SidebarService        services.SidebarService
+	SubmissionService     services.SubmissionService
 }
 
 func NewCoreRouter(r *CoreRouter) {
@@ -50,5 +51,6 @@ func NewCoreRouter(r *CoreRouter) {
 
 	routes.NewCoreSubmissionRoutes(
 		coreRouter,
+		r.SubmissionService,
 	)
 }

@@ -2,19 +2,17 @@ package sqlx
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/CSKU-Lab/main-server/domain/models"
 	"github.com/CSKU-Lab/main-server/domain/repositories"
-	"github.com/jmoiron/sqlx"
 )
 
 type submissionRepository struct {
-	db *sqlx.DB
+	db instance
 }
 
-func NewSubmissionRepository(db *sqlx.DB) repositories.Submission {
+func NewSubmissionRepository(db instance) repositories.Submission {
 	return &submissionRepository{
 		db: db,
 	}
@@ -33,8 +31,8 @@ type submission struct {
 
 func (s *submissionRepository) Create(ctx context.Context, payload *repositories.SubmissionPayload) error {
 	query := `INSERT INTO submissions
-	(id, user_id, material_id, section_id, course_id, created_at)
-	VALUES ($1,$2,$3,$4,$5,NOW())`
+	(id, user_id, material_id, section_id, course_id, status, created_at, updated_at)
+	VALUES ($1,$2,$3,$4,$5,'queued',NOW(),NOW())`
 
 	_, err := s.db.ExecContext(ctx, query, payload.ID, payload.UserID, payload.MaterialID, payload.SectionID, payload.CourseID)
 	if err != nil {
@@ -43,24 +41,11 @@ func (s *submissionRepository) Create(ctx context.Context, payload *repositories
 	return nil
 }
 
-func (s *submissionRepository) Update(ctx context.Context, payload *repositories.SubmissionPayload) error {
-	fields := &submission{
-		ID:         payload.ID,
-		UserID:     payload.UserID,
-		MaterialID: payload.MaterialID,
-		SectionID:  payload.SectionID,
-		CourseID:   payload.CourseID,
-	}
+func (s *submissionRepository) Update(ctx context.Context, id string, status models.SubmissionStatus) error {
+	query := `UPDATE submissions
+	SET status = $2, updated_at = NOW() WHERE id = $1`
 
-	updateFields := getUpdateFields(fields)
-	if len(updateFields) == 0 {
-		return nil
-	}
-
-	query := fmt.Sprintf(`UPDATE submissions
-	SET %s, updated_at = NOW()`, updateFields)
-
-	_, err := s.db.ExecContext(ctx, query, fields)
+	_, err := s.db.ExecContext(ctx, query, id, string(status))
 	if err != nil {
 		return err
 	}

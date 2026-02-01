@@ -2,10 +2,7 @@ package registrables
 
 import (
 	"context"
-	"encoding/json"
-	"net/http"
 
-	"github.com/CSKU-Lab/main-server/domain/cserrors"
 	"github.com/CSKU-Lab/main-server/domain/registries"
 	"github.com/CSKU-Lab/main-server/domain/repositories"
 	configPB "github.com/CSKU-Lab/main-server/genproto/config/v1"
@@ -92,21 +89,6 @@ func NewCodeMaterial(repo repositories.CodeMaterialRepository, taskGRPCClient ta
 		configGRPCCLient: configGRPCClient,
 		graderGRPCClient: graderGRPCClient,
 	}
-}
-
-func parsePayload(payload []byte) (*CodeMaterialPayload, error) {
-	var matPayload struct {
-		Payload CodeMaterialPayload `json:"payload"`
-	}
-	err := json.Unmarshal(payload, &matPayload)
-	if err != nil {
-		return nil, cserrors.New(&cserrors.Option{
-			Message:    "invalid payload format",
-			HttpStatus: http.StatusBadRequest,
-		})
-	}
-
-	return &matPayload.Payload, nil
 }
 
 func (c *codeMaterial) GetByID(ctx context.Context, ID string) (any, error) {
@@ -224,7 +206,7 @@ func (c *codeMaterial) Create(ctx context.Context, matID string, req *requests.C
 }
 
 func (c *codeMaterial) UpdateByID(ctx context.Context, ID string, req *requests.BaseUpdateMaterial, rawReq []byte) error {
-	payload, err := parsePayload(rawReq)
+	payload, err := parsePayload[CodeMaterialPayload](rawReq)
 	if err != nil {
 		return err
 	}

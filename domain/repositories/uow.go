@@ -23,6 +23,9 @@ type UoWInstance interface {
 	LabMaterial() LabMaterialRepository
 
 	DefaultLab() DefaultLabRepository
+
+	Submission() Submission
+	CodeSubmission() CodeSubmission
 }
 
 type UoWRepository interface {

@@ -131,6 +131,15 @@ func startApiServer(ctx context.Context, db *sqlx.DB, config *configs.Config) {
 
 	sidebarService := services.NewSidebarService(courseRepo, sectionStudentRepo, labSectionRepo, labMaterialRepo)
 
+	submissionReo := sqlxAdapter.NewSubmissionRepository(db)
+	codeSubmissionRepo := sqlxAdapter.NewCodeSubmission(db)
+
+	codeSubmissionRegistrable := registrables.NewCodeSubmission(codeSubmissionRepo)
+
+	submissionRegistry := registries.NewSubmission()
+	submissionRegistry.Register("code", codeSubmissionRegistrable)
+	submissionService := services.NewSubmissionService(submissionReo, uowRepo, submissionRegistry)
+
 	app := fiber.New(fiber.Config{
 		ErrorHandler: errHandlerMiddleware.ErrorHandler,
 		BodyLimit:    10 * 1024 * 1024, // 10 MB
@@ -267,6 +276,7 @@ func startApiServer(ctx context.Context, db *sqlx.DB, config *configs.Config) {
 		LabMaterialService:    labMaterialService,
 		CourseService:         courseService,
 		SidebarService:        sidebarService,
+		SubmissionService:     submissionService,
 	})
 
 	port := fmt.Sprintf(":%v", config.Port)

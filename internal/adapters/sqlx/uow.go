@@ -86,6 +86,14 @@ func (u *uowInstance) LabMaterial() repositories.LabMaterialRepository {
 	return NewSqlxLabMaterialRepository(u.tx)
 }
 
+func (u *uowInstance) Submission() repositories.Submission {
+	return NewSubmissionRepository(u.tx)
+}
+
+func (u *uowInstance) CodeSubmission() repositories.CodeSubmission {
+	return NewCodeSubmission(u.tx)
+}
+
 func (s *uowImpl) Execute(ctx context.Context, cb func(s repositories.UoWInstance) error) error {
 	tx, err := s.db.BeginTxx(ctx, &sql.TxOptions{})
 	if err != nil {

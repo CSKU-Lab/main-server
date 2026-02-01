@@ -775,6 +775,7 @@ table "submissions" {
   }
   column "course_id" {
     type = uuid
+    null = true
   }
   column "created_at" {
     type = timestamp
@@ -816,15 +817,19 @@ table "code_submissions" {
   }
   column "status"{
     type = text
+    null = true
   }
   column "avg_wall_time" {
     type = float
+    null = true
   }
   column "avg_memory" {
     type = int
+    null = true
   }
   column "test_case_groups" {
     type = jsonb
+    null = true
   }
   primary_key {
     columns = [ column.submission_id ]
