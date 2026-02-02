@@ -25,12 +25,12 @@ type UpdateSubmissionPayload struct {
 }
 
 type submissionService struct {
-	repo     repositories.Submission
+	repo     repositories.SubmissionRepository
 	uowRepo  repositories.UoWRepository
 	registry registries.SubmissionRegistry
 }
 
-func NewSubmissionService(repo repositories.Submission, uowRepo repositories.UoWRepository, registry registries.SubmissionRegistry) SubmissionService {
+func NewSubmissionService(repo repositories.SubmissionRepository, uowRepo repositories.UoWRepository, registry registries.SubmissionRegistry) SubmissionService {
 	return &submissionService{
 		repo:     repo,
 		uowRepo:  uowRepo,

@@ -86,11 +86,11 @@ func (u *uowInstance) LabMaterial() repositories.LabMaterialRepository {
 	return NewSqlxLabMaterialRepository(u.tx)
 }
 
-func (u *uowInstance) Submission() repositories.Submission {
+func (u *uowInstance) Submission() repositories.SubmissionRepository {
 	return NewSubmissionRepository(u.tx)
 }
 
-func (u *uowInstance) CodeSubmission() repositories.CodeSubmission {
+func (u *uowInstance) CodeSubmission() repositories.CodeSubmissionRepository {
 	return NewCodeSubmission(u.tx)
 }
 

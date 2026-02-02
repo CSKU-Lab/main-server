@@ -11,7 +11,7 @@ type codeSubmission struct {
 	db instance
 }
 
-func NewCodeSubmission(db instance) repositories.CodeSubmission {
+func NewCodeSubmission(db instance) repositories.CodeSubmissionRepository {
 	return &codeSubmission{
 		db: db,
 	}

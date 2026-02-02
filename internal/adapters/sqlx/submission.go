@@ -12,7 +12,7 @@ type submissionRepository struct {
 	db instance
 }
 
-func NewSubmissionRepository(db instance) repositories.Submission {
+func NewSubmissionRepository(db instance) repositories.SubmissionRepository {
 	return &submissionRepository{
 		db: db,
 	}
@@ -52,11 +52,11 @@ func (s *submissionRepository) Update(ctx context.Context, id string, status mod
 	return nil
 }
 
-func (s *submissionRepository) Get(ctx context.Context, ID string) (*models.Submission, error) {
+func (s *submissionRepository) Get(ctx context.Context, id string) (*models.Submission, error) {
 	query := `SELECT * FROM submissions WHERE id = $1`
 
 	submission := &submission{}
-	err := s.db.GetContext(ctx, &submission, query)
+	err := s.db.GetContext(ctx, &submission, query, id)
 	if err != nil {
 		return nil, err
 	}

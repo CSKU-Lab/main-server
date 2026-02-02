@@ -10,10 +10,10 @@ import (
 )
 
 type codeSubmission struct {
-	repo repositories.CodeSubmission
+	repo repositories.CodeSubmissionRepository
 }
 
-func NewCodeSubmission(repo repositories.CodeSubmission) registries.SubmissionRegistrable {
+func NewCodeSubmission(repo repositories.CodeSubmissionRepository) registries.SubmissionRegistrable {
 	return &codeSubmission{
 		repo: repo,
 	}

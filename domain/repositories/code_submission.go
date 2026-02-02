@@ -6,7 +6,7 @@ import (
 	"github.com/CSKU-Lab/main-server/domain/models"
 )
 
-type CodeSubmission interface {
+type CodeSubmissionRepository interface {
 	Create(ctx context.Context, payload *CreateCodeSubmissionPayload) error
 	Update(ctx context.Context, payload *UpdateCodeSubmissionPayload) error
 	Get(ctx context.Context, submissionID string) (*models.CodeSubmission, error)
