@@ -831,6 +831,10 @@ table "code_submissions" {
     type = jsonb
     null = true
   }
+  column "score" {
+    type = int
+    null = true
+  }
   primary_key {
     columns = [ column.submission_id ]
   }

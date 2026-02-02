@@ -131,14 +131,20 @@ func startApiServer(ctx context.Context, db *sqlx.DB, config *configs.Config) {
 
 	sidebarService := services.NewSidebarService(courseRepo, sectionStudentRepo, labSectionRepo, labMaterialRepo)
 
-	submissionReo := sqlxAdapter.NewSubmissionRepository(db)
+	submissionRepo := sqlxAdapter.NewSubmissionRepository(db)
 	codeSubmissionRepo := sqlxAdapter.NewCodeSubmission(db)
 
 	codeSubmissionRegistrable := registrables.NewCodeSubmission(codeSubmissionRepo)
 
 	submissionRegistry := registries.NewSubmission()
 	submissionRegistry.Register("code", codeSubmissionRegistrable)
-	submissionService := services.NewSubmissionService(submissionReo, uowRepo, submissionRegistry)
+	submissionService := services.NewSubmissionService(&services.SubmissionServiceArgs{
+		SubmissionRepository:     submissionRepo,
+		MaterialRepository:       materialRepo,
+		UowRepository:            uowRepo,
+		SubmissionRegistry:       submissionRegistry,
+		SectionStudentRepository: sectionStudentRepo,
+	})
 
 	app := fiber.New(fiber.Config{
 		ErrorHandler: errHandlerMiddleware.ErrorHandler,

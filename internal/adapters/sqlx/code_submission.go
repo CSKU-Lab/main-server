@@ -7,17 +7,17 @@ import (
 	"github.com/CSKU-Lab/main-server/domain/repositories"
 )
 
-type codeSubmission struct {
+type codeSubmissionRepository struct {
 	db instance
 }
 
 func NewCodeSubmission(db instance) repositories.CodeSubmissionRepository {
-	return &codeSubmission{
+	return &codeSubmissionRepository{
 		db: db,
 	}
 }
 
-func (c *codeSubmission) Create(ctx context.Context, payload *repositories.CreateCodeSubmissionPayload) error {
+func (c *codeSubmissionRepository) Create(ctx context.Context, payload *repositories.CreateCodeSubmissionPayload) error {
 	query := `INSERT INTO code_submissions (submission_id, code) VALUES ($1, $2)`
 
 	_, err := c.db.ExecContext(ctx, query, payload.SubmissionID, payload.Code)
@@ -27,7 +27,7 @@ func (c *codeSubmission) Create(ctx context.Context, payload *repositories.Creat
 
 	return nil
 }
-func (c *codeSubmission) Update(ctx context.Context, payload *repositories.UpdateCodeSubmissionPayload) error {
+func (c *codeSubmissionRepository) Update(ctx context.Context, payload *repositories.UpdateCodeSubmissionPayload) error {
 	query := `UPDATE code_submissions SET
 				status = $2,
 				avg_wall_time = $3,
@@ -44,6 +44,28 @@ func (c *codeSubmission) Update(ctx context.Context, payload *repositories.Updat
 	return nil
 }
 
-func (c *codeSubmission) Get(ctx context.Context, id string) (*models.CodeSubmission, error) {
-	return nil, nil
+type codeSubmission struct {
+	Code           string                `db:"code"`
+	Status         *string               `db:"status"`
+	AvgWallTime    *float32              `db:"avg_wall_time"`
+	AvgMemory      *int32                `db:"avg_memory"`
+	TestCaseGroups models.TestCaseGroups `db:"test_case_groups"`
+}
+
+func (c *codeSubmissionRepository) Get(ctx context.Context, submissionId string) (*models.CodeSubmission, error) {
+	query := `SELECT code,status,avg_wall_time,avg_memory,test_case_groups FROM code_submissions WHERE submission_id = $1`
+
+	submission := codeSubmission{}
+	err := c.db.GetContext(ctx, &submission, query, submissionId)
+	if err != nil {
+		return nil, err
+	}
+
+	return &models.CodeSubmission{
+		Code:           submission.Code,
+		Status:         submission.Status,
+		AvgWallTime:    submission.AvgWallTime,
+		AvgMemory:      submission.AvgMemory,
+		TestCaseGroups: submission.TestCaseGroups,
+	}, nil
 }

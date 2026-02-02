@@ -35,6 +35,8 @@ func (t *TestCaseGroups) Scan(src any) error {
 		data = src
 	case string:
 		data = []byte(src)
+	case nil:
+		return nil
 	default:
 		return errors.New("unsupported data type for TestCaseGroups")
 	}

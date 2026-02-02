@@ -7,12 +7,12 @@ import (
 )
 
 type SubmissionRepository interface {
-	Create(ctx context.Context, req *SubmissionPayload) error
+	Create(ctx context.Context, req *Submission) error
 	Update(ctx context.Context, id string, status models.SubmissionStatus) error
-	Get(ctx context.Context, id string) (*models.Submission, error)
+	Get(ctx context.Context, id string) (*Submission, error)
 }
 
-type SubmissionPayload struct {
+type Submission struct {
 	ID         string
 	UserID     string
 	LabID      string

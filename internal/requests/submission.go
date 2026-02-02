@@ -10,7 +10,6 @@ type Submission struct {
 	MaterialID string  `json:"material_id"`
 	SectionID  *string `json:"section_id"`
 	CourseID   *string `json:"course_id"`
-	Type       string  `json:"type"`
 	Payload    any     `json:"payload"`
 }
 
@@ -20,7 +19,6 @@ func (s *Submission) Validate() error {
 		validation.Field(&s.MaterialID, validation.Required, is.UUID),
 		validation.Field(&s.SectionID, validation.When(s.CourseID != nil, validation.Nil).Else(validation.Required, is.UUID)),
 		validation.Field(&s.CourseID, validation.When(s.SectionID != nil, validation.Nil).Else(validation.Required, is.UUID)),
-		validation.Field(&s.Type, validation.Required, validation.In("document", "code", "typing")),
 		validation.Field(&s.Payload, validation.Required),
 	)
 }

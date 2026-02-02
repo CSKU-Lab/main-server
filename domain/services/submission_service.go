@@ -19,37 +19,61 @@ type SubmissionService interface {
 }
 
 type UpdateSubmissionPayload struct {
-	Type    string
-	Status  models.SubmissionStatus
-	Payload any `json:"payload"`
+	Status     models.SubmissionStatus
+	MaterialID string
+	Payload    any `json:"payload"`
 }
 
 type submissionService struct {
-	repo     repositories.SubmissionRepository
-	uowRepo  repositories.UoWRepository
-	registry registries.SubmissionRegistry
+	repo               repositories.SubmissionRepository
+	materialRepo       repositories.MaterialRepository
+	sectionStudentRepo repositories.SectionStudentRepository
+	uowRepo            repositories.UoWRepository
+	registry           registries.SubmissionRegistry
 }
 
-func NewSubmissionService(repo repositories.SubmissionRepository, uowRepo repositories.UoWRepository, registry registries.SubmissionRegistry) SubmissionService {
+type SubmissionServiceArgs struct {
+	SubmissionRepository     repositories.SubmissionRepository
+	MaterialRepository       repositories.MaterialRepository
+	UowRepository            repositories.UoWRepository
+	SubmissionRegistry       registries.SubmissionRegistry
+	SectionStudentRepository repositories.SectionStudentRepository
+}
+
+func NewSubmissionService(args *SubmissionServiceArgs) SubmissionService {
 	return &submissionService{
-		repo:     repo,
-		uowRepo:  uowRepo,
-		registry: registry,
+		repo:               args.SubmissionRepository,
+		materialRepo:       args.MaterialRepository,
+		uowRepo:            args.UowRepository,
+		registry:           args.SubmissionRegistry,
+		sectionStudentRepo: args.SectionStudentRepository,
 	}
 }
 
 func (s *submissionService) Create(ctx context.Context, req *requests.Submission, rawPayload []byte) (string, error) {
-	id, err := uuid.NewV7()
-	if err != nil {
-		return "", err
-	}
-
 	user, ok := ctx.Value(contextkeys.UserKey).(contextkeys.User)
 	if !ok {
 		return "", errors.New("cannot extract user from context")
 	}
 
-	payload := &repositories.SubmissionPayload{
+	mat, err := s.materialRepo.GetByID(ctx, req.MaterialID)
+	if err != nil {
+		return "", err
+	}
+
+	if req.SectionID != nil {
+		_, err := s.sectionStudentRepo.GetBySectionAndStudentID(ctx, *req.SectionID, user.ID)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	id, err := uuid.NewV7()
+	if err != nil {
+		return "", err
+	}
+
+	payload := &repositories.Submission{
 		ID:         id.String(),
 		UserID:     user.ID,
 		LabID:      req.LabID,
@@ -64,7 +88,7 @@ func (s *submissionService) Create(ctx context.Context, req *requests.Submission
 			return err
 		}
 
-		handler, err := s.registry.GetHandler(req.Type)
+		handler, err := s.registry.GetHandler(mat.Type)
 		if err != nil {
 			return err
 		}
@@ -78,6 +102,7 @@ func (s *submissionService) Create(ctx context.Context, req *requests.Submission
 	return id.String(), nil
 }
 
+// this method doesn't need to check the request because it just use internally
 func (s *submissionService) Update(ctx context.Context, submissionID string, payload *UpdateSubmissionPayload, rawPayload []byte) error {
 	return s.uowRepo.Execute(ctx, func(u repositories.UoWInstance) error {
 		err := u.Submission().Update(ctx, submissionID, payload.Status)
@@ -85,7 +110,12 @@ func (s *submissionService) Update(ctx context.Context, submissionID string, pay
 			return err
 		}
 
-		handler, err := s.registry.GetHandler(payload.Type)
+		mat, err := s.materialRepo.GetByID(ctx, payload.MaterialID)
+		if err != nil {
+			return err
+		}
+
+		handler, err := s.registry.GetHandler(mat.Type)
 		if err != nil {
 			return err
 		}
@@ -100,7 +130,12 @@ func (s *submissionService) Get(ctx context.Context, id string) (*models.Submiss
 		return nil, err
 	}
 
-	handler, err := s.registry.GetHandler(submission.Type)
+	mat, err := s.materialRepo.GetByID(ctx, submission.MaterialID)
+	if err != nil {
+		return nil, err
+	}
+
+	handler, err := s.registry.GetHandler(mat.Type)
 	if err != nil {
 		return nil, err
 	}
@@ -112,8 +147,6 @@ func (s *submissionService) Get(ctx context.Context, id string) (*models.Submiss
 
 	return &models.Submission{
 		ID:      submission.ID,
-		Type:    submission.Type,
-		Status:  submission.Status,
 		Payload: payload,
 	}, nil
 }

@@ -18,18 +18,7 @@ func NewSubmissionRepository(db instance) repositories.SubmissionRepository {
 	}
 }
 
-type submission struct {
-	ID         string    `db:"id"`
-	Status     string    `db:"status"`
-	UserID     string    `db:"user_id"`
-	MaterialID string    `db:"material_id"`
-	SectionID  *string   `db:"section_id"`
-	CourseID   *string   `db:"course_id"`
-	CreatedAt  time.Time `db:"created_at"`
-	UpdatedAt  time.Time `db:"updated_at"`
-}
-
-func (s *submissionRepository) Create(ctx context.Context, payload *repositories.SubmissionPayload) error {
+func (s *submissionRepository) Create(ctx context.Context, payload *repositories.Submission) error {
 	query := `INSERT INTO submissions
 	(id, user_id, material_id, section_id, course_id, status, created_at, updated_at)
 	VALUES ($1,$2,$3,$4,$5,'queued',NOW(),NOW())`
@@ -52,18 +41,34 @@ func (s *submissionRepository) Update(ctx context.Context, id string, status mod
 	return nil
 }
 
-func (s *submissionRepository) Get(ctx context.Context, id string) (*models.Submission, error) {
+type submission struct {
+	ID         string    `db:"id"`
+	Status     string    `db:"status"`
+	UserID     string    `db:"user_id"`
+	LabID      string    `db:"lab_id"`
+	MaterialID string    `db:"material_id"`
+	SectionID  *string   `db:"section_id"`
+	CourseID   *string   `db:"course_id"`
+	CreatedAt  time.Time `db:"created_at"`
+	UpdatedAt  time.Time `db:"updated_at"`
+}
+
+func (s *submissionRepository) Get(ctx context.Context, id string) (*repositories.Submission, error) {
 	query := `SELECT * FROM submissions WHERE id = $1`
 
-	submission := &submission{}
+	submission := submission{}
 	err := s.db.GetContext(ctx, &submission, query, id)
 	if err != nil {
 		return nil, err
 	}
 
-	model := &models.Submission{
-		ID:     submission.ID,
-		Status: models.SubmissionStatus(submission.Status),
+	model := &repositories.Submission{
+		ID:         submission.ID,
+		UserID:     submission.UserID,
+		LabID:      submission.LabID,
+		SectionID:  submission.SectionID,
+		CourseID:   submission.CourseID,
+		MaterialID: submission.MaterialID,
 	}
 
 	return model, nil
