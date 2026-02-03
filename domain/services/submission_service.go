@@ -3,8 +3,10 @@ package services
 import (
 	"context"
 	"errors"
+	"net/http"
 
 	contextkeys "github.com/CSKU-Lab/main-server/context_keys"
+	"github.com/CSKU-Lab/main-server/domain/cserrors"
 	"github.com/CSKU-Lab/main-server/domain/models"
 	"github.com/CSKU-Lab/main-server/domain/registries"
 	"github.com/CSKU-Lab/main-server/domain/repositories"
@@ -64,7 +66,10 @@ func (s *submissionService) Create(ctx context.Context, req *requests.Submission
 	if req.SectionID != nil {
 		_, err := s.sectionStudentRepo.GetBySectionAndStudentID(ctx, *req.SectionID, user.ID)
 		if err != nil {
-			return "", err
+			return "", cserrors.New(&cserrors.Option{
+				HttpStatus: http.StatusForbidden,
+				Message:    "You do not have access to this section",
+			})
 		}
 	}
 

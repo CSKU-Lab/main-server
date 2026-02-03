@@ -843,3 +843,32 @@ table "code_submissions" {
     ref_columns = [ table.submissions.column.id ]
   }
 }
+
+table "code_submissions_outbox" {
+  schema = schema.public
+  column "id"{
+    type = uuid
+  }
+  column "aggregate_id" {
+    type = uuid
+  }
+  column "is_sent" {
+    type = boolean
+    default = false
+  }
+  column "payload" {
+    type = text
+  }
+  column "created_at" {
+    type = timestamp
+    default = sql("CURRENT_TIMESTAMP")
+  }
+  primary_key {
+    columns = [ column.id ]
+  }
+  foreign_key "fk_aggregate_id" {
+    columns = [ column.aggregate_id ]
+    ref_columns = [ table.code_submissions.column.submission_id ]
+    on_delete = CASCADE
+  }
+}
