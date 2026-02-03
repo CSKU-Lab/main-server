@@ -8,3 +8,5 @@ tmp/
 
 # Minio files
 docker/minio/
+
+trigger_stamp.json
