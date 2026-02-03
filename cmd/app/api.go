@@ -15,8 +15,8 @@ import (
 	configPB "github.com/CSKU-Lab/main-server/genproto/config/v1"
 	graderPB "github.com/CSKU-Lab/main-server/genproto/grader/v1"
 	taskPB "github.com/CSKU-Lab/main-server/genproto/task/v1"
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/cors"
 	"github.com/jmoiron/sqlx"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -148,20 +148,20 @@ func startApiServer(ctx context.Context, db *sqlx.DB, config *configs.Config) {
 
 	app := fiber.New(fiber.Config{
 		ErrorHandler: errHandlerMiddleware.ErrorHandler,
-		BodyLimit:    10 * 1024 * 1024, // 10 MB
+		BodyLimit:    10 * 1024 * 1024, // 10 MB,
 	})
 
 	app.Use(cors.New(cors.Config{
-		AllowOrigins:     "http://localhost:3000",
-		AllowHeaders:     "Origin, Content-Type, Accept",
+		AllowOrigins:     []string{"http://localhost:3000"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept"},
 		AllowCredentials: true,
 	}))
 
 	api := app.Group("/api/v1")
 
-	api.Post("/playground/execute", func(c *fiber.Ctx) error {
+	api.Post("/playground/execute", func(c fiber.Ctx) error {
 		var req RunExecutionRequest
-		if err := c.BodyParser(&req); err != nil {
+		if err := c.Bind().Body(&req); err != nil {
 			return fiber.NewError(fiber.StatusBadRequest, "invalid request body")
 		}
 
@@ -183,7 +183,7 @@ func startApiServer(ctx context.Context, db *sqlx.DB, config *configs.Config) {
 			RunnerId: req.RunnerID,
 		}
 
-		stream, err := graderGRPCClient.Run(c.Context(), runReq)
+		stream, err := graderGRPCClient.Run(c.RequestCtx(), runReq)
 		if err != nil {
 			return err
 		}
@@ -198,7 +198,7 @@ func startApiServer(ctx context.Context, db *sqlx.DB, config *configs.Config) {
 			UseProtoNames:   true,
 		}
 
-		c.Context().SetBodyStreamWriter(func(w *bufio.Writer) {
+		c.RequestCtx().SetBodyStreamWriter(func(w *bufio.Writer) {
 			writeEvent := func(event string, payload []byte) bool {
 				if event != "" {
 					if _, err := w.WriteString("event: " + event + "\n"); err != nil {
@@ -346,3 +346,5 @@ func initTaskGRPCClient(clientAddr string) (taskPB.TaskServiceClient, func(), er
 		conn.Close()
 	}, nil
 }
+
+// fiber:context-methods migrated

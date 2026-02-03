@@ -10,7 +10,7 @@ import (
 	"github.com/CSKU-Lab/main-server/domain/services"
 	"github.com/CSKU-Lab/main-server/internal/adapters/middlewares"
 	"github.com/CSKU-Lab/main-server/internal/requests"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 func NewAdminUserGroupRoutes(router fiber.Router, userGroupService services.UserGroupService) {
@@ -18,9 +18,9 @@ func NewAdminUserGroupRoutes(router fiber.Router, userGroupService services.User
 		models.ADMIN,
 	}))
 
-	adminUserGroupRoutes.Post("/", func(c *fiber.Ctx) error {
+	adminUserGroupRoutes.Post("/", func(c fiber.Ctx) error {
 		var req requests.UserGroup
-		err := c.BodyParser(&req)
+		err := c.Bind().Body(&req)
 		if err != nil {
 			return cserrors.New(&cserrors.Option{
 				HttpStatus: http.StatusInternalServerError,
@@ -28,11 +28,11 @@ func NewAdminUserGroupRoutes(router fiber.Router, userGroupService services.User
 			})
 		}
 
-		_, err = userGroupService.Create(c.Context(), req.Name)
+		_, err = userGroupService.Create(c.RequestCtx(), req.Name)
 		return err
 	})
 
-	adminUserGroupRoutes.Get("/", func(c *fiber.Ctx) error {
+	adminUserGroupRoutes.Get("/", func(c fiber.Ctx) error {
 		pageQuery := c.Query("page", "1")
 		pageSizeQuery := c.Query("page_size", "10")
 		search := c.Query("search", "")
@@ -55,12 +55,12 @@ func NewAdminUserGroupRoutes(router fiber.Router, userGroupService services.User
 			})
 		}
 
-		userGroups, err := userGroupService.GetPagination(c.Context(), page, pageSize, search, sortBy, sortOrder)
+		userGroups, err := userGroupService.GetPagination(c.RequestCtx(), page, pageSize, search, sortBy, sortOrder)
 		if err != nil {
 			return err
 		}
 
-		count, err := userGroupService.Count(c.Context(), search)
+		count, err := userGroupService.Count(c.RequestCtx(), search)
 		if err != nil {
 			return err
 		}
@@ -75,10 +75,10 @@ func NewAdminUserGroupRoutes(router fiber.Router, userGroupService services.User
 		})
 	})
 
-	adminUserGroupRoutes.Patch("/:id", func(c *fiber.Ctx) error {
+	adminUserGroupRoutes.Patch("/:id", func(c fiber.Ctx) error {
 		id := c.Params("id")
 		var req requests.UserGroup
-		err := c.BodyParser(&req)
+		err := c.Bind().Body(&req)
 		if err != nil {
 			return cserrors.New(&cserrors.Option{
 				HttpStatus: http.StatusInternalServerError,
@@ -86,7 +86,7 @@ func NewAdminUserGroupRoutes(router fiber.Router, userGroupService services.User
 			})
 		}
 
-		err = userGroupService.Update(c.Context(), id, req.Name)
+		err = userGroupService.Update(c.RequestCtx(), id, req.Name)
 		if err != nil {
 			return err
 		}
@@ -94,8 +94,10 @@ func NewAdminUserGroupRoutes(router fiber.Router, userGroupService services.User
 		return c.SendStatus(fiber.StatusAccepted)
 	})
 
-	adminUserGroupRoutes.Delete("/:id", func(c *fiber.Ctx) error {
+	adminUserGroupRoutes.Delete("/:id", func(c fiber.Ctx) error {
 		id := c.Params("id")
-		return userGroupService.Delete(c.Context(), id)
+		return userGroupService.Delete(c.RequestCtx(), id)
 	})
 }
+
+// fiber:context-methods migrated

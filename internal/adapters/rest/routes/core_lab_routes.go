@@ -11,26 +11,26 @@ import (
 	"github.com/CSKU-Lab/main-server/domain/services"
 	"github.com/CSKU-Lab/main-server/internal/adapters/middlewares"
 	"github.com/CSKU-Lab/main-server/internal/requests"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 func NewCoreLabRoute(router fiber.Router, sectionService services.SectionService, labSectionService services.LabSectionService, labService services.LabService, sectionStudentService services.SectionStudentService, labMaterialService services.LabMaterialService) {
 	coreLabRoute := router.Group("/labs")
 
-	coreLabRoute.Post("/:labID", middlewares.ValidateMiddleware[requests.GetSection](), func(c *fiber.Ctx) error {
+	coreLabRoute.Post("/:labID", middlewares.ValidateMiddleware[requests.GetSection](), func(c fiber.Ctx) error {
 		req := c.Locals("body").(*requests.GetSection)
 		labID := c.Params("labID")
 		user := c.Locals("user").(*models.User)
 
-		secStudent, err := sectionStudentService.GetBySectionAndStudentID(c.Context(), req.SectionID, user.ID)
+		secStudent, err := sectionStudentService.GetBySectionAndStudentID(c.RequestCtx(), req.SectionID, user.ID)
 		if err != nil {
 			return err
 		}
-		labSection, err := labSectionService.GetByLabAndSectionID(c.Context(), labID, secStudent.SectionID)
+		labSection, err := labSectionService.GetByLabAndSectionID(c.RequestCtx(), labID, secStudent.SectionID)
 		if err != nil {
 			return err
 		}
-		lab, err := labService.GetByID(c.Context(), labSection.LabID)
+		lab, err := labService.GetByID(c.RequestCtx(), labSection.LabID)
 		if err != nil {
 			return err
 		}
@@ -38,16 +38,16 @@ func NewCoreLabRoute(router fiber.Router, sectionService services.SectionService
 		return c.Status(fiber.StatusOK).JSON(lab)
 	})
 
-	coreLabRoute.Post("/:labID/materials", middlewares.ValidateMiddleware[requests.GetSection](), func(c *fiber.Ctx) error {
+	coreLabRoute.Post("/:labID/materials", middlewares.ValidateMiddleware[requests.GetSection](), func(c fiber.Ctx) error {
 		labID := c.Params("labID")
 		req := c.Locals("body").(*requests.GetSection)
 		user := c.Locals("user").(*models.User)
 
-		secStudent, err := sectionStudentService.GetBySectionAndStudentID(c.Context(), req.SectionID, user.ID)
+		secStudent, err := sectionStudentService.GetBySectionAndStudentID(c.RequestCtx(), req.SectionID, user.ID)
 		if err != nil {
 			return err
 		}
-		labSection, err := labSectionService.GetByLabAndSectionID(c.Context(), labID, secStudent.SectionID)
+		labSection, err := labSectionService.GetByLabAndSectionID(c.RequestCtx(), labID, secStudent.SectionID)
 		if err != nil {
 			return err
 		}
@@ -76,12 +76,12 @@ func NewCoreLabRoute(router fiber.Router, sectionService services.SectionService
 
 		filterParams["lab_id__is"] = labSection.LabID
 
-		materials, err := labMaterialService.GetPagination(c.Context(), page, pageSize, sortBy, sortOrder, filterParams)
+		materials, err := labMaterialService.GetPagination(c.RequestCtx(), page, pageSize, sortBy, sortOrder, filterParams)
 		if err != nil {
 			return err
 		}
 
-		count, err := labMaterialService.Count(c.Context(), filterParams)
+		count, err := labMaterialService.Count(c.RequestCtx(), filterParams)
 		if err != nil {
 			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Error getting labs count"})
 		}
@@ -96,3 +96,5 @@ func NewCoreLabRoute(router fiber.Router, sectionService services.SectionService
 		})
 	})
 }
+
+// fiber:context-methods migrated

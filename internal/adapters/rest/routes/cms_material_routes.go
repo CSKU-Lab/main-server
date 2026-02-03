@@ -11,7 +11,7 @@ import (
 	"github.com/CSKU-Lab/main-server/domain/services"
 	"github.com/CSKU-Lab/main-server/internal/adapters/middlewares"
 	"github.com/CSKU-Lab/main-server/internal/requests"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 func NewCMSMaterialRoutes(router fiber.Router, materialService services.MaterialService, materialAssetService services.MaterialAssetService) {
@@ -20,11 +20,11 @@ func NewCMSMaterialRoutes(router fiber.Router, materialService services.Material
 	materialRouter.Post("/", middlewares.RBACMiddleware([]models.Role{
 		models.ADMIN,
 		models.INSTRUCTOR,
-	}), middlewares.ValidateMiddleware[requests.CreateMaterial](), func(c *fiber.Ctx) error {
+	}), middlewares.ValidateMiddleware[requests.CreateMaterial](), func(c fiber.Ctx) error {
 		req := c.Locals("body").(*requests.CreateMaterial)
 		user := c.Locals("user").(*models.User)
 
-		matID, err := materialService.Create(c.Context(), user.ID, req)
+		matID, err := materialService.Create(c.RequestCtx(), user.ID, req)
 		if err != nil {
 			return err
 		}
@@ -37,7 +37,7 @@ func NewCMSMaterialRoutes(router fiber.Router, materialService services.Material
 	materialRouter.Get("/", middlewares.RBACMiddleware([]models.Role{
 		models.ADMIN,
 		models.INSTRUCTOR,
-	}), func(c *fiber.Ctx) error {
+	}), func(c fiber.Ctx) error {
 		pageQuery := c.Query("page", "1")
 		pageSizeQuery := c.Query("page_size", "10")
 		search := c.Query("search", "")
@@ -61,12 +61,12 @@ func NewCMSMaterialRoutes(router fiber.Router, materialService services.Material
 			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusBadRequest, Message: "Invalid page size"})
 		}
 
-		sems, err := materialService.GetPagination(c.Context(), page, pageSize, search, sortBy, sortOrder, filterParams)
+		sems, err := materialService.GetPagination(c.RequestCtx(), page, pageSize, search, sortBy, sortOrder, filterParams)
 		if err != nil {
 			return err
 		}
 
-		count, err := materialService.Count(c.Context(), search, filterParams)
+		count, err := materialService.Count(c.RequestCtx(), search, filterParams)
 		if err != nil {
 			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Error getting semesters count"})
 		}
@@ -84,9 +84,9 @@ func NewCMSMaterialRoutes(router fiber.Router, materialService services.Material
 	materialRouter.Get("/:id", middlewares.RBACMiddleware([]models.Role{
 		models.ADMIN,
 		models.INSTRUCTOR,
-	}), func(c *fiber.Ctx) error {
+	}), func(c fiber.Ctx) error {
 		id := c.Params("id")
-		material, err := materialService.GetByID(c.Context(), id)
+		material, err := materialService.GetByID(c.RequestCtx(), id)
 		if err != nil {
 			return err
 		}
@@ -96,28 +96,28 @@ func NewCMSMaterialRoutes(router fiber.Router, materialService services.Material
 	materialRouter.Patch("/:id", middlewares.RBACMiddleware([]models.Role{
 		models.ADMIN,
 		models.INSTRUCTOR,
-	}), middlewares.ValidateMiddleware[requests.BaseUpdateMaterial](), func(c *fiber.Ctx) error {
+	}), middlewares.ValidateMiddleware[requests.BaseUpdateMaterial](), func(c fiber.Ctx) error {
 		user := c.Locals("user").(*models.User)
 		id := c.Params("id")
 		req := c.Locals("body").(*requests.BaseUpdateMaterial)
 		rawReq := c.Body()
 
-		return materialService.UpdateByID(c.Context(), id, req, rawReq, user.ID)
+		return materialService.UpdateByID(c.RequestCtx(), id, req, rawReq, user.ID)
 	})
 
 	materialRouter.Delete("/:id", middlewares.RBACMiddleware([]models.Role{
 		models.ADMIN,
 		models.INSTRUCTOR,
-	}), func(c *fiber.Ctx) error {
+	}), func(c fiber.Ctx) error {
 		user := c.Locals("user").(*models.User)
 		id := c.Params("id")
-		return materialService.DeleteByID(c.Context(), id, user.ID)
+		return materialService.DeleteByID(c.RequestCtx(), id, user.ID)
 	})
 
 	materialRouter.Post("/:id/assets", middlewares.RBACMiddleware([]models.Role{
 		models.ADMIN,
 		models.INSTRUCTOR,
-	}), func(c *fiber.Ctx) error {
+	}), func(c fiber.Ctx) error {
 		filePayload, err := c.FormFile("file")
 		if err != nil {
 			return err
@@ -139,7 +139,7 @@ func NewCMSMaterialRoutes(router fiber.Router, materialService services.Material
 
 		id := c.Params("id")
 
-		fileURL, err := materialAssetService.UploadFile(c.Context(), id, imageFile)
+		fileURL, err := materialAssetService.UploadFile(c.RequestCtx(), id, imageFile)
 		if err != nil {
 			return err
 		}
@@ -149,3 +149,5 @@ func NewCMSMaterialRoutes(router fiber.Router, materialService services.Material
 		})
 	})
 }
+
+// fiber:context-methods migrated

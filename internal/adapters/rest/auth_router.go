@@ -13,7 +13,7 @@ import (
 	"github.com/CSKU-Lab/main-server/internal/adapters/middlewares"
 	"github.com/CSKU-Lab/main-server/internal/converter"
 	"github.com/CSKU-Lab/main-server/internal/requests"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -23,7 +23,7 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 	googleAuth := auth.NewGoogleAuth(appConfig)
 
 	// Google OAuth2
-	authRouter.Get("/sign-in/google", func(c *fiber.Ctx) error {
+	authRouter.Get("/sign-in/google", func(c fiber.Ctx) error {
 		url, err := googleAuth.GenerateAuthURL()
 		if err != nil {
 			if appConfig.DevMode {
@@ -32,10 +32,10 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 			return cserrors.NewRedirect(cserrors.REDIRECT_SOMETHING_WENT_WRONG)
 		}
 
-		return c.Redirect(url)
+		return c.Redirect().To(url)
 	})
 
-	authRouter.Get("/sign-in/google/callback", func(c *fiber.Ctx) error {
+	authRouter.Get("/sign-in/google/callback", func(c fiber.Ctx) error {
 		state := c.Query("state")
 		if !googleAuth.VerifyState(state) {
 			if appConfig.DevMode {
@@ -56,16 +56,16 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 			return cserrors.NewRedirect(cserrors.REDIRECT_SOMETHING_WENT_WRONG)
 		}
 
-		user, err := userService.GetByEmail(c.Context(), userInfo.Email)
+		user, err := userService.GetByEmail(c.RequestCtx(), userInfo.Email)
 		if err != nil {
 			if appConfig.DevMode {
 				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Error getting user"})
 			}
-			return c.Redirect(appConfig.FRONTEND_URL + "/auth/sign-in?error=UNAUTHORIZED")
+			return c.Redirect().To(appConfig.FRONTEND_URL + "/auth/sign-in?error=UNAUTHORIZED")
 		}
 
 		if user.ProfileImage == nil {
-			err = userService.Update(c.Context(), user.ID, &requests.UpdateUser{
+			err = userService.Update(c.RequestCtx(), user.ID, &requests.UpdateUser{
 				ProfileImage: &userInfo.ProfileImage,
 			})
 			if err != nil {
@@ -92,7 +92,7 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 			return cserrors.NewRedirect(cserrors.REDIRECT_SOMETHING_WENT_WRONG)
 		}
 
-		err = refreshTokenService.Set(c.Context(), user.ID, newRefreshToken)
+		err = refreshTokenService.Set(c.RequestCtx(), user.ID, newRefreshToken)
 		if err != nil {
 			if appConfig.DevMode {
 				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Something went wrong"})
@@ -128,18 +128,18 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 			})
 		}
 
-		return c.Redirect(appConfig.FRONTEND_URL)
+		return c.Redirect().To(appConfig.FRONTEND_URL)
 	})
 
-	authRouter.Post("/sign-in/credential", middlewares.ValidateMiddleware[requests.Credential](), func(c *fiber.Ctx) error {
+	authRouter.Post("/sign-in/credential", middlewares.ValidateMiddleware[requests.Credential](), func(c fiber.Ctx) error {
 		credential := c.Locals("body").(*requests.Credential)
 
-		user, err := userService.GetByUsername(c.Context(), credential.Username)
+		user, err := userService.GetByUsername(c.RequestCtx(), credential.Username)
 		if err != nil {
 			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusUnauthorized, Message: "Unauthorized"})
 		}
 
-		password, err := userService.GetPasswordByID(c.Context(), user.ID)
+		password, err := userService.GetPasswordByID(c.RequestCtx(), user.ID)
 		if err != nil {
 			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusUnauthorized, Message: "Unauthorized"})
 		}
@@ -159,7 +159,7 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Something went wrong"})
 		}
 
-		err = refreshTokenService.Set(c.Context(), user.ID, newRefreshToken)
+		err = refreshTokenService.Set(c.RequestCtx(), user.ID, newRefreshToken)
 		if err != nil {
 			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Something went wrong"})
 		}
@@ -189,7 +189,7 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 		})
 	})
 
-	authRouter.Post("/refresh-token", func(c *fiber.Ctx) error {
+	authRouter.Post("/refresh-token", func(c fiber.Ctx) error {
 		accessToken := c.Cookies("access_token")
 		refreshToken := c.Cookies("refresh_token")
 
@@ -234,13 +234,13 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusUnauthorized, Message: "Unauthorized"})
 			}
 
-			user, err = userService.GetByID(c.Context(), claims.Subject)
+			user, err = userService.GetByID(c.RequestCtx(), claims.Subject)
 			if err != nil {
 				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusUnauthorized, Message: "Unauthorized"})
 			}
 		}
 
-		dbRefreshToken, err := refreshTokenService.Get(c.Context(), user.ID)
+		dbRefreshToken, err := refreshTokenService.Get(c.RequestCtx(), user.ID)
 		if err != nil {
 			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusUnauthorized, Message: "Unauthorized"})
 		}
@@ -260,7 +260,7 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Something went wrong"})
 		}
 
-		err = refreshTokenService.Set(c.Context(), user.ID, newRefreshToken)
+		err = refreshTokenService.Set(c.RequestCtx(), user.ID, newRefreshToken)
 		if err != nil {
 			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Something went wrong"})
 		}
@@ -299,3 +299,5 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 	})
 
 }
+
+// fiber:context-methods migrated

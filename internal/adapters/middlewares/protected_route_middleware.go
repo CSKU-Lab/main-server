@@ -10,12 +10,12 @@ import (
 	"github.com/CSKU-Lab/main-server/domain/models"
 	"github.com/CSKU-Lab/main-server/infrastructure/auth"
 	"github.com/CSKU-Lab/main-server/internal/converter"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func ProtectedRouteMiddleware(secret string) func(*fiber.Ctx) error {
-	return func(c *fiber.Ctx) error {
+func ProtectedRouteMiddleware(secret string) func(fiber.Ctx) error {
+	return func(c fiber.Ctx) error {
 		accessToken := c.Cookies("access_token")
 
 		token, err := jwt.ParseWithClaims(accessToken, &auth.JWTClaims{}, func(t *jwt.Token) (any, error) {
@@ -41,14 +41,14 @@ func ProtectedRouteMiddleware(secret string) func(*fiber.Ctx) error {
 				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusUnauthorized, Message: "Something went wrong"})
 			}
 
-			ctx := context.WithValue(c.Context(), contextkeys.UserKey, contextkeys.User{
+			ctx := context.WithValue(c.RequestCtx(), contextkeys.UserKey, contextkeys.User{
 				Username:    claims.Username,
 				DisplayName: claims.DisplayName,
 				ID:          claims.Subject,
 				IP_Address:  c.IP(),
 			})
 
-			c.SetUserContext(ctx)
+			c.SetContext(ctx)
 
 			c.Locals("user", &models.User{
 				ID:           claims.Subject,
@@ -64,3 +64,5 @@ func ProtectedRouteMiddleware(secret string) func(*fiber.Ctx) error {
 		return cserrors.New(&cserrors.Option{HttpStatus: http.StatusUnauthorized, Message: "Unauthorized"})
 	}
 }
+
+// fiber:context-methods migrated

@@ -5,10 +5,10 @@ import (
 
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
 	"github.com/CSKU-Lab/main-server/domain/models"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
-func AdminMiddleware(c *fiber.Ctx) error {
+func AdminMiddleware(c fiber.Ctx) error {
 	user := c.Locals("user").(*models.User)
 
 	for _, role := range user.Roles {

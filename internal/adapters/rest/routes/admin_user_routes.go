@@ -12,7 +12,7 @@ import (
 	"github.com/CSKU-Lab/main-server/domain/services"
 	"github.com/CSKU-Lab/main-server/internal/adapters/middlewares"
 	"github.com/CSKU-Lab/main-server/internal/requests"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
@@ -20,7 +20,7 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 		models.ADMIN,
 	}))
 
-	adminUserRouter.Get("/", func(c *fiber.Ctx) error {
+	adminUserRouter.Get("/", func(c fiber.Ctx) error {
 		pageQuery := c.Query("page", "1")
 		pageSizeQuery := c.Query("page_size", "10")
 		search := c.Query("search", "")
@@ -50,12 +50,12 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 			})
 		}
 
-		users, err := userService.GetPagination(c.Context(), page, pageSize, search, sortBy, sortOrder, filterParams)
+		users, err := userService.GetPagination(c.RequestCtx(), page, pageSize, search, sortBy, sortOrder, filterParams)
 		if err != nil {
 			return err
 		}
 
-		count, err := userService.Count(c.Context(), search, filterParams)
+		count, err := userService.Count(c.RequestCtx(), search, filterParams)
 		if err != nil {
 			return cserrors.New(
 				&cserrors.Option{
@@ -74,10 +74,10 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 		})
 	})
 
-	adminUserRouter.Post("/", middlewares.ValidateMiddleware[requests.CreateMultiTypeUser](), func(c *fiber.Ctx) error {
+	adminUserRouter.Post("/", middlewares.ValidateMiddleware[requests.CreateMultiTypeUser](), func(c fiber.Ctx) error {
 		userRequest := c.Locals("body").(*requests.CreateMultiTypeUser)
 
-		err := userService.Create(c.Context(), userRequest)
+		err := userService.Create(c.RequestCtx(), userRequest)
 		if err != nil {
 			var e *cserrors.Error
 			if errors.As(err, &e) {
@@ -92,10 +92,10 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 		return c.SendStatus(fiber.StatusCreated)
 	})
 
-	adminUserRouter.Post("/import", middlewares.ValidateMiddleware[requests.CreateManyUsers](), func(c *fiber.Ctx) error {
+	adminUserRouter.Post("/import", middlewares.ValidateMiddleware[requests.CreateManyUsers](), func(c fiber.Ctx) error {
 		createManyUsers := c.Locals("body").(*requests.CreateManyUsers)
 
-		err := userService.CreateMany(c.Context(), createManyUsers)
+		err := userService.CreateMany(c.RequestCtx(), createManyUsers)
 		if err != nil {
 			var e *cserrors.Error
 			if errors.As(err, &e) {
@@ -110,10 +110,10 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 		return c.SendStatus(fiber.StatusCreated)
 	})
 
-	router.Get("/users/:userID", func(c *fiber.Ctx) error {
+	router.Get("/users/:userID", func(c fiber.Ctx) error {
 		userID := c.Params("userID")
 
-		user, err := userService.GetByID(c.Context(), userID)
+		user, err := userService.GetByID(c.RequestCtx(), userID)
 		if err != nil {
 			var e *cserrors.Error
 			if errors.As(err, &e) {
@@ -128,10 +128,10 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 		return c.JSON(user)
 	})
 
-	adminUserRouter.Patch("/:userID", middlewares.ValidateMiddleware[requests.UpdateUser](), func(c *fiber.Ctx) error {
+	adminUserRouter.Patch("/:userID", middlewares.ValidateMiddleware[requests.UpdateUser](), func(c fiber.Ctx) error {
 		updateUser := c.Locals("body").(*requests.UpdateUser)
 
-		err := userService.Update(c.Context(), c.Params("userID"), updateUser)
+		err := userService.Update(c.RequestCtx(), c.Params("userID"), updateUser)
 		if err != nil {
 			var e *cserrors.Error
 			if errors.As(err, &e) {
@@ -146,8 +146,8 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 		return c.SendStatus(fiber.StatusAccepted)
 	})
 
-	adminUserRouter.Delete("/:userID", func(c *fiber.Ctx) error {
-		err := userService.Delete(c.Context(), c.Params("userID"))
+	adminUserRouter.Delete("/:userID", func(c fiber.Ctx) error {
+		err := userService.Delete(c.RequestCtx(), c.Params("userID"))
 		if err != nil {
 			return cserrors.New(&cserrors.Option{
 				HttpStatus: http.StatusInternalServerError,
@@ -158,10 +158,10 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 		return c.SendStatus(fiber.StatusNoContent)
 	})
 
-	adminUserRouter.Post("/deleteMany", middlewares.ValidateMiddleware[requests.DeleteManyUser](), func(c *fiber.Ctx) error {
+	adminUserRouter.Post("/deleteMany", middlewares.ValidateMiddleware[requests.DeleteManyUser](), func(c fiber.Ctx) error {
 		deleteManyUser := c.Locals("body").(*requests.DeleteManyUser)
 
-		err := userService.DeleteMany(c.Context(), deleteManyUser.IDs)
+		err := userService.DeleteMany(c.RequestCtx(), deleteManyUser.IDs)
 		if err != nil {
 			return cserrors.New(&cserrors.Option{
 				HttpStatus: http.StatusInternalServerError,
@@ -172,3 +172,5 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 		return c.SendStatus(fiber.StatusNoContent)
 	})
 }
+
+// fiber:context-methods migrated

@@ -3,16 +3,16 @@ package routes
 import (
 	"github.com/CSKU-Lab/main-server/domain/models"
 	"github.com/CSKU-Lab/main-server/domain/services"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 func NewCoreSidebarRoute(router fiber.Router, sidebarService services.SidebarService) {
 	coreSidebarRouter := router.Group("/sidebar")
 
-	coreSidebarRouter.Get("/", func(c *fiber.Ctx) error {
+	coreSidebarRouter.Get("/", func(c fiber.Ctx) error {
 		user := c.Locals("user").(*models.User)
 
-		sidebars, err := sidebarService.GetSidebar(c.Context(), user.ID)
+		sidebars, err := sidebarService.GetSidebar(c.RequestCtx(), user.ID)
 		if err != nil {
 			return err
 		}
@@ -20,3 +20,5 @@ func NewCoreSidebarRoute(router fiber.Router, sidebarService services.SidebarSer
 		return c.Status(fiber.StatusOK).JSON(sidebars)
 	})
 }
+
+// fiber:context-methods migrated

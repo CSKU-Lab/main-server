@@ -9,13 +9,13 @@ import (
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
 	"github.com/CSKU-Lab/main-server/domain/models"
 	"github.com/CSKU-Lab/main-server/domain/services"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 func NewCoreSectionRoute(router fiber.Router, sectionService services.SectionService, labSectionService services.LabSectionService, labService services.LabService, sectionStudentService services.SectionStudentService, labMaterialService services.LabMaterialService, courseService services.CourseService) {
 	coreSectionRouter := router.Group("/sections")
 
-	coreSectionRouter.Get("/", func(c *fiber.Ctx) error {
+	coreSectionRouter.Get("/", func(c fiber.Ctx) error {
 		pageQuery := c.Query("page", "1")
 		pageSizeQuery := c.Query("page_size", "10")
 		// search := c.Query("search", "")
@@ -42,12 +42,12 @@ func NewCoreSectionRoute(router fiber.Router, sectionService services.SectionSer
 
 		filterParams["student_id__is"] = user.ID
 
-		sections, err := sectionService.GetSectionsPagination(c.Context(), page, pageSize, sortBy, sortOrder, filterParams)
+		sections, err := sectionService.GetSectionsPagination(c.RequestCtx(), page, pageSize, sortBy, sortOrder, filterParams)
 		if err != nil {
 			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: err.Error()})
 		}
 
-		count, err := sectionService.Count(c.Context(), filterParams)
+		count, err := sectionService.Count(c.RequestCtx(), filterParams)
 		if err != nil {
 			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Error getting sections count"})
 		}
@@ -62,20 +62,20 @@ func NewCoreSectionRoute(router fiber.Router, sectionService services.SectionSer
 		})
 	})
 
-	coreSectionRouter.Get("/:sectionID", func(c *fiber.Ctx) error {
+	coreSectionRouter.Get("/:sectionID", func(c fiber.Ctx) error {
 		sectionID := c.Params("sectionID")
 		user := c.Locals("user").(*models.User)
 
-		secStudent, err := sectionStudentService.GetBySectionAndStudentID(c.Context(), sectionID, user.ID)
+		secStudent, err := sectionStudentService.GetBySectionAndStudentID(c.RequestCtx(), sectionID, user.ID)
 		if err != nil {
 			return err
 		}
 
-		section, err := sectionService.GetByID(c.Context(), secStudent.SectionID)
+		section, err := sectionService.GetByID(c.RequestCtx(), secStudent.SectionID)
 		if err != nil {
 			return err
 		}
-		course, err := courseService.GetByID(c.Context(), section.CourseID)
+		course, err := courseService.GetByID(c.RequestCtx(), section.CourseID)
 		if err != nil {
 			return err
 		}
@@ -86,7 +86,7 @@ func NewCoreSectionRoute(router fiber.Router, sectionService services.SectionSer
 		})
 	})
 
-	coreSectionRouter.Get("/:sectionID/labs", func(c *fiber.Ctx) error {
+	coreSectionRouter.Get("/:sectionID/labs", func(c fiber.Ctx) error {
 		pageQuery := c.Query("page", "1")
 		pageSizeQuery := c.Query("page_size", "10")
 		// search := c.Query("search", "")
@@ -113,19 +113,19 @@ func NewCoreSectionRoute(router fiber.Router, sectionService services.SectionSer
 			}
 		}
 
-		secStudent, err := sectionStudentService.GetBySectionAndStudentID(c.Context(), sectionID, user.ID)
+		secStudent, err := sectionStudentService.GetBySectionAndStudentID(c.RequestCtx(), sectionID, user.ID)
 		if err != nil {
 			return err
 		}
 
 		filterParams["section_id__is"] = secStudent.SectionID
 
-		labSections, err := labSectionService.GetPagination(c.Context(), page, pageSize, sortBy, sortOrder, filterParams)
+		labSections, err := labSectionService.GetPagination(c.RequestCtx(), page, pageSize, sortBy, sortOrder, filterParams)
 		if err != nil {
 			return err
 		}
 
-		count, err := labSectionService.Count(c.Context(), filterParams)
+		count, err := labSectionService.Count(c.RequestCtx(), filterParams)
 		if err != nil {
 			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Error getting labs count"})
 		}
@@ -140,7 +140,7 @@ func NewCoreSectionRoute(router fiber.Router, sectionService services.SectionSer
 
 		responseSections := make([]labSectionResponse, len(labSections))
 		for i, section := range labSections {
-			lab, err := labService.GetByID(c.Context(), section.LabID)
+			lab, err := labService.GetByID(c.RequestCtx(), section.LabID)
 			if err != nil {
 				return err
 			}
@@ -164,16 +164,16 @@ func NewCoreSectionRoute(router fiber.Router, sectionService services.SectionSer
 		})
 	})
 
-	coreSectionRouter.Delete("/:sectionID/unenroll", func(c *fiber.Ctx) error {
+	coreSectionRouter.Delete("/:sectionID/unenroll", func(c fiber.Ctx) error {
 		sectionID := c.Params("sectionID")
 		user := c.Locals("user").(*models.User)
 
-		secStudent, err := sectionStudentService.GetBySectionAndStudentID(c.Context(), sectionID, user.ID)
+		secStudent, err := sectionStudentService.GetBySectionAndStudentID(c.RequestCtx(), sectionID, user.ID)
 		if err != nil {
 			return err
 		}
 
-		ctx := c.UserContext()
+		ctx := c.Context()
 		err = sectionService.RemoveStudents(ctx, secStudent.SectionID, []string{secStudent.StudentID})
 		if err != nil {
 			return err
@@ -184,3 +184,5 @@ func NewCoreSectionRoute(router fiber.Router, sectionService services.SectionSer
 		})
 	})
 }
+
+// fiber:context-methods migrated

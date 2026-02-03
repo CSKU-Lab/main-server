@@ -12,7 +12,7 @@ import (
 	"github.com/CSKU-Lab/main-server/domain/services"
 	"github.com/CSKU-Lab/main-server/internal/adapters/middlewares"
 	"github.com/CSKU-Lab/main-server/internal/requests"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 func NewCMSCourseRoutes(router fiber.Router, courseService services.CourseService, sectionService services.SectionService, semesterService services.SemesterService, defaultLabService services.DefaultLabService, labService services.LabService) {
@@ -21,7 +21,7 @@ func NewCMSCourseRoutes(router fiber.Router, courseService services.CourseServic
 		models.INSTRUCTOR,
 	}))
 
-	courseRouter.Get("/:courseID/sections", func(c *fiber.Ctx) error {
+	courseRouter.Get("/:courseID/sections", func(c fiber.Ctx) error {
 		courseID := c.Params("courseID")
 		pageQuery := c.Query("page", "1")
 		pageSizeQuery := c.Query("page_size", "10")
@@ -46,12 +46,12 @@ func NewCMSCourseRoutes(router fiber.Router, courseService services.CourseServic
 			}
 		}
 
-		sems, err := semesterService.GetPagination(c.Context(), page, pageSize, search, sortBy, sortOrder, filterParams)
+		sems, err := semesterService.GetPagination(c.RequestCtx(), page, pageSize, search, sortBy, sortOrder, filterParams)
 		if err != nil {
 			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: err.Error()})
 		}
 
-		count, err := semesterService.Count(c.Context(), search, nil)
+		count, err := semesterService.Count(c.RequestCtx(), search, nil)
 		if err != nil {
 			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Error getting semesters count"})
 		}
@@ -68,7 +68,7 @@ func NewCMSCourseRoutes(router fiber.Router, courseService services.CourseServic
 
 		sectionsOfSemesters := make([]sectionsOfSemester, len(sems))
 		for i, semester := range sems {
-			sections, err := sectionService.GetByCourseIDAndSemesterID(c.Context(), courseID, semester.ID)
+			sections, err := sectionService.GetByCourseIDAndSemesterID(c.RequestCtx(), courseID, semester.ID)
 			if err != nil {
 				return err
 			}
@@ -97,10 +97,10 @@ func NewCMSCourseRoutes(router fiber.Router, courseService services.CourseServic
 		})
 	})
 
-	courseRouter.Post("/", middlewares.ValidateMiddleware[requests.CreateCourse](), func(c *fiber.Ctx) error {
+	courseRouter.Post("/", middlewares.ValidateMiddleware[requests.CreateCourse](), func(c fiber.Ctx) error {
 		req := c.Locals("body").(*requests.CreateCourse)
 
-		course, err := courseService.Create(c.Context(), req)
+		course, err := courseService.Create(c.RequestCtx(), req)
 		if err != nil {
 			var csErr *cserrors.Error
 			if errors.As(err, &csErr) {
@@ -115,7 +115,7 @@ func NewCMSCourseRoutes(router fiber.Router, courseService services.CourseServic
 		return c.Status(fiber.StatusCreated).JSON(course)
 	})
 
-	courseRouter.Get("/", func(c *fiber.Ctx) error {
+	courseRouter.Get("/", func(c fiber.Ctx) error {
 		pageQuery := c.Query("page", "1")
 		pageSizeQuery := c.Query("page_size", "10")
 		search := c.Query("search", "")
@@ -139,12 +139,12 @@ func NewCMSCourseRoutes(router fiber.Router, courseService services.CourseServic
 			})
 		}
 
-		courses, err := courseService.GetPagination(c.Context(), page, pageSize, search, sortBy, sortOrder, show)
+		courses, err := courseService.GetPagination(c.RequestCtx(), page, pageSize, search, sortBy, sortOrder, show)
 		if err != nil {
 			return err
 		}
 
-		count, err := courseService.Count(c.Context(), search, show)
+		count, err := courseService.Count(c.RequestCtx(), search, show)
 		if err != nil {
 			return err
 		}
@@ -159,9 +159,9 @@ func NewCMSCourseRoutes(router fiber.Router, courseService services.CourseServic
 		})
 	})
 
-	courseRouter.Get("/:courseID", func(c *fiber.Ctx) error {
+	courseRouter.Get("/:courseID", func(c fiber.Ctx) error {
 		courseID := c.Params("courseID")
-		course, err := courseService.GetByID(c.Context(), courseID)
+		course, err := courseService.GetByID(c.RequestCtx(), courseID)
 		if err != nil {
 			var csErr *cserrors.Error
 			if errors.As(err, &csErr) {
@@ -176,11 +176,11 @@ func NewCMSCourseRoutes(router fiber.Router, courseService services.CourseServic
 		return c.JSON(course)
 	})
 
-	courseRouter.Patch("/:courseID", middlewares.ValidateMiddleware[requests.UpdateCourse](), func(c *fiber.Ctx) error {
+	courseRouter.Patch("/:courseID", middlewares.ValidateMiddleware[requests.UpdateCourse](), func(c fiber.Ctx) error {
 		courseID := c.Params("courseID")
 		course := c.Locals("body").(*requests.UpdateCourse)
 
-		err := courseService.UpdateByID(c.Context(), courseID, course)
+		err := courseService.UpdateByID(c.RequestCtx(), courseID, course)
 		if err != nil {
 			var csErr *cserrors.Error
 			if errors.As(err, &csErr) {
@@ -195,10 +195,10 @@ func NewCMSCourseRoutes(router fiber.Router, courseService services.CourseServic
 		return c.SendStatus(fiber.StatusNoContent)
 	})
 
-	courseRouter.Delete("/:courseID", func(c *fiber.Ctx) error {
+	courseRouter.Delete("/:courseID", func(c fiber.Ctx) error {
 		courseID := c.Params("courseID")
 
-		err := courseService.DeleteByID(c.Context(), courseID)
+		err := courseService.DeleteByID(c.RequestCtx(), courseID)
 		if err != nil {
 			var csErr *cserrors.Error
 			if errors.As(err, &csErr) {
@@ -214,18 +214,18 @@ func NewCMSCourseRoutes(router fiber.Router, courseService services.CourseServic
 		return c.SendStatus(fiber.StatusNoContent)
 	})
 
-	courseRouter.Post("/:courseID/default-labs", middlewares.ValidateMiddleware[requests.SetDefaultLab](), func(c *fiber.Ctx) error {
+	courseRouter.Post("/:courseID/default-labs", middlewares.ValidateMiddleware[requests.SetDefaultLab](), func(c fiber.Ctx) error {
 		user := c.Locals("user").(*models.User)
 		courseID := c.Params("courseID")
 		req := c.Locals("body").(*requests.SetDefaultLab)
-		err := defaultLabService.Create(c.Context(), req, user.ID, courseID)
+		err := defaultLabService.Create(c.RequestCtx(), req, user.ID, courseID)
 		if err != nil {
 			return err
 		}
 		return c.SendStatus(fiber.StatusCreated)
 	})
 
-	courseRouter.Get("/:courseID/default-labs", func(c *fiber.Ctx) error {
+	courseRouter.Get("/:courseID/default-labs", func(c fiber.Ctx) error {
 		courseID := c.Params("courseID")
 
 		pageQuery := c.Query("page", "1")
@@ -253,12 +253,12 @@ func NewCMSCourseRoutes(router fiber.Router, courseService services.CourseServic
 
 		filterParams["course_id__is"] = courseID
 
-		defaultLabs, err := defaultLabService.GetPagination(c.Context(), page, pageSize, search, sortBy, sortOrder, filterParams)
+		defaultLabs, err := defaultLabService.GetPagination(c.RequestCtx(), page, pageSize, search, sortBy, sortOrder, filterParams)
 		if err != nil {
 			return err
 		}
 
-		count, err := defaultLabService.Count(c.Context(), filterParams)
+		count, err := defaultLabService.Count(c.RequestCtx(), filterParams)
 		if err != nil {
 			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Error getting labs count"})
 		}
@@ -273,21 +273,21 @@ func NewCMSCourseRoutes(router fiber.Router, courseService services.CourseServic
 		})
 	})
 
-	courseRouter.Post("/:courseID/default-labs/delete", middlewares.ValidateMiddleware[requests.DeleteDefaultLab](), func(c *fiber.Ctx) error {
+	courseRouter.Post("/:courseID/default-labs/delete", middlewares.ValidateMiddleware[requests.DeleteDefaultLab](), func(c fiber.Ctx) error {
 		user := c.Locals("user").(*models.User)
 		courseID := c.Params("courseID")
 		req := c.Locals("body").(*requests.DeleteDefaultLab)
-		return defaultLabService.Delete(c.Context(), req, user.ID, courseID)
+		return defaultLabService.Delete(c.RequestCtx(), req, user.ID, courseID)
 	})
 
-	courseRouter.Patch("/:courseID/default-labs", middlewares.ValidateMiddleware[requests.UpdateDefaultLab](), func(c *fiber.Ctx) error {
+	courseRouter.Patch("/:courseID/default-labs", middlewares.ValidateMiddleware[requests.UpdateDefaultLab](), func(c fiber.Ctx) error {
 		user := c.Locals("user").(*models.User)
 		courseID := c.Params("courseID")
 		req := c.Locals("body").(*requests.UpdateDefaultLab)
-		return defaultLabService.Update(c.Context(), req, user.ID, courseID)
+		return defaultLabService.Update(c.RequestCtx(), req, user.ID, courseID)
 	})
 
-	courseRouter.Get("/:courseID/labs", func(c *fiber.Ctx) error {
+	courseRouter.Get("/:courseID/labs", func(c fiber.Ctx) error {
 		courseID := c.Params("courseID")
 
 		pageQuery := c.Query("page", "1")
@@ -315,12 +315,12 @@ func NewCMSCourseRoutes(router fiber.Router, courseService services.CourseServic
 
 		filterParams["course_id__is"] = courseID
 
-		labs, err := labService.GetPagination(c.Context(), page, pageSize, search, sortBy, sortOrder, filterParams)
+		labs, err := labService.GetPagination(c.RequestCtx(), page, pageSize, search, sortBy, sortOrder, filterParams)
 		if err != nil {
 			return err
 		}
 
-		count, err := labService.Count(c.Context(), search, filterParams)
+		count, err := labService.Count(c.RequestCtx(), search, filterParams)
 		if err != nil {
 			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Error getting labs count"})
 		}
@@ -335,3 +335,5 @@ func NewCMSCourseRoutes(router fiber.Router, courseService services.CourseServic
 		})
 	})
 }
+
+// fiber:context-methods migrated

@@ -7,7 +7,7 @@ import (
 
 	"github.com/CSKU-Lab/main-server/configs"
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 type errorHandlerMiddleware struct {
@@ -20,7 +20,7 @@ func NewErrorHandlerMiddleware(appConfig *configs.Config) *errorHandlerMiddlewar
 	}
 }
 
-func (e *errorHandlerMiddleware) ErrorHandler(c *fiber.Ctx, err error) error {
+func (e *errorHandlerMiddleware) ErrorHandler(c fiber.Ctx, err error) error {
 	log.Println(err)
 	var csErr *cserrors.Error
 	if errors.As(err, &csErr) {
@@ -37,7 +37,7 @@ func (e *errorHandlerMiddleware) ErrorHandler(c *fiber.Ctx, err error) error {
 
 	var redirectErr cserrors.RedirectError
 	if errors.As(err, &redirectErr) {
-		return c.Redirect(fmt.Sprintf("%s/auth/sign-in?error=%s", e.appConfig.FRONTEND_URL, redirectErr.Code()), fiber.StatusTemporaryRedirect)
+		return c.Redirect().Status(fiber.StatusTemporaryRedirect).To(fmt.Sprintf("%s/auth/sign-in?error=%s", e.appConfig.FRONTEND_URL, redirectErr.Code()))
 	}
 
 	if errors.Is(err, fiber.ErrMethodNotAllowed) {

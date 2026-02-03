@@ -11,7 +11,7 @@ import (
 	"github.com/CSKU-Lab/main-server/domain/services"
 	"github.com/CSKU-Lab/main-server/internal/adapters/middlewares"
 	"github.com/CSKU-Lab/main-server/internal/requests"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 func NewCMSLabRoutes(router fiber.Router, labService services.LabService, labSectionService services.LabSectionService, labMaterialService services.LabMaterialService) {
@@ -20,21 +20,21 @@ func NewCMSLabRoutes(router fiber.Router, labService services.LabService, labSec
 		models.INSTRUCTOR,
 	}))
 
-	labRouter.Get("/:labID", func(c *fiber.Ctx) error {
+	labRouter.Get("/:labID", func(c fiber.Ctx) error {
 		labID := c.Params("labID")
-		lab, err := labService.GetByID(c.Context(), labID)
+		lab, err := labService.GetByID(c.RequestCtx(), labID)
 		if err != nil {
 			return err
 		}
 		return c.JSON(lab)
 	})
 
-	labRouter.Post("/", middlewares.ValidateMiddleware[requests.CreateLab](), func(c *fiber.Ctx) error {
+	labRouter.Post("/", middlewares.ValidateMiddleware[requests.CreateLab](), func(c fiber.Ctx) error {
 		req := c.Locals("body").(*requests.CreateLab)
 
 		user := c.Locals("user").(*models.User)
 
-		labID, err := labService.Create(c.Context(), req, user.ID)
+		labID, err := labService.Create(c.RequestCtx(), req, user.ID)
 		if err != nil {
 			return err
 		}
@@ -44,7 +44,7 @@ func NewCMSLabRoutes(router fiber.Router, labService services.LabService, labSec
 		})
 	})
 
-	labRouter.Get("/", func(c *fiber.Ctx) error {
+	labRouter.Get("/", func(c fiber.Ctx) error {
 		pageQuery := c.Query("page", "1")
 		pageSizeQuery := c.Query("page_size", "10")
 		search := c.Query("search", "")
@@ -68,12 +68,12 @@ func NewCMSLabRoutes(router fiber.Router, labService services.LabService, labSec
 			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusBadRequest, Message: "Invalid page size"})
 		}
 
-		labs, err := labService.GetPagination(c.Context(), page, pageSize, search, sortBy, sortOrder, filterParams)
+		labs, err := labService.GetPagination(c.RequestCtx(), page, pageSize, search, sortBy, sortOrder, filterParams)
 		if err != nil {
 			return err
 		}
 
-		count, err := labService.Count(c.Context(), search, filterParams)
+		count, err := labService.Count(c.RequestCtx(), search, filterParams)
 		if err != nil {
 			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Error getting labs count"})
 		}
@@ -88,21 +88,21 @@ func NewCMSLabRoutes(router fiber.Router, labService services.LabService, labSec
 		})
 	})
 
-	labRouter.Patch("/:labID", middlewares.ValidateMiddleware[requests.BaseUpdateLab](), func(c *fiber.Ctx) error {
+	labRouter.Patch("/:labID", middlewares.ValidateMiddleware[requests.BaseUpdateLab](), func(c fiber.Ctx) error {
 		user := c.Locals("user").(*models.User)
 		labID := c.Params("labID")
 		req := c.Locals("body").(*requests.BaseUpdateLab)
 
-		return labService.UpdateByID(c.Context(), labID, user.ID, req)
+		return labService.UpdateByID(c.RequestCtx(), labID, user.ID, req)
 	})
 
-	labRouter.Delete("/:labID", func(c *fiber.Ctx) error {
+	labRouter.Delete("/:labID", func(c fiber.Ctx) error {
 		user := c.Locals("user").(*models.User)
 		labID := c.Params("labID")
-		return labService.DeleteByID(c.Context(), labID, user.ID)
+		return labService.DeleteByID(c.RequestCtx(), labID, user.ID)
 	})
 
-	labRouter.Get("/:labID/sections", func(c *fiber.Ctx) error {
+	labRouter.Get("/:labID/sections", func(c fiber.Ctx) error {
 		labID := c.Params("labID")
 
 		pageQuery := c.Query("page", "1")
@@ -129,12 +129,12 @@ func NewCMSLabRoutes(router fiber.Router, labService services.LabService, labSec
 
 		filterParams["lab_id__is"] = labID
 
-		sections, err := labSectionService.GetPagination(c.Context(), page, pageSize, sortBy, sortOrder, filterParams)
+		sections, err := labSectionService.GetPagination(c.RequestCtx(), page, pageSize, sortBy, sortOrder, filterParams)
 		if err != nil {
 			return err
 		}
 
-		count, err := labSectionService.Count(c.Context(), filterParams)
+		count, err := labSectionService.Count(c.RequestCtx(), filterParams)
 		if err != nil {
 			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Error getting labs count"})
 		}
@@ -149,11 +149,11 @@ func NewCMSLabRoutes(router fiber.Router, labService services.LabService, labSec
 		})
 	})
 
-	labRouter.Post("/:labID/materials", middlewares.ValidateMiddleware[requests.SetLabMaterial](), func(c *fiber.Ctx) error {
+	labRouter.Post("/:labID/materials", middlewares.ValidateMiddleware[requests.SetLabMaterial](), func(c fiber.Ctx) error {
 		user := c.Locals("user").(*models.User)
 		labID := c.Params("labID")
 		req := c.Locals("body").(*requests.SetLabMaterial)
-		err := labMaterialService.Create(c.Context(), req, user.ID, labID)
+		err := labMaterialService.Create(c.RequestCtx(), req, user.ID, labID)
 		if err != nil {
 			return err
 		}
@@ -161,16 +161,16 @@ func NewCMSLabRoutes(router fiber.Router, labService services.LabService, labSec
 		return c.SendStatus(fiber.StatusCreated)
 	})
 
-	labRouter.Get("/:labID/materials/all", func(c *fiber.Ctx) error {
+	labRouter.Get("/:labID/materials/all", func(c fiber.Ctx) error {
 		labID := c.Params("labID")
-		labMaterials, err := labMaterialService.GetByLabID(c.Context(), labID)
+		labMaterials, err := labMaterialService.GetByLabID(c.RequestCtx(), labID)
 		if err != nil {
 			return err
 		}
 		return c.JSON(labMaterials)
 	})
 
-	labRouter.Get("/:labID/materials", func(c *fiber.Ctx) error {
+	labRouter.Get("/:labID/materials", func(c fiber.Ctx) error {
 		labID := c.Params("labID")
 
 		pageQuery := c.Query("page", "1")
@@ -197,12 +197,12 @@ func NewCMSLabRoutes(router fiber.Router, labService services.LabService, labSec
 
 		filterParams["lab_id__is"] = labID
 
-		materials, err := labMaterialService.GetPagination(c.Context(), page, pageSize, sortBy, sortOrder, filterParams)
+		materials, err := labMaterialService.GetPagination(c.RequestCtx(), page, pageSize, sortBy, sortOrder, filterParams)
 		if err != nil {
 			return err
 		}
 
-		count, err := labMaterialService.Count(c.Context(), filterParams)
+		count, err := labMaterialService.Count(c.RequestCtx(), filterParams)
 		if err != nil {
 			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Error getting labs count"})
 		}
@@ -217,10 +217,12 @@ func NewCMSLabRoutes(router fiber.Router, labService services.LabService, labSec
 		})
 	})
 
-	labRouter.Post("/:labID/materials/delete", middlewares.ValidateMiddleware[requests.DeleteLabMaterial](), func(c *fiber.Ctx) error {
+	labRouter.Post("/:labID/materials/delete", middlewares.ValidateMiddleware[requests.DeleteLabMaterial](), func(c fiber.Ctx) error {
 		user := c.Locals("user").(*models.User)
 		labID := c.Params("labID")
 		req := c.Locals("body").(*requests.DeleteLabMaterial)
-		return labMaterialService.Delete(c.Context(), labID, user.ID, req)
+		return labMaterialService.Delete(c.RequestCtx(), labID, user.ID, req)
 	})
 }
+
+// fiber:context-methods migrated

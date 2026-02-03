@@ -5,7 +5,7 @@ import (
 	"github.com/CSKU-Lab/main-server/domain/services"
 	"github.com/CSKU-Lab/main-server/internal/adapters/middlewares"
 	"github.com/CSKU-Lab/main-server/internal/requests"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 func NewCMSAffectedEntitiesRoutes(router fiber.Router, affectedEntitiesService services.AffectedEntitiesService) {
@@ -14,10 +14,10 @@ func NewCMSAffectedEntitiesRoutes(router fiber.Router, affectedEntitiesService s
 		models.INSTRUCTOR,
 	}))
 
-	affectedEntitiesRouter.Post("/", middlewares.ValidateMiddleware[requests.GetAffectedEntities](), func(c *fiber.Ctx) error {
+	affectedEntitiesRouter.Post("/", middlewares.ValidateMiddleware[requests.GetAffectedEntities](), func(c fiber.Ctx) error {
 		req := c.Locals("body").(*requests.GetAffectedEntities)
 
-		res, err := affectedEntitiesService.GetAffectedEntities(c.Context(), req)
+		res, err := affectedEntitiesService.GetAffectedEntities(c.RequestCtx(), req)
 		if err != nil {
 			return err
 		}
@@ -25,3 +25,5 @@ func NewCMSAffectedEntitiesRoutes(router fiber.Router, affectedEntitiesService s
 		return c.Status(fiber.StatusOK).JSON(res)
 	})
 }
+
+// fiber:context-methods migrated

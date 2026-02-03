@@ -4,16 +4,16 @@ import (
 	"github.com/CSKU-Lab/main-server/domain/services"
 	"github.com/CSKU-Lab/main-server/internal/adapters/middlewares"
 	"github.com/CSKU-Lab/main-server/internal/requests"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 func NewCoreSubmissionRoutes(router fiber.Router, service services.SubmissionService) {
 	submissionRouter := router.Group("/submissions")
 
-	submissionRouter.Post("/", middlewares.ValidateMiddleware[requests.Submission](), func(c *fiber.Ctx) error {
+	submissionRouter.Post("/", middlewares.ValidateMiddleware[requests.Submission](), func(c fiber.Ctx) error {
 		payload := c.Locals("body").(*requests.Submission)
 
-		id, err := service.Create(c.UserContext(), payload, c.Body())
+		id, err := service.Create(c.Context(), payload, c.Body())
 		if err != nil {
 			return err
 		}
@@ -23,9 +23,9 @@ func NewCoreSubmissionRoutes(router fiber.Router, service services.SubmissionSer
 		})
 	})
 
-	submissionRouter.Get("/:id", func(c *fiber.Ctx) error {
+	submissionRouter.Get("/:id", func(c fiber.Ctx) error {
 		id := c.Params("id")
-		submission, err := service.Get(c.Context(), id)
+		submission, err := service.Get(c.RequestCtx(), id)
 		if err != nil {
 			return err
 		}
@@ -33,3 +33,5 @@ func NewCoreSubmissionRoutes(router fiber.Router, service services.SubmissionSer
 		return c.JSON(submission)
 	})
 }
+
+// fiber:context-methods migrated
