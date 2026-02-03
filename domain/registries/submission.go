@@ -8,7 +8,7 @@ import (
 )
 
 type SubmissionRegistrable interface {
-	Create(ctx context.Context, uowRepo repositories.UoWInstance, submissionID string, payload []byte) error
+	Create(ctx context.Context, uowRepo repositories.UoWInstance, submissionID string, matId string, payload []byte) error
 	Update(ctx context.Context, uowRepo repositories.UoWInstance, submissioID string, payload []byte) error
 	Get(ctx context.Context, submissionId string) (any, error)
 }

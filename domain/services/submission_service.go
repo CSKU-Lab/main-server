@@ -98,7 +98,7 @@ func (s *submissionService) Create(ctx context.Context, req *requests.Submission
 			return err
 		}
 
-		return handler.Create(ctx, u, id.String(), rawPayload)
+		return handler.Create(ctx, u, id.String(), req.MaterialID, rawPayload)
 	})
 	if err != nil {
 		return "", err

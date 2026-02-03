@@ -18,9 +18,9 @@ func NewCodeSubmission(db instance) repositories.CodeSubmissionRepository {
 }
 
 func (c *codeSubmissionRepository) Create(ctx context.Context, payload *repositories.CreateCodeSubmissionPayload) error {
-	query := `INSERT INTO code_submissions (submission_id, code) VALUES ($1, $2)`
+	query := `INSERT INTO code_submissions (submission_id, files) VALUES ($1, $2)`
 
-	_, err := c.db.ExecContext(ctx, query, payload.SubmissionID, payload.Code)
+	_, err := c.db.ExecContext(ctx, query, payload.SubmissionID, payload.Files)
 	if err != nil {
 		return err
 	}
@@ -45,15 +45,15 @@ func (c *codeSubmissionRepository) Update(ctx context.Context, payload *reposito
 }
 
 type codeSubmission struct {
-	Code           string                `db:"code"`
-	Status         *string               `db:"status"`
-	AvgWallTime    *float32              `db:"avg_wall_time"`
-	AvgMemory      *int32                `db:"avg_memory"`
-	TestCaseGroups models.TestCaseGroups `db:"test_case_groups"`
+	Files          models.SubmissionFiles      `db:"files"`
+	Status         *string                     `db:"status"`
+	AvgWallTime    *float32                    `db:"avg_wall_time"`
+	AvgMemory      *int32                      `db:"avg_memory"`
+	TestCaseGroups models.TestCaseGroupResults `db:"test_case_groups"`
 }
 
 func (c *codeSubmissionRepository) Get(ctx context.Context, submissionId string) (*models.CodeSubmission, error) {
-	query := `SELECT code,status,avg_wall_time,avg_memory,test_case_groups FROM code_submissions WHERE submission_id = $1`
+	query := `SELECT files,status,avg_wall_time,avg_memory,test_case_groups FROM code_submissions WHERE submission_id = $1`
 
 	submission := codeSubmission{}
 	err := c.db.GetContext(ctx, &submission, query, submissionId)
@@ -62,7 +62,7 @@ func (c *codeSubmissionRepository) Get(ctx context.Context, submissionId string)
 	}
 
 	return &models.CodeSubmission{
-		Code:           submission.Code,
+		Files:          submission.Files,
 		Status:         submission.Status,
 		AvgWallTime:    submission.AvgWallTime,
 		AvgMemory:      submission.AvgMemory,

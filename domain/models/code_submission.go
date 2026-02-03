@@ -1,9 +1,111 @@
 package models
 
+import (
+	"database/sql/driver"
+	"encoding/json"
+	"errors"
+)
+
 type CodeSubmission struct {
-	Code           string          `json:"code"`
-	Status         *string         `json:"status"`
-	AvgWallTime    *float32        `json:"avg_wall_time"`
-	AvgMemory      *int32          `json:"avg_memory"`
-	TestCaseGroups []TestCaseGroup `json:"test_case_groups"`
+	Files          SubmissionFiles       `json:"files"`
+	Status         *string               `json:"status"`
+	AvgWallTime    *float32              `json:"avg_wall_time"`
+	AvgMemory      *int32                `json:"avg_memory"`
+	TestCaseGroups []TestCaseGroupResult `json:"test_case_groups"`
+}
+
+type SubmissionFile struct {
+	Name    string
+	Content string
+}
+
+type SubmissionFiles []SubmissionFile
+
+func (t SubmissionFiles) Value() (driver.Value, error) {
+	return json.Marshal(t)
+}
+
+func (t *SubmissionFiles) Scan(src any) error {
+	var data []byte
+	switch src := src.(type) {
+	case []byte:
+		data = src
+	case string:
+		data = []byte(src)
+	case nil:
+		return nil
+	default:
+		return errors.New("unsupported data type for SubmissionFiles")
+	}
+
+	return json.Unmarshal(data, t)
+}
+
+type GradeExecution struct {
+	ID       string           `json:"id"`
+	Files    []SubmissionFile `json:"files"`
+	TaskID   string           `json:"task_id"`
+	RunnerID string           `json:"runner_id"`
+}
+
+type CodeExecutionStatus string
+
+const (
+	CODE_EXECUTION_COMPILE_FAILED        CodeExecutionStatus = "COMPILE_FAILED"
+	CODE_EXECUTION_RUN_PASSED            CodeExecutionStatus = "RUN_PASSED"
+	CODE_EXECUTION_RUN_FAILED            CodeExecutionStatus = "RUN_FAILED"
+	CODE_EXECUTION_TIME_LIMIT_EXCEEDED   CodeExecutionStatus = "TIME_LIMIT_EXCEEDED"
+	CODE_EXECUTION_MEMORY_LIMIT_EXCEEDED CodeExecutionStatus = "MEMORY_LIMIT_EXCEEDED"
+	CODE_EXECUTION_RUNTIME_ERROR         CodeExecutionStatus = "RUNTIME_ERROR"
+	CODE_EXECUTION_SIGNAL_ERROR          CodeExecutionStatus = "SIGNAL_ERROR"
+	CODE_EXECUTION_GRADER_ERROR          CodeExecutionStatus = "GRADER_ERROR"
+	CODE_EXECUTION_FILE_NOT_FOUND        CodeExecutionStatus = "FILE_NOT_FOUND"
+	CODE_EXECUTION_BUILD_PASSED          CodeExecutionStatus = "BUILD_PASSED"
+	CODE_EXECUTION_QUEUED                CodeExecutionStatus = "QUEUED"
+	CODE_EXECUTION_RUNNING               CodeExecutionStatus = "RUNNING"
+)
+
+type TestCaseResult struct {
+	ID       string
+	Status   CodeExecutionStatus
+	Input    string
+	Output   string
+	Message  string
+	WallTime float32
+	Memory   int32
+}
+
+type TestCaseGroupResult struct {
+	ID      string
+	Score   int32
+	Results []TestCaseResult
+}
+
+type TestCaseGroupResults []TestCaseGroupResult
+
+func (t TestCaseGroupResults) Value() (driver.Value, error) {
+	return json.Marshal(t)
+}
+
+func (t *TestCaseGroupResults) Scan(src any) error {
+	var data []byte
+	switch src := src.(type) {
+	case []byte:
+		data = src
+	case string:
+		data = []byte(src)
+	case nil:
+		return nil
+	default:
+		return errors.New("unsupported data type for TestCaseGroups")
+	}
+
+	return json.Unmarshal(data, t)
+}
+
+type GradeResult struct {
+	Status               CodeExecutionStatus
+	TestCaseGroupResults []TestCaseGroupResult
+	AvgWallTime          float32
+	AvgMemory            int32
 }

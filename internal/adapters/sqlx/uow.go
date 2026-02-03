@@ -94,6 +94,10 @@ func (u *uowInstance) CodeSubmission() repositories.CodeSubmissionRepository {
 	return NewCodeSubmission(u.tx)
 }
 
+func (u *uowInstance) CodeSubmissionOutbox() repositories.CodeSubmissionOutboxRepository {
+	return NewCodeSubmissionOutboxRepository(u.tx)
+}
+
 func (s *uowImpl) Execute(ctx context.Context, cb func(s repositories.UoWInstance) error) error {
 	tx, err := s.db.BeginTxx(ctx, &sql.TxOptions{})
 	if err != nil {

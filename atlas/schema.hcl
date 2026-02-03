@@ -812,8 +812,8 @@ table "code_submissions" {
   column "submission_id" {
     type = uuid
   }
-  column "code" {
-    type = text
+  column "files" {
+    type = jsonb
   }
   column "status"{
     type = text
@@ -841,6 +841,7 @@ table "code_submissions" {
   foreign_key "fk_submission_id" {
     columns = [ column.submission_id ]
     ref_columns = [ table.submissions.column.id ]
+    on_delete = CASCADE
   }
 }
 
@@ -849,7 +850,7 @@ table "code_submissions_outbox" {
   column "id"{
     type = uuid
   }
-  column "aggregate_id" {
+  column "submission_id" {
     type = uuid
   }
   column "is_sent" {
@@ -867,8 +868,8 @@ table "code_submissions_outbox" {
     columns = [ column.id ]
   }
   foreign_key "fk_aggregate_id" {
-    columns = [ column.aggregate_id ]
-    ref_columns = [ table.code_submissions.column.submission_id ]
+    columns = [ column.submission_id ]
+    ref_columns = [ table.submissions.column.id ]
     on_delete = CASCADE
   }
 }

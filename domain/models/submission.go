@@ -3,9 +3,10 @@ package models
 type SubmissionStatus string
 
 const (
-	QUEUED SubmissionStatus = "QUEUED"
-	PASSED SubmissionStatus = "PASSED"
-	FAILED SubmissionStatus = "FAILED"
+	QUEUED  SubmissionStatus = "queued"
+	RUNNING SubmissionStatus = "running"
+	PASSED  SubmissionStatus = "passed"
+	FAILED  SubmissionStatus = "failed"
 )
 
 type Submission struct {

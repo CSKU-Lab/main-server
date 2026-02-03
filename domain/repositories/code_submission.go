@@ -14,7 +14,8 @@ type CodeSubmissionRepository interface {
 
 type CreateCodeSubmissionPayload struct {
 	SubmissionID string
-	Code         string
+	Files        models.SubmissionFiles
+	RunnerID     string
 }
 
 type UpdateCodeSubmissionPayload struct {
@@ -22,5 +23,5 @@ type UpdateCodeSubmissionPayload struct {
 	Status         string
 	AvgWallTime    float32
 	AvgMemory      int32
-	TestCaseGroups models.TestCaseGroups
+	TestCaseGroups models.TestCaseGroupResults
 }
