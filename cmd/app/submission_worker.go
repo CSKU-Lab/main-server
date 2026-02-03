@@ -3,17 +3,15 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
 
 	"github.com/CSKU-Lab/main-server/configs"
 	"github.com/CSKU-Lab/main-server/domain/models"
 	"github.com/CSKU-Lab/main-server/domain/repositories"
+	"github.com/CSKU-Lab/main-server/internal/adapters/pubsub"
 	sqlxAdapter "github.com/CSKU-Lab/main-server/internal/adapters/sqlx"
 	"github.com/CSKU-Lab/queue"
-	"github.com/jackc/pgx/v5"
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
-	"golang.org/x/sync/errgroup"
 )
 
 type notiPayload struct {
@@ -33,12 +31,13 @@ func startSubmissionWorker(ctx context.Context, logger *zap.SugaredLogger, db *s
 		logger.Fatalln(err)
 	}
 
-	listener, err := newPostgresListener(ctx, logger, config.DatabaseURL)
+	conn, close, err := pubsub.NewPostgres(ctx, logger, config.DatabaseURL)
 	if err != nil {
 		logger.Fatalln(err)
 	}
+	defer close()
 
-	err = listener.Listen(ctx, func(payload *notiPayload) error {
+	err = pubsub.Listen(ctx, conn, "code_submissions_outbox_insert", func(payload *notiPayload) error {
 		qName, err := q.CreateQueue(ctx, "grade_result-"+payload.ID)
 		if err != nil {
 			return err
@@ -120,68 +119,4 @@ func startSubmissionWorker(ctx context.Context, logger *zap.SugaredLogger, db *s
 		logger.Fatalln(err)
 	}
 
-}
-
-type postgresNotifier struct {
-	conn   *pgx.Conn
-	logger *zap.SugaredLogger
-}
-
-func newPostgresListener(ctx context.Context, logger *zap.SugaredLogger, dataBaseURL string) (*postgresNotifier, error) {
-	conn, err := pgx.Connect(ctx, dataBaseURL)
-	if err != nil {
-		logger.Fatalln(err)
-	}
-
-	err = conn.Ping(ctx)
-	if err != nil {
-		return nil, errors.New("Cannot ping to db")
-	}
-
-	return &postgresNotifier{
-		conn:   conn,
-		logger: logger,
-	}, nil
-}
-
-func (p *postgresNotifier) Listen(ctx context.Context, handler func(payload *notiPayload) error) error {
-	defer p.conn.Close(ctx)
-
-	notiChan := make(chan *notiPayload, 100)
-
-	var eg errgroup.Group
-	eg.Go(func() error {
-		_, err := p.conn.Exec(ctx, "LISTEN code_submissions_outbox_insert")
-		if err != nil {
-			return errors.New("Cannot subscribe code_submissions_outbox")
-		}
-
-		p.logger.Info("Waiting for notifications")
-
-		for {
-			noti, err := p.conn.WaitForNotification(ctx)
-			if err != nil {
-				return errors.New("there is error receive notification")
-			}
-
-			var payload notiPayload
-			err = json.Unmarshal([]byte(noti.Payload), &payload)
-			if err != nil {
-				return err
-			}
-
-			notiChan <- &payload
-		}
-	})
-
-	eg.Go(func() error {
-		for noti := range notiChan {
-			eg.Go(func() error {
-				return handler(noti)
-			})
-		}
-		return nil
-	})
-
-	return eg.Wait()
 }
