@@ -3,10 +3,10 @@ package sqlx
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"net/http"
 
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
-	"github.com/CSKU-Lab/main-server/domain/raw"
 	"github.com/CSKU-Lab/main-server/domain/repositories"
 	"github.com/jmoiron/sqlx"
 )
@@ -19,22 +19,40 @@ func NewCodeMaterialRepository(db *sqlx.DB) repositories.CodeMaterialRepository 
 	return &codeMaterialRepo{db: db}
 }
 
-func (c *codeMaterialRepo) SetDescription(ctx context.Context, materialID string, description string) error {
-	_, err := c.db.ExecContext(
+type codeMaterialRecord struct {
+	Id            string  `db:"id"`
+	Description   *string `db:"description"`
+	HideTestCases *bool   `db:"hide_test_cases"`
+}
+
+func (c *codeMaterialRepo) Update(ctx context.Context, materialID string, payload *repositories.UpdateCodeMaterialPayload) error {
+	record := &codeMaterialRecord{
+		Id:            materialID,
+		Description:   payload.Description,
+		HideTestCases: payload.HideTestCases,
+	}
+
+	updateFields := getUpdateFields(record)
+	if len(updateFields) == 0 {
+		return nil
+	}
+
+	query := fmt.Sprintf(`UPDATE code_materials SET %s WHERE material_id = :id`, updateFields)
+
+	_, err := c.db.NamedExecContext(
 		ctx,
-		`UPDATE code_materials SET description = $1 WHERE material_id = $2`,
-		description,
-		materialID,
+		query,
+		record,
 	)
 	return err
 }
 
-func (c *codeMaterialRepo) GetByID(ctx context.Context, materialID string) (*raw.CodeMaterial, error) {
-	var codeMat raw.CodeMaterial
+func (c *codeMaterialRepo) GetByID(ctx context.Context, materialID string) (*repositories.CodeMaterial, error) {
+	var codeMat repositories.CodeMaterial
 	err := c.db.GetContext(
 		ctx,
 		&codeMat,
-		`SELECT description,task_id FROM code_materials WHERE material_id = $1`,
+		`SELECT description,task_id,hide_test_cases FROM code_materials WHERE material_id = $1`,
 		materialID,
 	)
 	if err != nil {

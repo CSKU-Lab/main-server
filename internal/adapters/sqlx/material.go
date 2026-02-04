@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
-	"github.com/CSKU-Lab/main-server/domain/raw"
 	"github.com/CSKU-Lab/main-server/domain/repositories"
 	"github.com/CSKU-Lab/main-server/internal/requests"
 	"github.com/CSKU-Lab/main-server/internal/sanitize"
@@ -31,7 +30,7 @@ func (m *materialRepository) Create(ctx context.Context, ID string, createdByUse
 	return nil
 }
 
-func (m *materialRepository) GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string, filters []sanitize.Filter) ([]raw.Material, error) {
+func (m *materialRepository) GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string, filters []sanitize.Filter) ([]repositories.Material, error) {
 	filterWhereClause, filterArgs := buildFilterWhereClause(filters, 2)
 
 	baseQuery := `SELECT id, name, type, visibility, created_at, created_by FROM materials
@@ -46,7 +45,7 @@ func (m *materialRepository) GetPagination(ctx context.Context, page int, limit 
 	args = append(args, filterArgs...)
 	args = append(args, (page-1)*limit, limit)
 
-	materials := []raw.Material{}
+	materials := []repositories.Material{}
 	err := m.db.SelectContext(ctx, &materials, query, args...)
 	if err != nil {
 		return nil, err
@@ -75,10 +74,10 @@ func (m *materialRepository) Count(ctx context.Context, search string, filters [
 	return count, nil
 }
 
-func (m *materialRepository) GetByID(ctx context.Context, ID string) (*raw.Material, error) {
+func (m *materialRepository) GetByID(ctx context.Context, ID string) (*repositories.Material, error) {
 	query := `SELECT id, name, type, visibility, created_at, created_by FROM materials WHERE id = $1`
 
-	mat := &raw.Material{}
+	mat := &repositories.Material{}
 	err := m.db.GetContext(ctx, mat, query, ID)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -96,7 +95,7 @@ func (m *materialRepository) UpdateByID(ctx context.Context, ID string, req *req
 		return err
 	}
 
-	mat := &raw.Material{
+	mat := &repositories.Material{
 		ID:         ID,
 		Name:       req.Name,
 		Visibility: req.Visibility,

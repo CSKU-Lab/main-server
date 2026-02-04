@@ -11,14 +11,16 @@ import (
 )
 
 type codeSubmission struct {
-	repo        repositories.CodeSubmissionRepository
-	codeMatRepo repositories.CodeMaterialRepository
+	repo           repositories.CodeSubmissionRepository
+	codeMatRepo    repositories.CodeMaterialRepository
+	submissionRepo repositories.SubmissionRepository
 }
 
-func NewCodeSubmission(repo repositories.CodeSubmissionRepository, codeMatRepo repositories.CodeMaterialRepository) registries.SubmissionRegistrable {
+func NewCodeSubmission(repo repositories.CodeSubmissionRepository, codeMatRepo repositories.CodeMaterialRepository, submissionRepo repositories.SubmissionRepository) registries.SubmissionRegistrable {
 	return &codeSubmission{
-		repo:        repo,
-		codeMatRepo: codeMatRepo,
+		repo:           repo,
+		codeMatRepo:    codeMatRepo,
+		submissionRepo: submissionRepo,
 	}
 }
 
@@ -90,5 +92,51 @@ func (c *codeSubmission) Update(ctx context.Context, uowRepo repositories.UoWIns
 }
 
 func (c *codeSubmission) Get(ctx context.Context, submissionID string) (any, error) {
-	return c.repo.Get(ctx, submissionID)
+	submission, err := c.submissionRepo.Get(ctx, submissionID)
+	if err != nil {
+		return nil, err
+	}
+
+	codeMat, err := c.codeMatRepo.GetByID(ctx, submission.MaterialID)
+	if err != nil {
+		return nil, err
+	}
+
+	codeSubmission, err := c.repo.Get(ctx, submissionID)
+	if err != nil {
+		return nil, err
+	}
+
+	cleanedCodeSubmission := &models.CodeSubmission{
+		Files:          codeSubmission.Files,
+		Status:         codeSubmission.Status,
+		AvgWallTime:    codeSubmission.AvgWallTime,
+		AvgMemory:      codeSubmission.AvgMemory,
+		TestCaseGroups: codeSubmission.TestCaseGroups,
+	}
+
+	if codeMat.HideTestCases {
+		testCaseGroups := make([]models.TestCaseGroupResult, 0, len(codeSubmission.TestCaseGroups))
+		for _, tg := range codeSubmission.TestCaseGroups {
+			_tg := models.TestCaseGroupResult{
+				ID:      tg.ID,
+				Score:   tg.Score,
+				Results: make([]models.TestCaseResult, 0, len(tg.Results)),
+			}
+
+			for _, tc := range tg.Results {
+				_tg.Results = append(_tg.Results, models.TestCaseResult{
+					ID:       tc.ID,
+					Message:  tc.Message,
+					Status:   tc.Status,
+					WallTime: tc.WallTime,
+					Memory:   tc.Memory,
+				})
+			}
+			testCaseGroups = append(testCaseGroups, _tg)
+		}
+		cleanedCodeSubmission.TestCaseGroups = testCaseGroups
+	}
+
+	return cleanedCodeSubmission, nil
 }

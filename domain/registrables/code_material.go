@@ -58,6 +58,7 @@ type CodeMaterialPayload struct {
 	SolutionRunnerID *string          `json:"solution_runner_id,omitempty"`
 	SolutionFiles    []File           `json:"solution_files,omitempty"`
 	Limit            *Limit           `json:"limit,omitempty"`
+	HideTestCases    *bool            `json:"hide_test_cases"`
 }
 
 type Runner struct {
@@ -80,6 +81,7 @@ type CodeMaterialResponse struct {
 	AllowedRunners   []Runner        `json:"allowed_runners"`
 	CompareScript    *CompareScript  `json:"compare_script"`
 	Limit            *Limit          `json:"limit"`
+	HideTestCases    bool            `json:"hide_test_cases"`
 }
 
 func NewCodeMaterial(repo repositories.CodeMaterialRepository, taskGRPCClient taskPB.TaskServiceClient, configGRPCClient configPB.ConfigServiceClient, graderGRPCClient graderPB.GraderServiceClient) registries.MaterialRegisterable {
@@ -216,11 +218,12 @@ func (c *codeMaterial) UpdateByID(ctx context.Context, ID string, req *requests.
 		return err
 	}
 
-	if payload.Description != nil {
-		err = c.repo.SetDescription(ctx, ID, *payload.Description)
-		if err != nil {
-			return err
-		}
+	err = c.repo.Update(ctx, ID, &repositories.UpdateCodeMaterialPayload{
+		Description:   payload.Description,
+		HideTestCases: payload.HideTestCases,
+	})
+	if err != nil {
+		return err
 	}
 
 	var testCaseGroups []*taskPB.TestCaseGroup

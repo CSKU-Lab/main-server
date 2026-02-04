@@ -676,6 +676,10 @@ table "code_materials" {
   column "task_id" {
     type = uuid
   }
+  column "hide_test_cases" {
+    type = boolean
+    default = true
+  }
   primary_key  {
     columns = [ column.material_id ]
   }

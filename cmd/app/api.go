@@ -141,7 +141,7 @@ func startApiServer(ctx context.Context, logger *zap.SugaredLogger, db *sqlx.DB,
 	submissionRepo := sqlxAdapter.NewSubmissionRepository(db)
 	codeSubmissionRepo := sqlxAdapter.NewCodeSubmission(db)
 
-	codeSubmissionRegistrable := registrables.NewCodeSubmission(codeSubmissionRepo, codeMaterialRepo)
+	codeSubmissionRegistrable := registrables.NewCodeSubmission(codeSubmissionRepo, codeMaterialRepo, submissionRepo)
 
 	submissionRegistry := registries.NewSubmission()
 	submissionRegistry.Register("code", codeSubmissionRegistrable)

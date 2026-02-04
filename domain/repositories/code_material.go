@@ -2,12 +2,22 @@ package repositories
 
 import (
 	"context"
-
-	"github.com/CSKU-Lab/main-server/domain/raw"
 )
 
+type UpdateCodeMaterialPayload struct {
+	Description   *string
+	HideTestCases *bool
+}
+
 type CodeMaterialRepository interface {
-	SetDescription(ctx context.Context, materialID string, description string) error
+	Update(ctx context.Context, materialID string, payload *UpdateCodeMaterialPayload) error
 	SetTaskID(ctx context.Context, materialID string, taskID string) error
-	GetByID(ctx context.Context, materialID string) (*raw.CodeMaterial, error)
+	GetByID(ctx context.Context, materialID string) (*CodeMaterial, error)
+}
+
+type CodeMaterial struct {
+	ID            string  `db:"id"`
+	Description   *string `db:"description"`
+	TaskID        string  `db:"task_id"`
+	HideTestCases bool    `db:"hide_test_cases"`
 }
