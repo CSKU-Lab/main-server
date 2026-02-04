@@ -164,8 +164,17 @@ func (s *submissionService) Get(ctx context.Context, id string) (*models.Submiss
 }
 
 func (s *submissionService) Listen(ctx context.Context, submissionID string) (<-chan *models.Submission, error) {
-	channel := fmt.Sprintf("submissions:update:%s", submissionID)
+	submission, err := s.Get(ctx, submissionID)
+	if err != nil {
+		return nil, err
+	}
+
 	subChan := make(chan *models.Submission)
+	if submission.Status == models.PASSED || submission.Status == models.FAILED {
+		close(subChan)
+	}
+
+	channel := fmt.Sprintf("submissions:update:%s", submissionID)
 	go s.ps.Subscribe(ctx, channel, func(payload []byte) error {
 		submission, err := s.Get(ctx, submissionID)
 		if err != nil {
