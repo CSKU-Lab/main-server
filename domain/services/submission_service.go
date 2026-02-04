@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 
 	contextkeys "github.com/CSKU-Lab/main-server/context_keys"
@@ -136,10 +137,10 @@ func (s *submissionService) Update(ctx context.Context, submissionID string, pay
 }
 
 func (s *submissionService) Get(ctx context.Context, submissionID string) (*models.Submission, error) {
-	err := s.checkPermission(ctx, submissionID)
-	if err != nil {
-		return nil, err
-	}
+	// err := s.checkPermission(ctx, submissionID)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	submission, err := s.repo.Get(ctx, submissionID)
 	if err != nil {
@@ -170,10 +171,10 @@ func (s *submissionService) Get(ctx context.Context, submissionID string) (*mode
 }
 
 func (s *submissionService) Listen(ctx context.Context, submissionID string) (<-chan *models.Submission, error) {
-	err := s.checkPermission(ctx, submissionID)
-	if err != nil {
-		return nil, err
-	}
+	// err := s.checkPermission(ctx, submissionID)
+	// if err != nil {
+	// 	return nil, err
+	// }
 	submission, err := s.Get(ctx, submissionID)
 	if err != nil {
 		return nil, err
@@ -191,6 +192,7 @@ func (s *submissionService) Listen(ctx context.Context, submissionID string) (<-
 			close(subChan)
 		}
 		subChan <- submission
+		log.Println(submission)
 
 		status := string(payload)
 		if status == "failed" || status == "passed" {
