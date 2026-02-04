@@ -50,6 +50,7 @@ func NewCoreSubmissionRoutes(router fiber.Router, service services.SubmissionSer
 		c.Set("Transfer-Encoding", "chunked")
 
 		id := c.Params("id")
+
 		ctx, cancel := context.WithCancel(context.Background())
 
 		c.Status(fiber.StatusOK).RequestCtx().SetBodyStreamWriter(func(w *bufio.Writer) {

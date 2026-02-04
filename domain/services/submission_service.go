@@ -19,7 +19,7 @@ import (
 type SubmissionService interface {
 	Create(ctx context.Context, req *requests.Submission, rawPayload []byte) (string, error)
 	Update(ctx context.Context, submissionID string, payload *UpdateSubmissionPayload, rawPayload []byte) error
-	Get(ctx context.Context, ID string) (*models.Submission, error)
+	Get(ctx context.Context, submissionID string) (*models.Submission, error)
 	Listen(ctx context.Context, submissionID string) (<-chan *models.Submission, error)
 }
 
@@ -135,8 +135,13 @@ func (s *submissionService) Update(ctx context.Context, submissionID string, pay
 	})
 }
 
-func (s *submissionService) Get(ctx context.Context, id string) (*models.Submission, error) {
-	submission, err := s.repo.Get(ctx, id)
+func (s *submissionService) Get(ctx context.Context, submissionID string) (*models.Submission, error) {
+	err := s.checkPermission(ctx, submissionID)
+	if err != nil {
+		return nil, err
+	}
+
+	submission, err := s.repo.Get(ctx, submissionID)
 	if err != nil {
 		return nil, err
 	}
@@ -158,12 +163,17 @@ func (s *submissionService) Get(ctx context.Context, id string) (*models.Submiss
 
 	return &models.Submission{
 		ID:      submission.ID,
+		UserID:  submission.UserID,
 		Status:  submission.Status,
 		Payload: payload,
 	}, nil
 }
 
 func (s *submissionService) Listen(ctx context.Context, submissionID string) (<-chan *models.Submission, error) {
+	err := s.checkPermission(ctx, submissionID)
+	if err != nil {
+		return nil, err
+	}
 	submission, err := s.Get(ctx, submissionID)
 	if err != nil {
 		return nil, err
@@ -192,4 +202,25 @@ func (s *submissionService) Listen(ctx context.Context, submissionID string) (<-
 	})
 
 	return subChan, nil
+}
+
+func (s *submissionService) checkPermission(ctx context.Context, id string) error {
+	user, ok := ctx.Value("user").(*models.User)
+	if !ok {
+		return errors.New("cannot get user")
+	}
+
+	submission, err := s.repo.Get(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	if submission.UserID != user.ID {
+		return cserrors.New(&cserrors.Option{
+			HttpStatus: http.StatusForbidden,
+			Code:       cserrors.Forbidden,
+			Message:    "You do not have access to this submission",
+		})
+	}
+	return nil
 }

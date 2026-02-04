@@ -6,13 +6,13 @@ import (
 
 type Error struct {
 	HttpStatus int
-	Code       error
+	Code       CSError
 	Message    string
 }
 
 type Option struct {
 	HttpStatus int
-	Code       error
+	Code       CSError
 	Message    string
 }
 
