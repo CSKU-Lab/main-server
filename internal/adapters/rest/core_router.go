@@ -4,6 +4,7 @@ import (
 	"github.com/CSKU-Lab/main-server/domain/models"
 	"github.com/CSKU-Lab/main-server/domain/services"
 	"github.com/CSKU-Lab/main-server/internal/adapters/middlewares"
+	"github.com/CSKU-Lab/main-server/internal/adapters/pubsub"
 	"github.com/CSKU-Lab/main-server/internal/adapters/rest/routes"
 	"github.com/gofiber/fiber/v3"
 )
@@ -18,6 +19,7 @@ type CoreRouter struct {
 	CourseService         services.CourseService
 	SidebarService        services.SidebarService
 	SubmissionService     services.SubmissionService
+	PubSub                pubsub.PubSub
 }
 
 func NewCoreRouter(r *CoreRouter) {
@@ -52,5 +54,6 @@ func NewCoreRouter(r *CoreRouter) {
 	routes.NewCoreSubmissionRoutes(
 		coreRouter,
 		r.SubmissionService,
+		r.PubSub,
 	)
 }

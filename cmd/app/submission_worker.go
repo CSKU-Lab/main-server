@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/CSKU-Lab/main-server/configs"
 	"github.com/CSKU-Lab/main-server/domain/models"
@@ -26,37 +27,51 @@ func startSubmissionWorker(ctx context.Context, logger *zap.SugaredLogger, db *s
 	codeSubmissionRepo := sqlxAdapter.NewCodeSubmission(db)
 	codeSubmissionOutboxRepo := sqlxAdapter.NewCodeSubmissionOutboxRepository(db)
 
+	rClient, err := pubsub.NewRedis(config.REDIS_SERVER_URL)
+	if err != nil {
+		logger.Fatalln(err)
+	}
+
 	q, err := queue.NewRabbitMQ(config.RBMQ_SERVER_URL)
 	if err != nil {
 		logger.Fatalln(err)
 	}
 
-	conn, close, err := pubsub.NewPostgres(ctx, logger, config.DatabaseURL)
+	sub, close, err := pubsub.NewPostgres(ctx, logger, config.DatabaseURL)
 	if err != nil {
 		logger.Fatalln(err)
 	}
 	defer close()
 
-	err = pubsub.Listen(ctx, conn, "code_submissions_outbox_insert", func(payload *notiPayload) error {
-		qName, err := q.CreateQueue(ctx, "grade_result-"+payload.ID)
+	logger.Infoln("Submission Worker running...")
+
+	err = sub.Subscribe(ctx, "code_submissions_outbox_insert", func(payload []byte) error {
+		var subPayload notiPayload
+		err = json.Unmarshal(payload, &subPayload)
+		if err != nil {
+			return err
+		}
+
+		qName, err := q.CreateQueue(ctx, "grade_result-"+subPayload.ID)
 		if err != nil {
 			return err
 		}
 
 		err = q.Publish(ctx, "", "grade", &queue.Derivery{
-			CorrelationID: payload.ID,
+			CorrelationID: subPayload.ID,
 			ReplyTo:       qName,
-			Body:          []byte(payload.Payload),
+			Body:          []byte(subPayload.Payload),
 		})
 		if err != nil {
 			return err
 		}
 
-		err = codeSubmissionOutboxRepo.Update(ctx, payload.ID, true)
+		err = codeSubmissionOutboxRepo.Update(ctx, subPayload.ID, true)
 		if err != nil {
 			return err
 		}
 
+		channel := fmt.Sprintf("submissions:update:%s", subPayload.SubmissionID)
 		result := &models.GradeResult{}
 		err = q.Consume(ctx, qName, 1, func(derivery *queue.Derivery, exit chan struct{}) error {
 			err := json.Unmarshal(derivery.Body, result)
@@ -65,21 +80,31 @@ func startSubmissionWorker(ctx context.Context, logger *zap.SugaredLogger, db *s
 				return err
 			}
 
-			logger.Infof("Received grade result for submission_id %s", payload.SubmissionID)
+			logger.Infof("Received grade result for submission_id %s", subPayload.SubmissionID)
 
 			if result.Status != models.CODE_EXECUTION_QUEUED && result.Status != models.CODE_EXECUTION_RUNNING {
 				exit <- struct{}{}
 			}
 
 			if result.Status == models.CODE_EXECUTION_QUEUED {
-				err := submissionRepo.Update(ctx, payload.SubmissionID, models.QUEUED)
+				err := submissionRepo.Update(ctx, subPayload.SubmissionID, models.QUEUED)
+				if err != nil {
+					return err
+				}
+
+				err = rClient.Publish(ctx, channel, string(models.QUEUED))
 				if err != nil {
 					return err
 				}
 			}
 
 			if result.Status == models.CODE_EXECUTION_RUNNING {
-				err := submissionRepo.Update(ctx, payload.SubmissionID, models.RUNNING)
+				err := submissionRepo.Update(ctx, subPayload.SubmissionID, models.RUNNING)
+				if err != nil {
+					return err
+				}
+
+				err = rClient.Publish(ctx, channel, string(models.RUNNING))
 				if err != nil {
 					return err
 				}
@@ -92,7 +117,7 @@ func startSubmissionWorker(ctx context.Context, logger *zap.SugaredLogger, db *s
 		}
 
 		err = codeSubmissionRepo.Update(ctx, &repositories.UpdateCodeSubmissionPayload{
-			SubmissionID:   payload.SubmissionID,
+			SubmissionID:   subPayload.SubmissionID,
 			Status:         string(result.Status),
 			AvgWallTime:    result.AvgWallTime,
 			AvgMemory:      result.AvgMemory,
@@ -109,10 +134,16 @@ func startSubmissionWorker(ctx context.Context, logger *zap.SugaredLogger, db *s
 			status = models.PASSED
 		}
 
-		err = submissionRepo.Update(ctx, payload.SubmissionID, status)
+		err = submissionRepo.Update(ctx, subPayload.SubmissionID, status)
 		if err != nil {
 			return err
 		}
+
+		err = rClient.Publish(ctx, channel, string(status))
+		if err != nil {
+			return err
+		}
+
 		return nil
 	})
 	if err != nil {

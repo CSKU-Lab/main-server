@@ -36,6 +36,6 @@ func main() {
 	}
 
 	if *mode == "api" || *mode == "all" {
-		startApiServer(ctx, db, config)
+		startApiServer(ctx, logger, db, config)
 	}
 }

@@ -28,6 +28,7 @@ type Config struct {
 	CONFIG_SERVER_URL  string
 	TASK_SERVER_URL    string
 	RBMQ_SERVER_URL    string
+	REDIS_SERVER_URL   string
 }
 
 func NewConfig() *Config {
@@ -57,5 +58,6 @@ func NewConfig() *Config {
 		CONFIG_SERVER_URL:  os.Getenv("CONFIG_SERVER_URL"),
 		TASK_SERVER_URL:    os.Getenv("TASK_SERVER_URL"),
 		RBMQ_SERVER_URL:    os.Getenv("RBMQ_SERVER_URL"),
+		REDIS_SERVER_URL:   os.Getenv("REDIS_SERVER_URL"),
 	}
 }

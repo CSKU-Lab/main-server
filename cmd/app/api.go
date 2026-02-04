@@ -18,11 +18,13 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/cors"
 	"github.com/jmoiron/sqlx"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/CSKU-Lab/main-server/internal/adapters/middlewares"
+	"github.com/CSKU-Lab/main-server/internal/adapters/pubsub"
 	"github.com/CSKU-Lab/main-server/internal/adapters/rest"
 	sqlxAdapter "github.com/CSKU-Lab/main-server/internal/adapters/sqlx"
 	"github.com/CSKU-Lab/main-server/internal/adapters/storage/minio"
@@ -40,7 +42,7 @@ type RunExecutionRequest struct {
 	RunnerID string    `json:"runner_id"`
 }
 
-func startApiServer(ctx context.Context, db *sqlx.DB, config *configs.Config) {
+func startApiServer(ctx context.Context, logger *zap.SugaredLogger, db *sqlx.DB, config *configs.Config) {
 	graderGRPCClient, closeConn, err := initGraderGRPCClient(config.GRADER_SERVER_URL)
 	if err != nil {
 		log.Fatal("Failed to connect to grader gRPC server: ", err)
@@ -58,6 +60,11 @@ func startApiServer(ctx context.Context, db *sqlx.DB, config *configs.Config) {
 		log.Fatal("Failed to connect to task gRPC server: ", err)
 	}
 	defer closeConn()
+
+	rClient, err := pubsub.NewRedis(config.REDIS_SERVER_URL)
+	if err != nil {
+		logger.Fatalln(err)
+	}
 
 	minio := minio.New(ctx, config)
 
@@ -283,6 +290,7 @@ func startApiServer(ctx context.Context, db *sqlx.DB, config *configs.Config) {
 		CourseService:         courseService,
 		SidebarService:        sidebarService,
 		SubmissionService:     submissionService,
+		PubSub:                rClient,
 	})
 
 	port := fmt.Sprintf(":%v", config.Port)
