@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 
 	contextkeys "github.com/CSKU-Lab/main-server/context_keys"
@@ -10,6 +11,7 @@ import (
 	"github.com/CSKU-Lab/main-server/domain/models"
 	"github.com/CSKU-Lab/main-server/domain/registries"
 	"github.com/CSKU-Lab/main-server/domain/repositories"
+	"github.com/CSKU-Lab/main-server/internal/adapters/pubsub"
 	"github.com/CSKU-Lab/main-server/internal/requests"
 	"github.com/google/uuid"
 )
@@ -18,6 +20,7 @@ type SubmissionService interface {
 	Create(ctx context.Context, req *requests.Submission, rawPayload []byte) (string, error)
 	Update(ctx context.Context, submissionID string, payload *UpdateSubmissionPayload, rawPayload []byte) error
 	Get(ctx context.Context, ID string) (*models.Submission, error)
+	Listen(ctx context.Context, submissionID string) (<-chan *models.Submission, error)
 }
 
 type UpdateSubmissionPayload struct {
@@ -32,6 +35,7 @@ type submissionService struct {
 	sectionStudentRepo repositories.SectionStudentRepository
 	uowRepo            repositories.UoWRepository
 	registry           registries.SubmissionRegistry
+	ps                 pubsub.PubSub
 }
 
 type SubmissionServiceArgs struct {
@@ -40,6 +44,7 @@ type SubmissionServiceArgs struct {
 	UowRepository            repositories.UoWRepository
 	SubmissionRegistry       registries.SubmissionRegistry
 	SectionStudentRepository repositories.SectionStudentRepository
+	PubSub                   pubsub.PubSub
 }
 
 func NewSubmissionService(args *SubmissionServiceArgs) SubmissionService {
@@ -49,6 +54,7 @@ func NewSubmissionService(args *SubmissionServiceArgs) SubmissionService {
 		uowRepo:            args.UowRepository,
 		registry:           args.SubmissionRegistry,
 		sectionStudentRepo: args.SectionStudentRepository,
+		ps:                 args.PubSub,
 	}
 }
 
@@ -152,6 +158,29 @@ func (s *submissionService) Get(ctx context.Context, id string) (*models.Submiss
 
 	return &models.Submission{
 		ID:      submission.ID,
+		Status:  submission.Status,
 		Payload: payload,
 	}, nil
+}
+
+func (s *submissionService) Listen(ctx context.Context, submissionID string) (<-chan *models.Submission, error) {
+	channel := fmt.Sprintf("submissions:update:%s", submissionID)
+	subChan := make(chan *models.Submission)
+	go s.ps.Subscribe(ctx, channel, func(payload []byte) error {
+		submission, err := s.Get(ctx, submissionID)
+		if err != nil {
+			close(subChan)
+		}
+		subChan <- submission
+
+		status := string(payload)
+		if status == "failed" || status == "passed" {
+			close(subChan)
+			return pubsub.Exit
+		}
+
+		return nil
+	})
+
+	return subChan, nil
 }

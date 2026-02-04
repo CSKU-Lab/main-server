@@ -3,17 +3,17 @@ package routes
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 
 	"github.com/CSKU-Lab/main-server/domain/services"
 	"github.com/CSKU-Lab/main-server/internal/adapters/middlewares"
-	"github.com/CSKU-Lab/main-server/internal/adapters/pubsub"
 	"github.com/CSKU-Lab/main-server/internal/requests"
 	"github.com/gofiber/fiber/v3"
 )
 
-func NewCoreSubmissionRoutes(router fiber.Router, service services.SubmissionService, ps pubsub.PubSub) {
+func NewCoreSubmissionRoutes(router fiber.Router, service services.SubmissionService) {
 	submissionRouter := router.Group("/submissions")
 
 	submissionRouter.Post("/", middlewares.ValidateMiddleware[requests.Submission](), func(c fiber.Ctx) error {
@@ -60,26 +60,27 @@ func NewCoreSubmissionRoutes(router fiber.Router, service services.SubmissionSer
 				log.Println(err)
 			}
 
-			channel := fmt.Sprintf("submissions:update:%s", id)
-
-			err = ps.Subscribe(ctx, channel, func(payload []byte) error {
-				status := string(payload)
-
-				fmt.Fprintf(w, "data: ID: %s, Status: %s\n\n", id, status)
-				err := w.Flush()
-				if err != nil {
-					cancel()
-					return err
-				}
-
-				if status == "failed" || status == "passed" {
-					return pubsub.Exit
-				}
-				return nil
-			})
+			submissionChan, err := service.Listen(ctx, id)
 			if err != nil {
+				cancel()
 				log.Println(err)
 			}
+
+			for sub := range submissionChan {
+				data, err := json.Marshal(sub)
+				if err != nil {
+					cancel()
+					log.Println(err)
+				}
+
+				fmt.Fprintf(w, "data: %s\n\n", data)
+				err = w.Flush()
+				if err != nil {
+					cancel()
+					log.Println(err)
+				}
+			}
+
 		})
 		return nil
 	})

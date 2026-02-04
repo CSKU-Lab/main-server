@@ -151,6 +151,7 @@ func startApiServer(ctx context.Context, logger *zap.SugaredLogger, db *sqlx.DB,
 		UowRepository:            uowRepo,
 		SubmissionRegistry:       submissionRegistry,
 		SectionStudentRepository: sectionStudentRepo,
+		PubSub:                   rClient,
 	})
 
 	app := fiber.New(fiber.Config{

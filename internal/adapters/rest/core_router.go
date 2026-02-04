@@ -54,6 +54,5 @@ func NewCoreRouter(r *CoreRouter) {
 	routes.NewCoreSubmissionRoutes(
 		coreRouter,
 		r.SubmissionService,
-		r.PubSub,
 	)
 }

@@ -19,4 +19,5 @@ type Submission struct {
 	SectionID  *string
 	CourseID   *string
 	MaterialID string
+	Status     models.SubmissionStatus
 }

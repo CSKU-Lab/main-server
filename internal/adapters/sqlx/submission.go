@@ -42,15 +42,15 @@ func (s *submissionRepository) Update(ctx context.Context, id string, status mod
 }
 
 type submission struct {
-	ID         string    `db:"id"`
-	Status     string    `db:"status"`
-	UserID     string    `db:"user_id"`
-	LabID      string    `db:"lab_id"`
-	MaterialID string    `db:"material_id"`
-	SectionID  *string   `db:"section_id"`
-	CourseID   *string   `db:"course_id"`
-	CreatedAt  time.Time `db:"created_at"`
-	UpdatedAt  time.Time `db:"updated_at"`
+	ID         string                  `db:"id"`
+	Status     models.SubmissionStatus `db:"status"`
+	UserID     string                  `db:"user_id"`
+	LabID      string                  `db:"lab_id"`
+	MaterialID string                  `db:"material_id"`
+	SectionID  *string                 `db:"section_id"`
+	CourseID   *string                 `db:"course_id"`
+	CreatedAt  time.Time               `db:"created_at"`
+	UpdatedAt  time.Time               `db:"updated_at"`
 }
 
 func (s *submissionRepository) Get(ctx context.Context, id string) (*repositories.Submission, error) {
@@ -69,6 +69,7 @@ func (s *submissionRepository) Get(ctx context.Context, id string) (*repositorie
 		SectionID:  submission.SectionID,
 		CourseID:   submission.CourseID,
 		MaterialID: submission.MaterialID,
+		Status:     submission.Status,
 	}
 
 	return model, nil
