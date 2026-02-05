@@ -52,7 +52,9 @@ func startSubmissionWorker(ctx context.Context, logger *zap.SugaredLogger, db *s
 			return err
 		}
 
-		qName, err := q.CreateQueue(ctx, "grade_result-"+subPayload.ID)
+		qName, err := q.CreateQueue(ctx, "grade_result-"+subPayload.ID, &queue.QueueOptions{
+			AutoDelete: true,
+		})
 		if err != nil {
 			return err
 		}
@@ -73,7 +75,7 @@ func startSubmissionWorker(ctx context.Context, logger *zap.SugaredLogger, db *s
 
 		channel := fmt.Sprintf("submissions:update:%s", subPayload.SubmissionID)
 		result := &models.GradeResult{}
-		err = q.Consume(ctx, qName, 1, func(derivery *queue.Derivery, exit chan struct{}) error {
+		err = q.Consume(ctx, qName, 1, true, func(derivery *queue.Derivery, exit chan struct{}) error {
 			err := json.Unmarshal(derivery.Body, result)
 			if err != nil {
 				logger.Errorln("Cannot unmarshal grade result message", "error", err)

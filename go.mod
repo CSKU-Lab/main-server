@@ -45,7 +45,7 @@ require (
 )
 
 require (
-	github.com/CSKU-Lab/queue v0.1.1
+	github.com/CSKU-Lab/queue v0.2.1
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0
 	github.com/gofiber/fiber/v3 v3.0.0
 	github.com/golang-jwt/jwt/v5 v5.2.1
@@ -55,7 +55,6 @@ require (
 	github.com/redis/go-redis/v9 v9.17.3
 	go.uber.org/zap v1.27.1
 	golang.org/x/oauth2 v0.30.0
-	golang.org/x/sync v0.19.0
 	golang.org/x/sys v0.40.0 // indirect
 	golang.org/x/text v0.33.0 // indirect
 	google.golang.org/grpc v1.76.0
