@@ -183,6 +183,7 @@ func (s *submissionService) Listen(ctx context.Context, submissionID string) (<-
 	subChan := make(chan *models.Submission)
 	if submission.Status == models.PASSED || submission.Status == models.FAILED {
 		close(subChan)
+		return subChan, nil
 	}
 
 	channel := fmt.Sprintf("submissions:update:%s", submissionID)
