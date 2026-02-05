@@ -16,7 +16,7 @@ type CodeMaterialRepository interface {
 }
 
 type CodeMaterial struct {
-	ID            string  `db:"id"`
+	ID            string  `db:"material_id"`
 	Description   *string `db:"description"`
 	TaskID        string  `db:"task_id"`
 	HideTestCases bool    `db:"hide_test_cases"`

@@ -20,7 +20,7 @@ func NewCodeMaterialRepository(db *sqlx.DB) repositories.CodeMaterialRepository 
 }
 
 type codeMaterialRecord struct {
-	Id            string  `db:"id"`
+	Id            string  `db:"material_id"`
 	Description   *string `db:"description"`
 	HideTestCases *bool   `db:"hide_test_cases"`
 }
@@ -37,7 +37,7 @@ func (c *codeMaterialRepo) Update(ctx context.Context, materialID string, payloa
 		return nil
 	}
 
-	query := fmt.Sprintf(`UPDATE code_materials SET %s WHERE material_id = :id`, updateFields)
+	query := fmt.Sprintf(`UPDATE code_materials SET %s WHERE material_id = :material_id`, updateFields)
 
 	_, err := c.db.NamedExecContext(
 		ctx,
