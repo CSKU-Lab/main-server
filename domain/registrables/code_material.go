@@ -213,6 +213,11 @@ func (c *codeMaterial) UpdateByID(ctx context.Context, ID string, req *requests.
 		return err
 	}
 
+	// this mean there is no code material payload in the request
+	if payload == nil {
+		return nil
+	}
+
 	codeMat, err := c.repo.GetByID(ctx, ID)
 	if err != nil {
 		return err
