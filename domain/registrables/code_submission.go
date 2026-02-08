@@ -140,3 +140,36 @@ func (c *codeSubmission) Get(ctx context.Context, submissionID string) (any, err
 
 	return cleanedCodeSubmission, nil
 }
+
+func (c *codeSubmission) GetOverviewsPayload(ctx context.Context, submissionIDs []string) (map[string]any, error) {
+	if len(submissionIDs) == 0 {
+		return map[string]any{}, nil
+	}
+
+	codeSubmissions, err := c.repo.GetByIDs(ctx, submissionIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make(map[string]any, len(codeSubmissions))
+	for _, cs := range codeSubmissions {
+		totalTestCases := 0
+		passedTestCases := 0
+
+		for _, group := range cs.TestCaseGroups {
+			totalTestCases += len(group.Results)
+			for _, tc := range group.Results {
+				if tc.Status == models.CODE_EXECUTION_RUN_PASSED {
+					passedTestCases++
+				}
+			}
+		}
+
+		result[cs.SubmissionID] = models.CodeSubmissionOverviewPayload{
+			TotalTestCases:  totalTestCases,
+			PassedTestCases: passedTestCases,
+		}
+	}
+
+	return result, nil
+}

@@ -5,6 +5,7 @@ import (
 
 	"github.com/CSKU-Lab/main-server/domain/models"
 	"github.com/CSKU-Lab/main-server/domain/repositories"
+	"github.com/jmoiron/sqlx"
 )
 
 type codeSubmissionRepository struct {
@@ -45,6 +46,7 @@ func (c *codeSubmissionRepository) Update(ctx context.Context, payload *reposito
 }
 
 type codeSubmission struct {
+	SubmissionID   string                      `db:"submission_id"`
 	Files          models.SubmissionFiles      `db:"files"`
 	Status         *string                     `db:"status"`
 	AvgWallTime    *float32                    `db:"avg_wall_time"`
@@ -53,7 +55,7 @@ type codeSubmission struct {
 }
 
 func (c *codeSubmissionRepository) Get(ctx context.Context, submissionId string) (*models.CodeSubmission, error) {
-	query := `SELECT files,status,avg_wall_time,avg_memory,test_case_groups FROM code_submissions WHERE submission_id = $1`
+	query := `SELECT submission_id, files, status, avg_wall_time, avg_memory, test_case_groups FROM code_submissions WHERE submission_id = $1`
 
 	submission := codeSubmission{}
 	err := c.db.GetContext(ctx, &submission, query, submissionId)
@@ -62,10 +64,46 @@ func (c *codeSubmissionRepository) Get(ctx context.Context, submissionId string)
 	}
 
 	return &models.CodeSubmission{
+		SubmissionID:   submission.SubmissionID,
 		Files:          submission.Files,
 		Status:         submission.Status,
 		AvgWallTime:    submission.AvgWallTime,
 		AvgMemory:      submission.AvgMemory,
 		TestCaseGroups: submission.TestCaseGroups,
 	}, nil
+}
+
+func (c *codeSubmissionRepository) GetByIDs(ctx context.Context, submissionIDs []string) ([]*models.CodeSubmission, error) {
+	if len(submissionIDs) == 0 {
+		return []*models.CodeSubmission{}, nil
+	}
+
+	query := `SELECT submission_id, files, status, avg_wall_time, avg_memory, test_case_groups FROM code_submissions WHERE submission_id IN (?)`
+
+	query, args, err := sqlx.In(query, submissionIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	query = c.db.Rebind(query)
+
+	var submissions []codeSubmission
+	err = c.db.SelectContext(ctx, &submissions, query, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]*models.CodeSubmission, len(submissions))
+	for i, submission := range submissions {
+		result[i] = &models.CodeSubmission{
+			SubmissionID:   submission.SubmissionID,
+			Files:          submission.Files,
+			Status:         submission.Status,
+			AvgWallTime:    submission.AvgWallTime,
+			AvgMemory:      submission.AvgMemory,
+			TestCaseGroups: submission.TestCaseGroups,
+		}
+	}
+
+	return result, nil
 }

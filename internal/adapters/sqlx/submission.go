@@ -81,19 +81,17 @@ func (s *submissionRepository) Get(ctx context.Context, id string) (*repositorie
 }
 
 type submissionOverview struct {
-	ID             string                      `db:"id"`
-	Status         models.SubmissionStatus     `db:"status"`
-	CreatedAt      time.Time                   `db:"created_at"`
-	TestCaseGroups models.TestCaseGroupResults `db:"test_case_groups"`
+	ID         string                  `db:"id"`
+	Status     models.SubmissionStatus `db:"status"`
+	MaterialID string                  `db:"material_id"`
+	CreatedAt  time.Time               `db:"created_at"`
 }
 
-func (s *submissionRepository) GetPagination(ctx context.Context, userID string, materialID string, page int, pageSize int, sortOrder string) ([]models.SubmissionOverview, error) {
-	query := `SELECT s.id, s.status, s.created_at,
-			  cs.test_case_groups
-			  FROM submissions s
-			  LEFT JOIN code_submissions cs ON s.id = cs.submission_id
-			  WHERE s.user_id = $1 AND s.material_id = $2
-			  ORDER BY s.created_at %s
+func (s *submissionRepository) GetPagination(ctx context.Context, userID string, materialID string, page int, pageSize int, sortOrder string) ([]repositories.SubmissionOverview, error) {
+	query := `SELECT id, status, material_id, created_at
+			  FROM submissions
+			  WHERE user_id = $1 AND material_id = $2
+			  ORDER BY created_at %s
 			  OFFSET $3 LIMIT $4`
 
 	query = fmt.Sprintf(query, sortOrder)
@@ -105,35 +103,14 @@ func (s *submissionRepository) GetPagination(ctx context.Context, userID string,
 		return nil, err
 	}
 
-	result := make([]models.SubmissionOverview, len(rows))
+	result := make([]repositories.SubmissionOverview, len(rows))
 	for i, row := range rows {
-		overview := models.SubmissionOverview{
-			ID:        row.ID,
-			Status:    row.Status,
-			CreatedAt: row.CreatedAt,
+		result[i] = repositories.SubmissionOverview{
+			ID:         row.ID,
+			Status:     row.Status,
+			MaterialID: row.MaterialID,
+			CreatedAt:  row.CreatedAt,
 		}
-
-		// Calculate test case counts from JSONB test_case_groups
-		if len(row.TestCaseGroups) > 0 {
-			totalTestCases := 0
-			passedTestCases := 0
-
-			for _, group := range row.TestCaseGroups {
-				totalTestCases += len(group.Results)
-				for _, tc := range group.Results {
-					if tc.Status == models.CODE_EXECUTION_RUN_PASSED {
-						passedTestCases++
-					}
-				}
-			}
-
-			overview.Payload = models.CodeSubmissionOverviewPayload{
-				TotalTestCases:  totalTestCases,
-				PassedTestCases: passedTestCases,
-			}
-		}
-
-		result[i] = overview
 	}
 
 	return result, nil

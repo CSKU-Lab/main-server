@@ -215,7 +215,7 @@ func (s *submissionService) Listen(ctx context.Context, submissionID string) (<-
 }
 
 func (s *submissionService) GetUserSubmissionsByMaterial(ctx context.Context, userID string, materialID string, page int, pageSize int, sortOrder string) ([]models.SubmissionOverview, int, error) {
-	_, err := s.materialRepo.GetByID(ctx, materialID)
+	mat, err := s.materialRepo.GetByID(ctx, materialID)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -230,7 +230,36 @@ func (s *submissionService) GetUserSubmissionsByMaterial(ctx context.Context, us
 		return nil, 0, err
 	}
 
-	return submissions, count, nil
+	if len(submissions) == 0 {
+		return []models.SubmissionOverview{}, count, nil
+	}
+
+	handler, err := s.registry.GetHandler(mat.Type)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	submissionIDs := make([]string, len(submissions))
+	for i, sub := range submissions {
+		submissionIDs[i] = sub.ID
+	}
+
+	payloads, err := handler.GetOverviewsPayload(ctx, submissionIDs)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	result := make([]models.SubmissionOverview, len(submissions))
+	for i, sub := range submissions {
+		result[i] = models.SubmissionOverview{
+			ID:        sub.ID,
+			Status:    sub.Status,
+			CreatedAt: sub.CreatedAt,
+			Payload:   payloads[sub.ID],
+		}
+	}
+
+	return result, count, nil
 }
 
 func (s *submissionService) GetMaterialWithLatestSubmissionStatus(ctx context.Context, userID string, materialID string) (*MaterialWithSubmissionStatus, error) {

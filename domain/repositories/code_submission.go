@@ -10,6 +10,7 @@ type CodeSubmissionRepository interface {
 	Create(ctx context.Context, payload *CreateCodeSubmissionPayload) error
 	Update(ctx context.Context, payload *UpdateCodeSubmissionPayload) error
 	Get(ctx context.Context, submissionID string) (*models.CodeSubmission, error)
+	GetByIDs(ctx context.Context, submissionIDs []string) ([]*models.CodeSubmission, error)
 }
 
 type CreateCodeSubmissionPayload struct {
