@@ -7,6 +7,7 @@ import (
 
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
 	"github.com/CSKU-Lab/main-server/domain/models"
+	"github.com/CSKU-Lab/main-server/domain/registrables"
 	"github.com/CSKU-Lab/main-server/domain/registries"
 	"github.com/CSKU-Lab/main-server/domain/repositories"
 	"github.com/CSKU-Lab/main-server/internal/requests"
@@ -332,9 +333,47 @@ func (s *materialService) GetMaterialWithLatestSubmissionStatus(ctx context.Cont
 		return nil, err
 	}
 
+	// Filter payload to only include allowed fields based on material type
+	filteredPayload := s.filterPayloadForUser(material.Type, payload)
+
 	return &models.MaterialWithSubmissionStatus{
 		Name:    material.Name,
 		Status:  status,
-		Payload: payload,
+		Payload: filteredPayload,
 	}, nil
+}
+
+func (s *materialService) filterPayloadForUser(materialType string, payload any) any {
+	switch materialType {
+	case "code":
+		if codePayload, ok := payload.(*registrables.CodeMaterialResponse); ok {
+			// Filter allowed_runners to only include id and name
+			filteredRunners := make([]struct {
+				ID   string `json:"id"`
+				Name string `json:"name"`
+			}, len(codePayload.AllowedRunners))
+			for i, runner := range codePayload.AllowedRunners {
+				filteredRunners[i] = struct {
+					ID   string `json:"id"`
+					Name string `json:"name"`
+				}{
+					ID:   runner.ID,
+					Name: runner.Name,
+				}
+			}
+
+			return struct {
+				Description    *string `json:"description"`
+				AllowedRunners any     `json:"allowed_runners"`
+				Limit          any     `json:"limit"`
+			}{
+				Description:    codePayload.Description,
+				AllowedRunners: filteredRunners,
+				Limit:          codePayload.Limit,
+			}
+		}
+	}
+
+	// For other types or if type assertion fails, return as-is
+	return payload
 }
