@@ -55,4 +55,9 @@ func NewCoreRouter(r *CoreRouter) {
 		coreRouter,
 		r.SubmissionService,
 	)
+
+	routes.NewCoreMaterialSubmissionRoutes(
+		coreRouter,
+		r.SubmissionService,
+	)
 }

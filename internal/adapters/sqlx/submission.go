@@ -2,6 +2,7 @@ package sqlx
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/CSKU-Lab/main-server/domain/models"
@@ -73,4 +74,75 @@ func (s *submissionRepository) Get(ctx context.Context, id string) (*repositorie
 	}
 
 	return model, nil
+}
+
+type submissionOverview struct {
+	ID             string                      `db:"id"`
+	Status         models.SubmissionStatus     `db:"status"`
+	CreatedAt      time.Time                   `db:"created_at"`
+	TestCaseGroups models.TestCaseGroupResults `db:"test_case_groups"`
+}
+
+func (s *submissionRepository) GetPagination(ctx context.Context, userID string, materialID string, page int, pageSize int, sortOrder string) ([]models.SubmissionOverview, error) {
+	query := `SELECT s.id, s.status, s.created_at,
+			  cs.test_case_groups
+			  FROM submissions s
+			  LEFT JOIN code_submissions cs ON s.id = cs.submission_id
+			  WHERE s.user_id = $1 AND s.material_id = $2
+			  ORDER BY s.created_at %s
+			  OFFSET $3 LIMIT $4`
+
+	query = fmt.Sprintf(query, sortOrder)
+	offset := (page - 1) * pageSize
+
+	rows := []submissionOverview{}
+	err := s.db.SelectContext(ctx, &rows, query, userID, materialID, offset, pageSize)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]models.SubmissionOverview, len(rows))
+	for i, row := range rows {
+		overview := models.SubmissionOverview{
+			ID:        row.ID,
+			Status:    row.Status,
+			CreatedAt: row.CreatedAt,
+		}
+
+		// Calculate test case counts from JSONB test_case_groups
+		if len(row.TestCaseGroups) > 0 {
+			totalTestCases := 0
+			passedTestCases := 0
+
+			for _, group := range row.TestCaseGroups {
+				totalTestCases += len(group.Results)
+				for _, tc := range group.Results {
+					if tc.Status == models.CODE_EXECUTION_RUN_PASSED {
+						passedTestCases++
+					}
+				}
+			}
+
+			overview.Payload = models.CodeSubmissionOverviewPayload{
+				TotalTestCases:  totalTestCases,
+				PassedTestCases: passedTestCases,
+			}
+		}
+
+		result[i] = overview
+	}
+
+	return result, nil
+}
+
+func (s *submissionRepository) Count(ctx context.Context, userID string, materialID string) (int, error) {
+	query := `SELECT COUNT(*) FROM submissions WHERE user_id = $1 AND material_id = $2`
+
+	var count int
+	err := s.db.GetContext(ctx, &count, query, userID, materialID)
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
 }
