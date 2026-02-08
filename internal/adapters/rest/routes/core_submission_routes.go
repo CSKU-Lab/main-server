@@ -43,7 +43,7 @@ func NewCoreSubmissionRoutes(router fiber.Router, service services.SubmissionSer
 		Status string `json:"status"`
 	}
 
-	submissionRouter.Get("/listen/:id", func(c fiber.Ctx) error {
+	submissionRouter.Get("/:id/listen", func(c fiber.Ctx) error {
 		c.Set("Content-Type", "text/event-stream")
 		c.Set("Cache-Control", "no-cache")
 		c.Set("Connection", "keep-alive")
