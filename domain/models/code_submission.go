@@ -66,19 +66,19 @@ const (
 )
 
 type TestCaseResult struct {
-	ID       string
-	Status   CodeExecutionStatus
-	Input    string
-	Output   string
-	Message  string
-	WallTime float32
-	Memory   int32
+	ID       string              `json:"id"`
+	Status   CodeExecutionStatus `json:"status"`
+	Input    string              `json:"input"`
+	Output   string              `json:"output"`
+	Message  string              `json:"message"`
+	WallTime float32             `json:"wall_time"`
+	Memory   int32               `json:"memory"`
 }
 
 type TestCaseGroupResult struct {
-	ID      string
-	Score   int32
-	Results []TestCaseResult
+	ID      string           `json:"id"`
+	Score   int32            `json:"score"`
+	Results []TestCaseResult `json:"results"`
 }
 
 type TestCaseGroupResults []TestCaseGroupResult

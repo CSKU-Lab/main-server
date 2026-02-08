@@ -13,8 +13,8 @@ const (
 
 type Submission struct {
 	ID      string           `json:"id"`
-	UserID  string           `json:"user_id"`
 	Status  SubmissionStatus `json:"status"`
+	Order   int              `json:"order"`
 	Payload any              `json:"payload"`
 }
 

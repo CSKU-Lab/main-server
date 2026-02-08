@@ -790,6 +790,9 @@ table "submissions" {
   column "status"{
     type = enum.submission_status
   }
+  column "submission_order" {
+    type = integer
+  }
   primary_key {
     columns = [ column.id ]
   }

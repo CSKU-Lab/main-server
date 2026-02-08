@@ -22,4 +22,5 @@ type Submission struct {
 	CourseID   *string
 	MaterialID string
 	Status     models.SubmissionStatus
+	Order      int
 }

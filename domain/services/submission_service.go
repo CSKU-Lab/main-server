@@ -171,8 +171,8 @@ func (s *submissionService) Get(ctx context.Context, submissionID string) (*mode
 
 	return &models.Submission{
 		ID:      submission.ID,
-		UserID:  submission.UserID,
 		Status:  submission.Status,
+		Order:   submission.Order,
 		Payload: payload,
 	}, nil
 }
