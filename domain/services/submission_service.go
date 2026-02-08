@@ -23,12 +23,6 @@ type SubmissionService interface {
 	Get(ctx context.Context, submissionID string) (*models.Submission, error)
 	Listen(ctx context.Context, submissionID string) (<-chan *models.Submission, error)
 	GetUserSubmissionsByMaterial(ctx context.Context, userID string, materialID string, page int, pageSize int, sortOrder string) ([]models.SubmissionOverview, int, error)
-	GetMaterialWithLatestSubmissionStatus(ctx context.Context, userID string, materialID string) (*MaterialWithSubmissionStatus, error)
-}
-
-type MaterialWithSubmissionStatus struct {
-	Name   string `json:"name"`
-	Status string `json:"status"`
 }
 
 type UpdateSubmissionPayload struct {
@@ -260,29 +254,6 @@ func (s *submissionService) GetUserSubmissionsByMaterial(ctx context.Context, us
 	}
 
 	return result, count, nil
-}
-
-func (s *submissionService) GetMaterialWithLatestSubmissionStatus(ctx context.Context, userID string, materialID string) (*MaterialWithSubmissionStatus, error) {
-	mat, err := s.materialRepo.GetByID(ctx, materialID)
-	if err != nil {
-		return nil, err
-	}
-
-	result := &MaterialWithSubmissionStatus{
-		Name:   mat.Name,
-		Status: "",
-	}
-
-	submissions, err := s.repo.GetPagination(ctx, userID, materialID, 1, 1, "desc")
-	if err != nil {
-		return nil, err
-	}
-
-	if len(submissions) > 0 {
-		result.Status = string(submissions[0].Status)
-	}
-
-	return result, nil
 }
 
 func (s *submissionService) checkPermission(ctx context.Context, id string) error {

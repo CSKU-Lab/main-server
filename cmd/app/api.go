@@ -104,7 +104,6 @@ func startApiServer(ctx context.Context, logger *zap.SugaredLogger, db *sqlx.DB,
 	codeMaterial := registrables.NewCodeMaterial(codeMaterialRepo, taskGrpcClient, configGRPCClient, graderGRPCClient)
 	materialRegistry.Register("code", codeMaterial)
 
-	materialService := services.NewMaterialService(materialRepo, readMaterialTagRepo, uowRepo, userRepo, materialRegistry)
 	materialAssetService := services.NewMaterialAssetService(config, minio)
 
 	labRepo := sqlxAdapter.NewSqlxLabRepository(db)
@@ -153,6 +152,8 @@ func startApiServer(ctx context.Context, logger *zap.SugaredLogger, db *sqlx.DB,
 		SectionStudentRepository: sectionStudentRepo,
 		PubSub:                   rClient,
 	})
+
+	materialService := services.NewMaterialService(materialRepo, submissionRepo, readMaterialTagRepo, uowRepo, userRepo, materialRegistry)
 
 	app := fiber.New(fiber.Config{
 		ErrorHandler: errHandlerMiddleware.ErrorHandler,
@@ -290,6 +291,7 @@ func startApiServer(ctx context.Context, logger *zap.SugaredLogger, db *sqlx.DB,
 		LabMaterialService:    labMaterialService,
 		CourseService:         courseService,
 		SidebarService:        sidebarService,
+		MaterialService:       materialService,
 		SubmissionService:     submissionService,
 		PubSub:                rClient,
 	})

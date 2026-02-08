@@ -11,14 +11,18 @@ import (
 	"github.com/gofiber/fiber/v3"
 )
 
-func NewCoreMaterialSubmissionRoutes(router fiber.Router, submissionService services.SubmissionService) {
+func NewCoreMaterialSubmissionRoutes(
+	router fiber.Router,
+	materialService services.MaterialService,
+	submissionService services.SubmissionService,
+) {
 	materialRouter := router.Group("/materials")
 
 	materialRouter.Get("/:materialID", func(c fiber.Ctx) error {
 		materialID := c.Params("materialID")
 		user := c.Locals("user").(*models.User)
 
-		result, err := submissionService.GetMaterialWithLatestSubmissionStatus(c.RequestCtx(), user.ID, materialID)
+		result, err := materialService.GetMaterialWithLatestSubmissionStatus(c.RequestCtx(), user.ID, materialID)
 		if err != nil {
 			return err
 		}

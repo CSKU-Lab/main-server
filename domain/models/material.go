@@ -22,3 +22,9 @@ type MaterialDetail struct {
 	*Material
 	Payload any `json:"payload"`
 }
+
+type MaterialWithSubmissionStatus struct {
+	Name    string `json:"name"`
+	Status  string `json:"status"`
+	Payload any    `json:"payload"`
+}

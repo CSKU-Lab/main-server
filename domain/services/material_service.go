@@ -19,12 +19,14 @@ type MaterialService interface {
 	GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string, filterParams map[string]string) ([]models.Material, error)
 	Count(ctx context.Context, search string, filters map[string]string) (int, error)
 	GetByID(ctx context.Context, ID string) (*models.MaterialDetail, error)
+	GetMaterialWithLatestSubmissionStatus(ctx context.Context, userID string, materialID string) (*models.MaterialWithSubmissionStatus, error)
 	UpdateByID(ctx context.Context, ID string, req *requests.BaseUpdateMaterial, rawReq []byte, userID string) error
 	DeleteByID(ctx context.Context, ID string, userID string) error
 }
 
 type materialService struct {
 	repo                repositories.MaterialRepository
+	submissionRepo      repositories.SubmissionRepository
 	uowRepo             repositories.UoWRepository
 	readMaterialTagRepo repositories.ReadMaterialTagRepository
 	userRepo            repositories.User
@@ -32,9 +34,10 @@ type materialService struct {
 	allowedFilterFields map[string]bool
 }
 
-func NewMaterialService(repo repositories.MaterialRepository, readMaterialTagRepo repositories.ReadMaterialTagRepository, uowRepo repositories.UoWRepository, userRepo repositories.User, materialRegistry registries.Material) MaterialService {
+func NewMaterialService(repo repositories.MaterialRepository, submissionRepo repositories.SubmissionRepository, readMaterialTagRepo repositories.ReadMaterialTagRepository, uowRepo repositories.UoWRepository, userRepo repositories.User, materialRegistry registries.Material) MaterialService {
 	return &materialService{
 		repo:                repo,
+		submissionRepo:      submissionRepo,
 		uowRepo:             uowRepo,
 		readMaterialTagRepo: readMaterialTagRepo,
 		userRepo:            userRepo,
@@ -295,4 +298,43 @@ func (s *materialService) DeleteByID(ctx context.Context, ID string, userID stri
 		})
 	}
 	return s.repo.DeleteByID(ctx, ID)
+}
+
+func (s *materialService) GetMaterialWithLatestSubmissionStatus(ctx context.Context, userID string, materialID string) (*models.MaterialWithSubmissionStatus, error) {
+	// Get material info (name and type)
+	material, err := s.repo.GetByID(ctx, materialID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get latest submission status
+	submissions, err := s.submissionRepo.GetPagination(ctx, userID, materialID, 1, 1, "desc")
+	if err != nil {
+		return nil, err
+	}
+
+	status := ""
+	if len(submissions) > 0 {
+		status = string(submissions[0].Status)
+	}
+
+	// Get material payload from registry based on material type
+	materialHandler, exists := s.materialRegistry.GetHandler(material.Type)
+	if !exists {
+		return nil, cserrors.New(&cserrors.Option{
+			HttpStatus: http.StatusBadRequest,
+			Message:    "Unsupported material type",
+		})
+	}
+
+	payload, err := materialHandler.GetByID(ctx, materialID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &models.MaterialWithSubmissionStatus{
+		Name:    material.Name,
+		Status:  status,
+		Payload: payload,
+	}, nil
 }
