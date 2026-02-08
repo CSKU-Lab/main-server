@@ -101,7 +101,7 @@ func (lm *sqlxLabMaterialRepository) GetByLabID(ctx context.Context, labID strin
 			Type:       dbMat.Type,
 			Visibility: dbMat.Visibility,
 			CreatedAt:  dbMat.CreatedAt,
-			CreatedBy:  dbMat.CreatedBy,
+			CreatedBy:  nil,
 		})
 	}
 	return labMaterials, nil

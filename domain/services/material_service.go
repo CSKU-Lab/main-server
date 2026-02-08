@@ -162,7 +162,11 @@ func (s *materialService) GetPagination(ctx context.Context, page int, limit int
 			Type:       mat.Type,
 			Visibility: mat.Visibility,
 			CreatedAt:  mat.CreatedAt,
-			CreatedBy:  creator.DisplayName,
+			CreatedBy: &models.MaterialCreator{
+				ID:           creator.ID,
+				DisplayName:  creator.DisplayName,
+				ProfileImage: creator.ProfileImage,
+			},
 		})
 	}
 
@@ -215,7 +219,11 @@ func (s *materialService) GetByID(ctx context.Context, ID string) (*models.Mater
 			Tags:       tags,
 			Visibility: mat.Visibility,
 			CreatedAt:  mat.CreatedAt,
-			CreatedBy:  creator.DisplayName,
+			CreatedBy: &models.MaterialCreator{
+				ID:           creator.ID,
+				DisplayName:  creator.DisplayName,
+				ProfileImage: creator.ProfileImage,
+			},
 		},
 		Payload: nil,
 	}
