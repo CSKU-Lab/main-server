@@ -21,12 +21,12 @@ func NewSubmissionRepository(db instance) repositories.SubmissionRepository {
 
 func (s *submissionRepository) Create(ctx context.Context, payload *repositories.Submission) error {
 	query := `INSERT INTO submissions
-	(id, user_id, material_id, section_id, course_id, status, submission_order, created_at, updated_at)
-	SELECT $1, $2, $3, $4, $5, 'queued', COALESCE(MAX(submission_order), 0) + 1, NOW(), NOW()
+	(id, user_id, material_id, lab_id, section_id, course_id, status, submission_order, created_at, updated_at)
+	SELECT $1, $2, $3, $4, $5, $6, 'queued', COALESCE(MAX(submission_order), 0) + 1, NOW(), NOW()
 	FROM submissions
 	WHERE user_id = $2 AND material_id = $3`
 
-	_, err := s.db.ExecContext(ctx, query, payload.ID, payload.UserID, payload.MaterialID, payload.SectionID, payload.CourseID)
+	_, err := s.db.ExecContext(ctx, query, payload.ID, payload.UserID, payload.MaterialID, payload.LabID, payload.SectionID, payload.CourseID)
 	if err != nil {
 		return err
 	}

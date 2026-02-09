@@ -773,6 +773,9 @@ table "submissions" {
   column "material_id" {
     type = uuid
   }
+  column "lab_id" {
+    type = uuid
+  }
   column "section_id" {
     type = uuid
     null = true
@@ -803,6 +806,10 @@ table "submissions" {
   foreign_key "fk_material_id" {
     columns = [ column.material_id ]
     ref_columns = [ table.materials.column.id ]
+  }
+  foreign_key "fk_lab_id" {
+    columns = [ column.lab_id ]
+    ref_columns = [ table.labs.column.id ]
   }
   foreign_key "fk_section_id" {
     columns = [ column.section_id ]
