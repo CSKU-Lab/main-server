@@ -365,11 +365,11 @@ func (s *materialService) filterPayloadForUser(materialType string, payload any)
 			return struct {
 				Description    *string `json:"description"`
 				AllowedRunners any     `json:"allowed_runners"`
-				Limit          any     `json:"limit"`
+				Limits         any     `json:"limits"`
 			}{
 				Description:    codePayload.Description,
 				AllowedRunners: filteredRunners,
-				Limit:          codePayload.Limit,
+				Limits:         codePayload.Limit,
 			}
 		}
 	}
