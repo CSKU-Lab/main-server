@@ -21,7 +21,7 @@ type SubmissionService interface {
 	Create(ctx context.Context, req *requests.Submission, rawPayload []byte) (string, error)
 	Update(ctx context.Context, submissionID string, payload *UpdateSubmissionPayload, rawPayload []byte) error
 	Get(ctx context.Context, submissionID string) (*models.Submission, error)
-	Listen(ctx context.Context, submissionID string) (<-chan *models.Submission, error)
+	Listen(ctx context.Context, submissionID string) (<-chan *models.SubmissionOverview, error)
 	GetUserSubmissionsByMaterial(ctx context.Context, userID string, materialID string, page int, pageSize int, sortOrder string) ([]models.SubmissionOverview, int, error)
 }
 
@@ -171,33 +171,52 @@ func (s *submissionService) Get(ctx context.Context, submissionID string) (*mode
 	}, nil
 }
 
-func (s *submissionService) Listen(ctx context.Context, submissionID string) (<-chan *models.Submission, error) {
+func (s *submissionService) Listen(ctx context.Context, submissionID string) (<-chan *models.SubmissionOverview, error) {
 	// err := s.checkPermission(ctx, submissionID)
 	// if err != nil {
 	// 	return nil, err
 	// }
-	submission, err := s.Get(ctx, submissionID)
+
+	// Get repository submission for metadata (MaterialID, CreatedAt)
+	repoSubmission, err := s.repo.Get(ctx, submissionID)
 	if err != nil {
 		return nil, err
 	}
 
-	subChan := make(chan *models.Submission)
-	if submission.Status == models.PASSED || submission.Status == models.FAILED {
+	// Get material to determine handler for extracting stats
+	mat, err := s.materialRepo.GetByID(ctx, repoSubmission.MaterialID)
+	if err != nil {
+		return nil, err
+	}
+
+	handler, err := s.registry.GetHandler(mat.Type)
+	if err != nil {
+		return nil, err
+	}
+
+	subChan := make(chan *models.SubmissionOverview)
+	if repoSubmission.Status == models.PASSED || repoSubmission.Status == models.FAILED {
 		close(subChan)
 		return subChan, nil
 	}
 
 	channel := fmt.Sprintf("submissions:update:%s", submissionID)
-	go s.ps.Subscribe(ctx, channel, func(payload []byte) error {
-		submission, err := s.Get(ctx, submissionID)
-		if err != nil {
-			close(subChan)
-		}
-		subChan <- submission
-		log.Println(submission)
+	go s.ps.Subscribe(ctx, channel, func(pubsubPayload []byte) error {
+		stats := handler.GetOverviewStatsByID(ctx, submissionID)
 
-		status := string(payload)
-		if status == "failed" || status == "passed" {
+		status := models.SubmissionStatus(string(pubsubPayload))
+
+		response := &models.SubmissionOverview{
+			ID:        submissionID,
+			Status:    status,
+			CreatedAt: repoSubmission.CreatedAt,
+			Payload:   stats,
+		}
+
+		subChan <- response
+		log.Println(response)
+
+		if status == models.FAILED || status == models.PASSED {
 			close(subChan)
 			return pubsub.Exit
 		}

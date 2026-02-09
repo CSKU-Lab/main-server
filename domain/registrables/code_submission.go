@@ -141,6 +141,50 @@ func (c *codeSubmission) Get(ctx context.Context, submissionID string) (any, err
 	return cleanedCodeSubmission, nil
 }
 
+func (c *codeSubmission) GetOverviewStats(payload any) any {
+	codeSubmission, ok := payload.(*models.CodeSubmission)
+	if !ok || codeSubmission == nil {
+		return nil
+	}
+
+	passed, total := 0, 0
+	for _, group := range codeSubmission.TestCaseGroups {
+		total += len(group.Results)
+		for _, tc := range group.Results {
+			if tc.Status == models.CODE_EXECUTION_RUN_PASSED {
+				passed++
+			}
+		}
+	}
+
+	return models.CodeSubmissionOverviewPayload{
+		TotalTestCases:  total,
+		PassedTestCases: passed,
+	}
+}
+
+func (c *codeSubmission) GetOverviewStatsByID(ctx context.Context, submissionID string) any {
+	codeSubmission, err := c.repo.Get(ctx, submissionID)
+	if err != nil {
+		return nil
+	}
+
+	passed, total := 0, 0
+	for _, group := range codeSubmission.TestCaseGroups {
+		total += len(group.Results)
+		for _, tc := range group.Results {
+			if tc.Status == models.CODE_EXECUTION_RUN_PASSED {
+				passed++
+			}
+		}
+	}
+
+	return models.CodeSubmissionOverviewPayload{
+		TotalTestCases:  total,
+		PassedTestCases: passed,
+	}
+}
+
 func (c *codeSubmission) GetOverviewsPayload(ctx context.Context, submissionIDs []string) (map[string]any, error) {
 	if len(submissionIDs) == 0 {
 		return map[string]any{}, nil
@@ -153,22 +197,9 @@ func (c *codeSubmission) GetOverviewsPayload(ctx context.Context, submissionIDs 
 
 	result := make(map[string]any, len(codeSubmissions))
 	for _, cs := range codeSubmissions {
-		totalTestCases := 0
-		passedTestCases := 0
-
-		for _, group := range cs.TestCaseGroups {
-			totalTestCases += len(group.Results)
-			for _, tc := range group.Results {
-				if tc.Status == models.CODE_EXECUTION_RUN_PASSED {
-					passedTestCases++
-				}
-			}
-		}
-
-		result[cs.SubmissionID] = models.CodeSubmissionOverviewPayload{
-			TotalTestCases:  totalTestCases,
-			PassedTestCases: passedTestCases,
-		}
+		result[cs.SubmissionID] = c.GetOverviewStats(&models.CodeSubmission{
+			TestCaseGroups: cs.TestCaseGroups,
+		})
 	}
 
 	return result, nil
