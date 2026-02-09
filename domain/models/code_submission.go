@@ -105,8 +105,8 @@ func (t *TestCaseGroupResults) Scan(src any) error {
 }
 
 type GradeResult struct {
-	Status               CodeExecutionStatus
-	TestCaseGroupResults []TestCaseGroupResult
-	AvgWallTime          float32
-	AvgMemory            int32
+	Status               CodeExecutionStatus   `json:"status"`
+	TestCaseGroupResults []TestCaseGroupResult `json:"test_case_group_results"`
+	AvgWallTime          float32               `json:"avg_wall_time"`
+	AvgMemory            int32                 `json:"avg_memory"`
 }
