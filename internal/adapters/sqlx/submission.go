@@ -58,7 +58,9 @@ type submission struct {
 }
 
 func (s *submissionRepository) Get(ctx context.Context, id string) (*repositories.Submission, error) {
-	query := `SELECT * FROM submissions WHERE id = $1`
+	query := `SELECT id, user_id, lab_id, section_id, course_id, material_id, status, submission_order, created_at
+              FROM submissions
+              WHERE id = $1`
 
 	submission := submission{}
 	err := s.db.GetContext(ctx, &submission, query, id)
@@ -75,20 +77,14 @@ func (s *submissionRepository) Get(ctx context.Context, id string) (*repositorie
 		MaterialID: submission.MaterialID,
 		Status:     submission.Status,
 		Order:      submission.Order,
+		CreatedAt:  submission.CreatedAt,
 	}
 
 	return model, nil
 }
 
-type submissionOverview struct {
-	ID         string                  `db:"id"`
-	Status     models.SubmissionStatus `db:"status"`
-	MaterialID string                  `db:"material_id"`
-	CreatedAt  time.Time               `db:"created_at"`
-}
-
-func (s *submissionRepository) GetPagination(ctx context.Context, userID string, materialID string, page int, pageSize int, sortOrder string) ([]repositories.SubmissionOverview, error) {
-	query := `SELECT id, status, material_id, created_at
+func (s *submissionRepository) GetPagination(ctx context.Context, userID string, materialID string, page int, pageSize int, sortOrder string) ([]repositories.Submission, error) {
+	query := `SELECT id, user_id, lab_id, section_id, course_id, material_id, status, submission_order, created_at
 			  FROM submissions
 			  WHERE user_id = $1 AND material_id = $2
 			  ORDER BY created_at %s
@@ -97,18 +93,23 @@ func (s *submissionRepository) GetPagination(ctx context.Context, userID string,
 	query = fmt.Sprintf(query, sortOrder)
 	offset := (page - 1) * pageSize
 
-	rows := []submissionOverview{}
+	rows := []submission{}
 	err := s.db.SelectContext(ctx, &rows, query, userID, materialID, offset, pageSize)
 	if err != nil {
 		return nil, err
 	}
 
-	result := make([]repositories.SubmissionOverview, len(rows))
+	result := make([]repositories.Submission, len(rows))
 	for i, row := range rows {
-		result[i] = repositories.SubmissionOverview{
+		result[i] = repositories.Submission{
 			ID:         row.ID,
-			Status:     row.Status,
+			UserID:     row.UserID,
+			LabID:      row.LabID,
+			SectionID:  row.SectionID,
+			CourseID:   row.CourseID,
 			MaterialID: row.MaterialID,
+			Status:     row.Status,
+			Order:      row.Order,
 			CreatedAt:  row.CreatedAt,
 		}
 	}
