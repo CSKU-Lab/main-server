@@ -110,3 +110,8 @@ type GradeResult struct {
 	AvgWallTime          float32               `json:"avg_wall_time"`
 	AvgMemory            int32                 `json:"avg_memory"`
 }
+
+type CodeSubmissionOverviewPayload struct {
+	TotalTestCases  int `json:"total_test_cases"`
+	PassedTestCases int `json:"passed_test_cases"`
+}

@@ -21,8 +21,8 @@ type SubmissionService interface {
 	Create(ctx context.Context, req *requests.Submission, rawPayload []byte) (string, error)
 	Update(ctx context.Context, submissionID string, payload *UpdateSubmissionPayload, rawPayload []byte) error
 	Get(ctx context.Context, submissionID string) (*models.Submission, error)
-	Listen(ctx context.Context, submissionID string) (<-chan *models.SubmissionOverview, error)
-	GetUserSubmissionsByMaterial(ctx context.Context, userID string, materialID string, page int, pageSize int, sortOrder string) ([]models.SubmissionOverview, int, error)
+	Listen(ctx context.Context, submissionID string) (<-chan *models.Submission, <-chan error)
+	GetUserSubmissionsByMaterial(ctx context.Context, userID string, materialID string, page int, pageSize int, sortOrder string) ([]models.Submission, int, error)
 }
 
 type UpdateSubmissionPayload struct {
@@ -138,11 +138,6 @@ func (s *submissionService) Update(ctx context.Context, submissionID string, pay
 }
 
 func (s *submissionService) Get(ctx context.Context, submissionID string) (*models.Submission, error) {
-	// err := s.checkPermission(ctx, submissionID)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
 	submission, err := s.repo.Get(ctx, submissionID)
 	if err != nil {
 		return nil, err
@@ -164,70 +159,77 @@ func (s *submissionService) Get(ctx context.Context, submissionID string) (*mode
 	}
 
 	return &models.Submission{
-		ID:      submission.ID,
-		Status:  submission.Status,
-		Order:   submission.Order,
-		Payload: payload,
+		ID:        submission.ID,
+		Status:    submission.Status,
+		Order:     submission.Order,
+		CreatedAt: submission.CreatedAt,
+		Payload:   payload,
 	}, nil
 }
 
-func (s *submissionService) Listen(ctx context.Context, submissionID string) (<-chan *models.SubmissionOverview, error) {
-	// err := s.checkPermission(ctx, submissionID)
-	// if err != nil {
-	// 	return nil, err
-	// }
+func (s *submissionService) Listen(ctx context.Context, submissionID string) (<-chan *models.Submission, <-chan error) {
+	errChan := make(chan error, 1)
 
-	// Get repository submission for metadata (MaterialID, CreatedAt)
 	repoSubmission, err := s.repo.Get(ctx, submissionID)
 	if err != nil {
-		return nil, err
+		errChan <- err
+		return nil, errChan
 	}
 
 	// Get material to determine handler for extracting stats
 	mat, err := s.materialRepo.GetByID(ctx, repoSubmission.MaterialID)
 	if err != nil {
-		return nil, err
+		errChan <- err
+		return nil, errChan
 	}
 
 	handler, err := s.registry.GetHandler(mat.Type)
 	if err != nil {
-		return nil, err
+		errChan <- err
+		return nil, errChan
 	}
 
-	subChan := make(chan *models.SubmissionOverview)
+	subChan := make(chan *models.Submission)
 	if repoSubmission.Status == models.PASSED || repoSubmission.Status == models.FAILED {
 		close(subChan)
 		return subChan, nil
 	}
 
 	channel := fmt.Sprintf("submissions:update:%s", submissionID)
-	go s.ps.Subscribe(ctx, channel, func(pubsubPayload []byte) error {
-		stats := handler.GetOverviewStatsByID(ctx, submissionID)
+	go func() {
+		defer close(subChan)
 
-		status := models.SubmissionStatus(string(pubsubPayload))
+		err := s.ps.Subscribe(ctx, channel, func(pubsubPayload []byte) error {
+			stats := handler.GetOverviewStatsByID(ctx, submissionID)
 
-		response := &models.SubmissionOverview{
-			ID:        submissionID,
-			Status:    status,
-			CreatedAt: repoSubmission.CreatedAt,
-			Payload:   stats,
+			status := models.SubmissionStatus(string(pubsubPayload))
+
+			response := &models.Submission{
+				ID:        submissionID,
+				Status:    status,
+				CreatedAt: repoSubmission.CreatedAt,
+				Payload:   stats,
+			}
+
+			subChan <- response
+			log.Println(response)
+
+			if status == models.FAILED || status == models.PASSED {
+				return pubsub.Exit
+			}
+
+			return nil
+		})
+		if err != nil {
+			errChan <- err
+			return
 		}
-
-		subChan <- response
-		log.Println(response)
-
-		if status == models.FAILED || status == models.PASSED {
-			close(subChan)
-			return pubsub.Exit
-		}
-
-		return nil
-	})
+	}()
 
 	return subChan, nil
 }
 
-func (s *submissionService) GetUserSubmissionsByMaterial(ctx context.Context, userID string, materialID string, page int, pageSize int, sortOrder string) ([]models.SubmissionOverview, int, error) {
+func (s *submissionService) GetUserSubmissionsByMaterial(ctx context.Context, userID string, materialID string, page int, pageSize int, sortOrder string) ([]models.Submission, int, error) {
 	mat, err := s.materialRepo.GetByID(ctx, materialID)
 	if err != nil {
 		return nil, 0, err
@@ -244,7 +246,7 @@ func (s *submissionService) GetUserSubmissionsByMaterial(ctx context.Context, us
 	}
 
 	if len(submissions) == 0 {
-		return []models.SubmissionOverview{}, count, nil
+		return []models.Submission{}, count, nil
 	}
 
 	handler, err := s.registry.GetHandler(mat.Type)
@@ -262,36 +264,16 @@ func (s *submissionService) GetUserSubmissionsByMaterial(ctx context.Context, us
 		return nil, 0, err
 	}
 
-	result := make([]models.SubmissionOverview, len(submissions))
+	result := make([]models.Submission, len(submissions))
 	for i, sub := range submissions {
-		result[i] = models.SubmissionOverview{
+		result[i] = models.Submission{
 			ID:        sub.ID,
 			Status:    sub.Status,
+			Order:     sub.Order,
 			CreatedAt: sub.CreatedAt,
 			Payload:   payloads[sub.ID],
 		}
 	}
 
 	return result, count, nil
-}
-
-func (s *submissionService) checkPermission(ctx context.Context, id string) error {
-	user, ok := ctx.Value("user").(*models.User)
-	if !ok {
-		return errors.New("cannot get user")
-	}
-
-	submission, err := s.repo.Get(ctx, id)
-	if err != nil {
-		return err
-	}
-
-	if submission.UserID != user.ID {
-		return cserrors.New(&cserrors.Option{
-			HttpStatus: http.StatusForbidden,
-			Code:       cserrors.Forbidden,
-			Message:    "You do not have access to this submission",
-		})
-	}
-	return nil
 }

@@ -59,26 +59,30 @@ func NewCoreSubmissionRoutes(router fiber.Router, service services.SubmissionSer
 			if err != nil {
 				cancel()
 				log.Println(err)
+				return
 			}
 
-			submissionChan, err := service.Listen(ctx, id)
-			if err != nil {
-				cancel()
-				log.Println(err)
-			}
+			submissionChan, errChan := service.Listen(ctx, id)
 
-			for sub := range submissionChan {
-				data, err := json.Marshal(sub)
-				if err != nil {
-					cancel()
+			for {
+				select {
+				case err := <-errChan:
 					log.Println(err)
-				}
+					return
+				case sub := <-submissionChan:
+					data, err := json.Marshal(sub)
+					if err != nil {
+						log.Println(err)
+						return
+					}
 
-				fmt.Fprintf(w, "data: %s\n\n", data)
-				err = w.Flush()
-				if err != nil {
-					cancel()
-					log.Println(err)
+					fmt.Fprintf(w, "data: %s\n\n", data)
+					err = w.Flush()
+					if err != nil {
+						cancel()
+						log.Println(err)
+						return
+					}
 				}
 			}
 
