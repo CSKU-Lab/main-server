@@ -33,37 +33,39 @@ func NewPostgres(ctx context.Context, logger *zap.SugaredLogger, dataBaseURL str
 	}, close, nil
 }
 
-func (p *postgresPubSub) Subscribe(ctx context.Context, channel string, handler handler) error {
+func (p *postgresPubSub) Subscribe(ctx context.Context, channel string) (<-chan []byte, error) {
 	_, err := p.conn.Exec(ctx, fmt.Sprintf("LISTEN \"%s\"", channel))
 	if err != nil {
-		return fmt.Errorf("Cannot subscribe %s", channel)
+		return nil, fmt.Errorf("Cannot subscribe %s", channel)
 	}
 
-	errChan := make(chan error, 1)
-	for {
-		select {
-		case <-ctx.Done():
-			return errors.New("Context done")
-		case err := <-errChan:
-			return err
-		default:
-		}
-		noti, err := p.conn.WaitForNotification(ctx)
-		if err != nil {
-			return err
-		}
+	payloadChan := make(chan []byte)
 
-		go func() {
-			err := handler([]byte(noti.Payload))
-			if err != nil {
-				errChan <- err
+	go func() {
+		defer close(payloadChan)
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			default:
 			}
-		}()
-	}
+
+			noti, err := p.conn.WaitForNotification(ctx)
+			if err != nil {
+				fmt.Println("Error in Postgres PubSub Subscribe:", err)
+				return
+			}
+
+			payloadChan <- []byte(noti.Payload)
+		}
+	}()
+
+	return payloadChan, nil
+
 }
 
 func (p *postgresPubSub) UnSubscribe(ctx context.Context, channel string) error {
-	_, err := p.conn.Exec(ctx, fmt.Sprintf("LISTEN \"%s\"", channel))
+	_, err := p.conn.Exec(ctx, fmt.Sprintf("UNLISTEN \"%s\"", channel))
 	if err != nil {
 		return fmt.Errorf("Cannot unsubscribe %s", channel)
 	}

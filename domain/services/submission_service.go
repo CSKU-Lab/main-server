@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 
 	contextkeys "github.com/CSKU-Lab/main-server/context_keys"
@@ -21,7 +20,7 @@ type SubmissionService interface {
 	Create(ctx context.Context, req *requests.Submission, rawPayload []byte) (string, error)
 	Update(ctx context.Context, submissionID string, payload *UpdateSubmissionPayload, rawPayload []byte) error
 	Get(ctx context.Context, submissionID string) (*models.Submission, error)
-	Listen(ctx context.Context, submissionID string) (<-chan *models.Submission, <-chan error)
+	Listen(ctx context.Context, submissionID string) (<-chan *models.Submission, error)
 	GetUserSubmissionsByMaterial(ctx context.Context, userID string, materialID string, page int, pageSize int, sortOrder string) ([]models.Submission, int, error)
 }
 
@@ -167,42 +166,56 @@ func (s *submissionService) Get(ctx context.Context, submissionID string) (*mode
 	}, nil
 }
 
-func (s *submissionService) Listen(ctx context.Context, submissionID string) (<-chan *models.Submission, <-chan error) {
+func (s *submissionService) Listen(ctx context.Context, submissionID string) (<-chan *models.Submission, error) {
 	errChan := make(chan error, 1)
+	subChan := make(chan *models.Submission)
 
 	repoSubmission, err := s.repo.Get(ctx, submissionID)
 	if err != nil {
-		errChan <- err
-		return nil, errChan
+		return nil, err
 	}
 
 	// Get material to determine handler for extracting stats
 	mat, err := s.materialRepo.GetByID(ctx, repoSubmission.MaterialID)
 	if err != nil {
 		errChan <- err
-		return nil, errChan
+		return nil, err
 	}
 
 	handler, err := s.registry.GetHandler(mat.Type)
 	if err != nil {
 		errChan <- err
-		return nil, errChan
+		return nil, err
 	}
 
-	subChan := make(chan *models.Submission)
 	if repoSubmission.Status == models.PASSED || repoSubmission.Status == models.FAILED {
-		close(subChan)
+		go func() {
+			subChan <- &models.Submission{
+				ID:        submissionID,
+				Status:    repoSubmission.Status,
+				CreatedAt: repoSubmission.CreatedAt,
+			}
+			close(subChan)
+		}()
+
 		return subChan, nil
 	}
 
-	channel := fmt.Sprintf("submissions:update:%s", submissionID)
 	go func() {
 		defer close(subChan)
 
-		err := s.ps.Subscribe(ctx, channel, func(pubsubPayload []byte) error {
-			stats := handler.GetOverviewStatsByID(ctx, submissionID)
+		channel := fmt.Sprintf("submissions:update:%s", submissionID)
+		msgs, err := s.ps.Subscribe(ctx, channel)
+		if err != nil {
+			if errors.Is(err, context.Canceled) {
+				return
+			}
+			errChan <- err
+		}
 
-			status := models.SubmissionStatus(string(pubsubPayload))
+		for msg := range msgs {
+			stats := handler.GetOverviewStatsByID(ctx, submissionID)
+			status := models.SubmissionStatus(string(msg))
 
 			response := &models.Submission{
 				ID:        submissionID,
@@ -212,17 +225,10 @@ func (s *submissionService) Listen(ctx context.Context, submissionID string) (<-
 			}
 
 			subChan <- response
-			log.Println(response)
 
 			if status == models.FAILED || status == models.PASSED {
-				return pubsub.Exit
+				return
 			}
-
-			return nil
-		})
-		if err != nil {
-			errChan <- err
-			return
 		}
 	}()
 

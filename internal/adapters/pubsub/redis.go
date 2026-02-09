@@ -2,7 +2,6 @@ package pubsub
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"sync"
 
@@ -31,29 +30,28 @@ func (r *redisPubSub) Publish(ctx context.Context, channel string, message strin
 	return r.c.Publish(ctx, channel, message).Err()
 }
 
-func (r *redisPubSub) Subscribe(ctx context.Context, channel string, handler handler) error {
+func (r *redisPubSub) Subscribe(ctx context.Context, channel string) (<-chan []byte, error) {
 	sub := r.c.Subscribe(ctx, channel)
-	defer sub.Close()
 
-	errChan := make(chan error)
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case err := <-errChan:
-			return err
-		case msg := <-sub.Channel():
-			go func() {
-				err := handler([]byte(msg.Payload))
+	payloadChan := make(chan []byte)
+
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				err := sub.Close()
 				if err != nil {
-					if errors.Is(err, Exit) {
-						errChan <- nil
-					}
-					errChan <- err
+					fmt.Println("Error on close redis subscribe :", err)
 				}
-			}()
+				close(payloadChan)
+				return
+			case msg := <-sub.Channel():
+				payloadChan <- []byte(msg.Payload)
+			}
 		}
-	}
+	}()
+
+	return payloadChan, nil
 }
 
 func (r *redisPubSub) UnSubscribe(ctx context.Context, channel string) error {
