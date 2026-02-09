@@ -16,8 +16,8 @@ type CodeSubmission struct {
 }
 
 type SubmissionFile struct {
-	Name    string
-	Content string
+	Name    string `json:"name"`
+	Content string `json:"content"`
 }
 
 type SubmissionFiles []SubmissionFile
