@@ -796,6 +796,13 @@ table "submissions" {
   column "submission_order" {
     type = integer
   }
+  column "manual_score" {
+    type = int
+    default = 0
+  }
+  column "ip_address" {
+    type = inet
+  }
   primary_key {
     columns = [ column.id ]
   }
@@ -843,10 +850,6 @@ table "code_submissions" {
   }
   column "test_case_groups" {
     type = jsonb
-    null = true
-  }
-  column "score" {
-    type = int
     null = true
   }
   primary_key {

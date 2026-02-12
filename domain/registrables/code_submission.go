@@ -108,6 +108,7 @@ func (c *codeSubmission) Get(ctx context.Context, submissionID string) (any, err
 	}
 
 	cleanedCodeSubmission := &models.CodeSubmission{
+		SubmissionID:   codeSubmission.SubmissionID,
 		Files:          codeSubmission.Files,
 		Status:         codeSubmission.Status,
 		AvgWallTime:    codeSubmission.AvgWallTime,

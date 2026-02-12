@@ -12,6 +12,7 @@ type SubmissionRepository interface {
 	Update(ctx context.Context, id string, status models.SubmissionStatus) error
 	Get(ctx context.Context, id string) (*Submission, error)
 	GetPagination(ctx context.Context, userID string, materialID string, page int, pageSize int, sortOrder string) ([]Submission, error)
+	GetLatestByMaterialID(ctx context.Context, materialID string) ([]models.RawSubmission, error)
 	Count(ctx context.Context, userID string, materialID string) (int, error)
 }
 

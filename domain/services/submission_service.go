@@ -22,6 +22,7 @@ type SubmissionService interface {
 	Get(ctx context.Context, submissionID string) (*models.Submission, error)
 	Listen(ctx context.Context, submissionID string) (<-chan *models.Submission, error)
 	GetUserSubmissionsByMaterial(ctx context.Context, userID string, materialID string, page int, pageSize int, sortOrder string) ([]models.Submission, int, error)
+	GetLatestSubmissionsByMaterial(ctx context.Context, materialID string) ([]models.StudentLatestSubmission, error)
 }
 
 type UpdateSubmissionPayload struct {
@@ -36,6 +37,8 @@ type submissionService struct {
 	sectionStudentRepo repositories.SectionStudentRepository
 	uowRepo            repositories.UoWRepository
 	registry           registries.SubmissionRegistry
+	userRepo           repositories.User
+	materialReigstry   registries.Material
 	ps                 pubsub.PubSub
 }
 
@@ -45,6 +48,8 @@ type SubmissionServiceArgs struct {
 	UowRepository            repositories.UoWRepository
 	SubmissionRegistry       registries.SubmissionRegistry
 	SectionStudentRepository repositories.SectionStudentRepository
+	UserRepository           repositories.User
+	MaterialRegistry         registries.Material
 	PubSub                   pubsub.PubSub
 }
 
@@ -55,6 +60,8 @@ func NewSubmissionService(args *SubmissionServiceArgs) SubmissionService {
 		uowRepo:            args.UowRepository,
 		registry:           args.SubmissionRegistry,
 		sectionStudentRepo: args.SectionStudentRepository,
+		userRepo:           args.UserRepository,
+		materialReigstry:   args.MaterialRegistry,
 		ps:                 args.PubSub,
 	}
 }
@@ -95,7 +102,7 @@ func (s *submissionService) Create(ctx context.Context, req *requests.Submission
 	}
 
 	err = s.uowRepo.Execute(ctx, func(u repositories.UoWInstance) error {
-		err := u.Submission().Create(ctx, payload)
+		err = u.Submission().Create(ctx, payload)
 		if err != nil {
 			return err
 		}
@@ -282,4 +289,73 @@ func (s *submissionService) GetUserSubmissionsByMaterial(ctx context.Context, us
 	}
 
 	return result, count, nil
+}
+
+func (s *submissionService) GetLatestSubmissionsByMaterial(ctx context.Context, materialID string) ([]models.StudentLatestSubmission, error) {
+	mat, err := s.materialRepo.GetByID(ctx, materialID)
+	if err != nil {
+		return nil, err
+	}
+
+	materialHandler, exists := s.materialReigstry.GetHandler(mat.Type)
+	if !exists {
+		return nil, cserrors.New(&cserrors.Option{
+			HttpStatus: http.StatusBadRequest,
+			Message:    "Unsupported material type",
+		})
+	}
+
+	autoScore, err := materialHandler.GetScore(ctx, mat.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	rawSubmissions, err := s.repo.GetLatestByMaterialID(ctx, materialID)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(rawSubmissions) == 0 {
+		return []models.StudentLatestSubmission{}, nil
+	}
+
+	handler, err := s.registry.GetHandler(mat.Type)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]models.StudentLatestSubmission, len(rawSubmissions))
+	for i, sub := range rawSubmissions {
+
+		payload, err := handler.Get(ctx, sub.ID)
+		if err != nil {
+			return nil, err
+		}
+
+		user, err := s.userRepo.GetByID(ctx, sub.UserID)
+		if err != nil {
+			return nil, err
+		}
+		student := models.Student{
+			ID:           user.ID,
+			Username:     user.Username,
+			DisplayName:  user.DisplayName,
+			ProfileImage: user.ProfileImage,
+		}
+
+		result[i] = models.StudentLatestSubmission{
+			ID:        sub.ID,
+			User:      student,
+			CreatedAt: sub.CreatedAt,
+			UpdatedAt: sub.UpdatedAt,
+			Score: models.SubmissionScore{
+				Auto:   autoScore,
+				Manual: sub.ManualScore,
+			},
+			IP:      sub.IPAddress,
+			Payload: payload,
+		}
+	}
+
+	return result, nil
 }

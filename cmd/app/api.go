@@ -150,6 +150,8 @@ func startApiServer(ctx context.Context, logger *zap.SugaredLogger, db *sqlx.DB,
 		UowRepository:            uowRepo,
 		SubmissionRegistry:       submissionRegistry,
 		SectionStudentRepository: sectionStudentRepo,
+		UserRepository:           userRepo,
+		MaterialRegistry:         materialRegistry,
 		PubSub:                   rClient,
 	})
 
@@ -280,6 +282,7 @@ func startApiServer(ctx context.Context, logger *zap.SugaredLogger, db *sqlx.DB,
 		SectionLogService:       sectionLogService,
 		MaterialAssetService:    materialAssetService,
 		ConfigGRPCClient:        configGRPCClient,
+		SubmissionService:       submissionService,
 	})
 
 	rest.NewCoreRouter(&rest.CoreRouter{

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	contextkeys "github.com/CSKU-Lab/main-server/context_keys"
 	"github.com/CSKU-Lab/main-server/domain/models"
 	"github.com/CSKU-Lab/main-server/domain/repositories"
 )
@@ -20,13 +21,15 @@ func NewSubmissionRepository(db instance) repositories.SubmissionRepository {
 }
 
 func (s *submissionRepository) Create(ctx context.Context, payload *repositories.Submission) error {
+	ipAddress := ctx.Value(contextkeys.UserKey).(contextkeys.User).IP_Address
+
 	query := `INSERT INTO submissions
-	(id, user_id, material_id, lab_id, section_id, course_id, status, submission_order, created_at, updated_at)
-	SELECT $1, $2, $3, $4, $5, $6, 'queued', COALESCE(MAX(submission_order), 0) + 1, NOW(), NOW()
+	(id, user_id, material_id, lab_id, section_id, course_id, status, submission_order, created_at, updated_at, ip_address)
+	SELECT $1, $2, $3, $4, $5, $6, 'queued', COALESCE(MAX(submission_order), 0) + 1, NOW(), NOW(), $7
 	FROM submissions
 	WHERE user_id = $2 AND material_id = $3`
 
-	_, err := s.db.ExecContext(ctx, query, payload.ID, payload.UserID, payload.MaterialID, payload.LabID, payload.SectionID, payload.CourseID)
+	_, err := s.db.ExecContext(ctx, query, payload.ID, payload.UserID, payload.MaterialID, payload.LabID, payload.SectionID, payload.CourseID, ipAddress)
 	if err != nil {
 		return err
 	}
@@ -55,6 +58,9 @@ type submission struct {
 	Order      int                     `db:"submission_order"`
 	CreatedAt  time.Time               `db:"created_at"`
 	UpdatedAt  time.Time               `db:"updated_at"`
+
+	IPAddress   string `db:"ip_address"`
+	ManualScore int    `db:"manual_score"`
 }
 
 func (s *submissionRepository) Get(ctx context.Context, id string) (*repositories.Submission, error) {
@@ -127,4 +133,37 @@ func (s *submissionRepository) Count(ctx context.Context, userID string, materia
 	}
 
 	return count, nil
+}
+
+func (s *submissionRepository) GetLatestByMaterialID(ctx context.Context, materialID string) ([]models.RawSubmission, error) {
+	query := `SELECT DISTINCT ON (user_id) id, user_id, lab_id, section_id, course_id, material_id, status, submission_order, created_at, updated_at, ip_address, manual_score
+              FROM submissions 
+              WHERE material_id = $1
+							ORDER BY user_id, submission_order DESC
+	`
+
+	submissions := []submission{}
+	err := s.db.SelectContext(ctx, &submissions, query, materialID)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]models.RawSubmission, len(submissions))
+	for i, row := range submissions {
+		result[i] = models.RawSubmission{
+			ID:         row.ID,
+			UserID:     row.UserID,
+			LabID:      row.LabID,
+			MaterialID: row.MaterialID,
+			Status:     row.Status,
+			Order:      row.Order,
+			CreatedAt:  row.CreatedAt,
+			UpdatedAt:  row.UpdatedAt,
+
+			IPAddress:   row.IPAddress,
+			ManualScore: row.ManualScore,
+		}
+	}
+
+	return result, nil
 }

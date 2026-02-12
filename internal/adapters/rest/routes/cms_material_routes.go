@@ -14,7 +14,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 )
 
-func NewCMSMaterialRoutes(router fiber.Router, materialService services.MaterialService, materialAssetService services.MaterialAssetService) {
+func NewCMSMaterialRoutes(router fiber.Router, materialService services.MaterialService, materialAssetService services.MaterialAssetService, submissionService services.SubmissionService) {
 	materialRouter := router.Group("/materials")
 
 	materialRouter.Post("/", middlewares.RBACMiddleware([]models.Role{
@@ -147,6 +147,20 @@ func NewCMSMaterialRoutes(router fiber.Router, materialService services.Material
 		return c.JSON(fiber.Map{
 			"url": fileURL,
 		})
+	})
+
+	materialRouter.Get("/:id/submissions", middlewares.RBACMiddleware([]models.Role{
+		models.ADMIN,
+		models.INSTRUCTOR,
+	}), func(c fiber.Ctx) error {
+		materialID := c.Params("id")
+
+		studentLatestSubmissions, err := submissionService.GetLatestSubmissionsByMaterial(c.RequestCtx(), materialID)
+		if err != nil {
+			return err
+		}
+
+		return c.JSON(studentLatestSubmissions)
 	})
 }
 

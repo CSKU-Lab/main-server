@@ -93,6 +93,26 @@ func NewCodeMaterial(repo repositories.CodeMaterialRepository, taskGRPCClient ta
 	}
 }
 
+func (c *codeMaterial) GetScore(ctx context.Context, ID string) (int, error) {
+	codeMat, err := c.repo.GetByID(ctx, ID)
+	if err != nil {
+		return 0, err
+	}
+
+	task, err := c.taskGRPCClient.GetTask(ctx, &taskPB.GetTaskRequest{
+		Id: codeMat.TaskID,
+	})
+	if err != nil {
+		return 0, err
+	}
+
+	var autoScore int32
+	for _, v := range task.GetTestCaseGroups() {
+		autoScore += v.Score
+	}
+	return int(autoScore), nil
+}
+
 func (c *codeMaterial) GetByID(ctx context.Context, ID string) (any, error) {
 	codeMat, err := c.repo.GetByID(ctx, ID)
 	if err != nil {

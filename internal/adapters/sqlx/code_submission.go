@@ -28,6 +28,7 @@ func (c *codeSubmissionRepository) Create(ctx context.Context, payload *reposito
 
 	return nil
 }
+
 func (c *codeSubmissionRepository) Update(ctx context.Context, payload *repositories.UpdateCodeSubmissionPayload) error {
 	query := `UPDATE code_submissions SET
 				status = $2,
