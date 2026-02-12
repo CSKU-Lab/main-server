@@ -3,6 +3,7 @@ package registries
 import (
 	"context"
 
+	"github.com/CSKU-Lab/main-server/domain/models"
 	"github.com/CSKU-Lab/main-server/internal/requests"
 )
 
@@ -10,6 +11,7 @@ type MaterialRegisterable interface {
 	Create(ctx context.Context, matID string, req *requests.CreateMaterial, rawReq []byte) error
 	GetByID(ctx context.Context, ID string) (any, error)
 	GetScore(ctx context.Context, ID string) (int, error)
+	GetMaxScore(ctx context.Context, ID string) (*models.SubmissionScore, error)
 	UpdateByID(ctx context.Context, ID string, req *requests.BaseUpdateMaterial, rawReq []byte) error
 	DeleteByID(ctx context.Context, ID string) error
 }

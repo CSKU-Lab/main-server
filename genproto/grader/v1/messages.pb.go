@@ -94,6 +94,49 @@ func (ExecutionStatus) EnumDescriptor() ([]byte, []int) {
 	return file_grader_v1_messages_proto_rawDescGZIP(), []int{0}
 }
 
+type BroadcastAction int32
+
+const (
+	BroadcastAction_REFETCH_CONFIG BroadcastAction = 0
+)
+
+// Enum value maps for BroadcastAction.
+var (
+	BroadcastAction_name = map[int32]string{
+		0: "REFETCH_CONFIG",
+	}
+	BroadcastAction_value = map[string]int32{
+		"REFETCH_CONFIG": 0,
+	}
+)
+
+func (x BroadcastAction) Enum() *BroadcastAction {
+	p := new(BroadcastAction)
+	*p = x
+	return p
+}
+
+func (x BroadcastAction) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (BroadcastAction) Descriptor() protoreflect.EnumDescriptor {
+	return file_grader_v1_messages_proto_enumTypes[1].Descriptor()
+}
+
+func (BroadcastAction) Type() protoreflect.EnumType {
+	return &file_grader_v1_messages_proto_enumTypes[1]
+}
+
+func (x BroadcastAction) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use BroadcastAction.Descriptor instead.
+func (BroadcastAction) EnumDescriptor() ([]byte, []int) {
+	return file_grader_v1_messages_proto_rawDescGZIP(), []int{1}
+}
+
 type File struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
@@ -314,50 +357,6 @@ func (x *RunRequest) GetLimit() *Limit {
 	return nil
 }
 
-type GetRunResultRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ExecutionId   string                 `protobuf:"bytes,1,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetRunResultRequest) Reset() {
-	*x = GetRunResultRequest{}
-	mi := &file_grader_v1_messages_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetRunResultRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetRunResultRequest) ProtoMessage() {}
-
-func (x *GetRunResultRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_grader_v1_messages_proto_msgTypes[3]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetRunResultRequest.ProtoReflect.Descriptor instead.
-func (*GetRunResultRequest) Descriptor() ([]byte, []int) {
-	return file_grader_v1_messages_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *GetRunResultRequest) GetExecutionId() string {
-	if x != nil {
-		return x.ExecutionId
-	}
-	return ""
-}
-
 type RunResultResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ExecutionId   string                 `protobuf:"bytes,1,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
@@ -371,7 +370,7 @@ type RunResultResponse struct {
 
 func (x *RunResultResponse) Reset() {
 	*x = RunResultResponse{}
-	mi := &file_grader_v1_messages_proto_msgTypes[4]
+	mi := &file_grader_v1_messages_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -383,7 +382,7 @@ func (x *RunResultResponse) String() string {
 func (*RunResultResponse) ProtoMessage() {}
 
 func (x *RunResultResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_grader_v1_messages_proto_msgTypes[4]
+	mi := &file_grader_v1_messages_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -396,7 +395,7 @@ func (x *RunResultResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunResultResponse.ProtoReflect.Descriptor instead.
 func (*RunResultResponse) Descriptor() ([]byte, []int) {
-	return file_grader_v1_messages_proto_rawDescGZIP(), []int{4}
+	return file_grader_v1_messages_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *RunResultResponse) GetExecutionId() string {
@@ -436,7 +435,7 @@ func (x *RunResultResponse) GetMemory() int32 {
 
 type TestCaseResult struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	TestCaseId    string                 `protobuf:"bytes,1,opt,name=test_case_id,json=testCaseId,proto3" json:"test_case_id,omitempty"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Status        ExecutionStatus        `protobuf:"varint,2,opt,name=status,proto3,enum=grader.v1.ExecutionStatus" json:"status,omitempty"`
 	Output        string                 `protobuf:"bytes,3,opt,name=output,proto3" json:"output,omitempty"`
 	Message       string                 `protobuf:"bytes,4,opt,name=message,proto3" json:"message,omitempty"`
@@ -448,7 +447,7 @@ type TestCaseResult struct {
 
 func (x *TestCaseResult) Reset() {
 	*x = TestCaseResult{}
-	mi := &file_grader_v1_messages_proto_msgTypes[5]
+	mi := &file_grader_v1_messages_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -460,7 +459,7 @@ func (x *TestCaseResult) String() string {
 func (*TestCaseResult) ProtoMessage() {}
 
 func (x *TestCaseResult) ProtoReflect() protoreflect.Message {
-	mi := &file_grader_v1_messages_proto_msgTypes[5]
+	mi := &file_grader_v1_messages_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -473,12 +472,12 @@ func (x *TestCaseResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TestCaseResult.ProtoReflect.Descriptor instead.
 func (*TestCaseResult) Descriptor() ([]byte, []int) {
-	return file_grader_v1_messages_proto_rawDescGZIP(), []int{5}
+	return file_grader_v1_messages_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *TestCaseResult) GetTestCaseId() string {
+func (x *TestCaseResult) GetId() string {
 	if x != nil {
-		return x.TestCaseId
+		return x.Id
 	}
 	return ""
 }
@@ -522,13 +521,14 @@ type GradeRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Files         []*File                `protobuf:"bytes,1,rep,name=files,proto3" json:"files,omitempty"`
 	TaskId        string                 `protobuf:"bytes,2,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	RunnerId      string                 `protobuf:"bytes,3,opt,name=runner_id,json=runnerId,proto3" json:"runner_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GradeRequest) Reset() {
 	*x = GradeRequest{}
-	mi := &file_grader_v1_messages_proto_msgTypes[6]
+	mi := &file_grader_v1_messages_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -540,7 +540,7 @@ func (x *GradeRequest) String() string {
 func (*GradeRequest) ProtoMessage() {}
 
 func (x *GradeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_grader_v1_messages_proto_msgTypes[6]
+	mi := &file_grader_v1_messages_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -553,7 +553,7 @@ func (x *GradeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GradeRequest.ProtoReflect.Descriptor instead.
 func (*GradeRequest) Descriptor() ([]byte, []int) {
-	return file_grader_v1_messages_proto_rawDescGZIP(), []int{6}
+	return file_grader_v1_messages_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *GradeRequest) GetFiles() []*File {
@@ -570,28 +570,37 @@ func (x *GradeRequest) GetTaskId() string {
 	return ""
 }
 
-type GradedResponse struct {
+func (x *GradeRequest) GetRunnerId() string {
+	if x != nil {
+		return x.RunnerId
+	}
+	return ""
+}
+
+type TestCaseGroup struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	ExecutionId   string                 `protobuf:"bytes,1,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	TestCases     []*TestCaseResult      `protobuf:"bytes,2,rep,name=test_cases,json=testCases,proto3" json:"test_cases,omitempty"`
+	Score         int32                  `protobuf:"varint,3,opt,name=score,proto3" json:"score,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GradedResponse) Reset() {
-	*x = GradedResponse{}
-	mi := &file_grader_v1_messages_proto_msgTypes[7]
+func (x *TestCaseGroup) Reset() {
+	*x = TestCaseGroup{}
+	mi := &file_grader_v1_messages_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GradedResponse) String() string {
+func (x *TestCaseGroup) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GradedResponse) ProtoMessage() {}
+func (*TestCaseGroup) ProtoMessage() {}
 
-func (x *GradedResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_grader_v1_messages_proto_msgTypes[7]
+func (x *TestCaseGroup) ProtoReflect() protoreflect.Message {
+	mi := &file_grader_v1_messages_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -602,76 +611,46 @@ func (x *GradedResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GradedResponse.ProtoReflect.Descriptor instead.
-func (*GradedResponse) Descriptor() ([]byte, []int) {
-	return file_grader_v1_messages_proto_rawDescGZIP(), []int{7}
+// Deprecated: Use TestCaseGroup.ProtoReflect.Descriptor instead.
+func (*TestCaseGroup) Descriptor() ([]byte, []int) {
+	return file_grader_v1_messages_proto_rawDescGZIP(), []int{6}
 }
 
-func (x *GradedResponse) GetExecutionId() string {
+func (x *TestCaseGroup) GetId() string {
 	if x != nil {
-		return x.ExecutionId
+		return x.Id
 	}
 	return ""
 }
 
-type GetGradeResultRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ExecutionId   string                 `protobuf:"bytes,1,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetGradeResultRequest) Reset() {
-	*x = GetGradeResultRequest{}
-	mi := &file_grader_v1_messages_proto_msgTypes[8]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetGradeResultRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetGradeResultRequest) ProtoMessage() {}
-
-func (x *GetGradeResultRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_grader_v1_messages_proto_msgTypes[8]
+func (x *TestCaseGroup) GetTestCases() []*TestCaseResult {
 	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
+		return x.TestCases
 	}
-	return mi.MessageOf(x)
+	return nil
 }
 
-// Deprecated: Use GetGradeResultRequest.ProtoReflect.Descriptor instead.
-func (*GetGradeResultRequest) Descriptor() ([]byte, []int) {
-	return file_grader_v1_messages_proto_rawDescGZIP(), []int{8}
-}
-
-func (x *GetGradeResultRequest) GetExecutionId() string {
+func (x *TestCaseGroup) GetScore() int32 {
 	if x != nil {
-		return x.ExecutionId
+		return x.Score
 	}
-	return ""
+	return 0
 }
 
 type GradeResultResponse struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	ExecutionId     string                 `protobuf:"bytes,1,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
-	Status          ExecutionStatus        `protobuf:"varint,2,opt,name=status,proto3,enum=grader.v1.ExecutionStatus" json:"status,omitempty"`
-	TestCaseResults []*TestCaseResult      `protobuf:"bytes,3,rep,name=test_case_results,json=testCaseResults,proto3" json:"test_case_results,omitempty"`
-	AvgWallTime     float32                `protobuf:"fixed32,4,opt,name=avg_wall_time,json=avgWallTime,proto3" json:"avg_wall_time,omitempty"`
-	AvgMemory       int32                  `protobuf:"varint,5,opt,name=avg_memory,json=avgMemory,proto3" json:"avg_memory,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	ExecutionId    string                 `protobuf:"bytes,1,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
+	Status         ExecutionStatus        `protobuf:"varint,2,opt,name=status,proto3,enum=grader.v1.ExecutionStatus" json:"status,omitempty"`
+	TestCaseGroups []*TestCaseGroup       `protobuf:"bytes,3,rep,name=test_case_groups,json=testCaseGroups,proto3" json:"test_case_groups,omitempty"`
+	AvgWallTime    float32                `protobuf:"fixed32,4,opt,name=avg_wall_time,json=avgWallTime,proto3" json:"avg_wall_time,omitempty"`
+	AvgMemory      int32                  `protobuf:"varint,5,opt,name=avg_memory,json=avgMemory,proto3" json:"avg_memory,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *GradeResultResponse) Reset() {
 	*x = GradeResultResponse{}
-	mi := &file_grader_v1_messages_proto_msgTypes[9]
+	mi := &file_grader_v1_messages_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -683,7 +662,7 @@ func (x *GradeResultResponse) String() string {
 func (*GradeResultResponse) ProtoMessage() {}
 
 func (x *GradeResultResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_grader_v1_messages_proto_msgTypes[9]
+	mi := &file_grader_v1_messages_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -696,7 +675,7 @@ func (x *GradeResultResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GradeResultResponse.ProtoReflect.Descriptor instead.
 func (*GradeResultResponse) Descriptor() ([]byte, []int) {
-	return file_grader_v1_messages_proto_rawDescGZIP(), []int{9}
+	return file_grader_v1_messages_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *GradeResultResponse) GetExecutionId() string {
@@ -713,9 +692,9 @@ func (x *GradeResultResponse) GetStatus() ExecutionStatus {
 	return ExecutionStatus_STATUS_UNSPECIFIED
 }
 
-func (x *GradeResultResponse) GetTestCaseResults() []*TestCaseResult {
+func (x *GradeResultResponse) GetTestCaseGroups() []*TestCaseGroup {
 	if x != nil {
-		return x.TestCaseResults
+		return x.TestCaseGroups
 	}
 	return nil
 }
@@ -745,7 +724,7 @@ type TestCaseRequest struct {
 
 func (x *TestCaseRequest) Reset() {
 	*x = TestCaseRequest{}
-	mi := &file_grader_v1_messages_proto_msgTypes[10]
+	mi := &file_grader_v1_messages_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -757,7 +736,7 @@ func (x *TestCaseRequest) String() string {
 func (*TestCaseRequest) ProtoMessage() {}
 
 func (x *TestCaseRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_grader_v1_messages_proto_msgTypes[10]
+	mi := &file_grader_v1_messages_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -770,7 +749,7 @@ func (x *TestCaseRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TestCaseRequest.ProtoReflect.Descriptor instead.
 func (*TestCaseRequest) Descriptor() ([]byte, []int) {
-	return file_grader_v1_messages_proto_rawDescGZIP(), []int{10}
+	return file_grader_v1_messages_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *TestCaseRequest) GetId() string {
@@ -806,7 +785,7 @@ type GenerateTestCasesRequest struct {
 
 func (x *GenerateTestCasesRequest) Reset() {
 	*x = GenerateTestCasesRequest{}
-	mi := &file_grader_v1_messages_proto_msgTypes[11]
+	mi := &file_grader_v1_messages_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -818,7 +797,7 @@ func (x *GenerateTestCasesRequest) String() string {
 func (*GenerateTestCasesRequest) ProtoMessage() {}
 
 func (x *GenerateTestCasesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_grader_v1_messages_proto_msgTypes[11]
+	mi := &file_grader_v1_messages_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -831,7 +810,7 @@ func (x *GenerateTestCasesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GenerateTestCasesRequest.ProtoReflect.Descriptor instead.
 func (*GenerateTestCasesRequest) Descriptor() ([]byte, []int) {
-	return file_grader_v1_messages_proto_rawDescGZIP(), []int{11}
+	return file_grader_v1_messages_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *GenerateTestCasesRequest) GetFiles() []*File {
@@ -874,7 +853,7 @@ type TestCaseResponse struct {
 
 func (x *TestCaseResponse) Reset() {
 	*x = TestCaseResponse{}
-	mi := &file_grader_v1_messages_proto_msgTypes[12]
+	mi := &file_grader_v1_messages_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -886,7 +865,7 @@ func (x *TestCaseResponse) String() string {
 func (*TestCaseResponse) ProtoMessage() {}
 
 func (x *TestCaseResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_grader_v1_messages_proto_msgTypes[12]
+	mi := &file_grader_v1_messages_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -899,7 +878,7 @@ func (x *TestCaseResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TestCaseResponse.ProtoReflect.Descriptor instead.
 func (*TestCaseResponse) Descriptor() ([]byte, []int) {
-	return file_grader_v1_messages_proto_rawDescGZIP(), []int{12}
+	return file_grader_v1_messages_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *TestCaseResponse) GetId() string {
@@ -939,7 +918,7 @@ type GenerateTestCasesResponse struct {
 
 func (x *GenerateTestCasesResponse) Reset() {
 	*x = GenerateTestCasesResponse{}
-	mi := &file_grader_v1_messages_proto_msgTypes[13]
+	mi := &file_grader_v1_messages_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -951,7 +930,7 @@ func (x *GenerateTestCasesResponse) String() string {
 func (*GenerateTestCasesResponse) ProtoMessage() {}
 
 func (x *GenerateTestCasesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_grader_v1_messages_proto_msgTypes[13]
+	mi := &file_grader_v1_messages_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -964,7 +943,7 @@ func (x *GenerateTestCasesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GenerateTestCasesResponse.ProtoReflect.Descriptor instead.
 func (*GenerateTestCasesResponse) Descriptor() ([]byte, []int) {
-	return file_grader_v1_messages_proto_rawDescGZIP(), []int{13}
+	return file_grader_v1_messages_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *GenerateTestCasesResponse) GetResults() []*TestCaseResponse {
@@ -972,6 +951,50 @@ func (x *GenerateTestCasesResponse) GetResults() []*TestCaseResponse {
 		return x.Results
 	}
 	return nil
+}
+
+type BroadcastRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Action        BroadcastAction        `protobuf:"varint,1,opt,name=action,proto3,enum=grader.v1.BroadcastAction" json:"action,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BroadcastRequest) Reset() {
+	*x = BroadcastRequest{}
+	mi := &file_grader_v1_messages_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BroadcastRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BroadcastRequest) ProtoMessage() {}
+
+func (x *BroadcastRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_grader_v1_messages_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BroadcastRequest.ProtoReflect.Descriptor instead.
+func (*BroadcastRequest) Descriptor() ([]byte, []int) {
+	return file_grader_v1_messages_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *BroadcastRequest) GetAction() BroadcastAction {
+	if x != nil {
+		return x.Action
+	}
+	return BroadcastAction_REFETCH_CONFIG
 }
 
 var File_grader_v1_messages_proto protoreflect.FileDescriptor
@@ -996,34 +1019,33 @@ const file_grader_v1_messages_proto_rawDesc = "" +
 	"\x05files\x18\x01 \x03(\v2\x0f.grader.v1.FileR\x05files\x12\x1b\n" +
 	"\trunner_id\x18\x02 \x01(\tR\brunnerId\x12\x14\n" +
 	"\x05input\x18\x03 \x01(\tR\x05input\x12&\n" +
-	"\x05limit\x18\x04 \x01(\v2\x10.grader.v1.LimitR\x05limit\"8\n" +
-	"\x13GetRunResultRequest\x12!\n" +
-	"\fexecution_id\x18\x01 \x01(\tR\vexecutionId\"\xb7\x01\n" +
+	"\x05limit\x18\x04 \x01(\v2\x10.grader.v1.LimitR\x05limit\"\xb7\x01\n" +
 	"\x11RunResultResponse\x12!\n" +
 	"\fexecution_id\x18\x01 \x01(\tR\vexecutionId\x122\n" +
 	"\x06status\x18\x02 \x01(\x0e2\x1a.grader.v1.ExecutionStatusR\x06status\x12\x16\n" +
 	"\x06output\x18\x03 \x01(\tR\x06output\x12\x1b\n" +
 	"\twall_time\x18\x04 \x01(\x02R\bwallTime\x12\x16\n" +
-	"\x06memory\x18\x05 \x01(\x05R\x06memory\"\xcd\x01\n" +
-	"\x0eTestCaseResult\x12 \n" +
-	"\ftest_case_id\x18\x01 \x01(\tR\n" +
-	"testCaseId\x122\n" +
+	"\x06memory\x18\x05 \x01(\x05R\x06memory\"\xbb\x01\n" +
+	"\x0eTestCaseResult\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x122\n" +
 	"\x06status\x18\x02 \x01(\x0e2\x1a.grader.v1.ExecutionStatusR\x06status\x12\x16\n" +
 	"\x06output\x18\x03 \x01(\tR\x06output\x12\x18\n" +
 	"\amessage\x18\x04 \x01(\tR\amessage\x12\x1b\n" +
 	"\twall_time\x18\x05 \x01(\x02R\bwallTime\x12\x16\n" +
-	"\x06memory\x18\x06 \x01(\x05R\x06memory\"N\n" +
+	"\x06memory\x18\x06 \x01(\x05R\x06memory\"k\n" +
 	"\fGradeRequest\x12%\n" +
 	"\x05files\x18\x01 \x03(\v2\x0f.grader.v1.FileR\x05files\x12\x17\n" +
-	"\atask_id\x18\x02 \x01(\tR\x06taskId\"3\n" +
-	"\x0eGradedResponse\x12!\n" +
-	"\fexecution_id\x18\x01 \x01(\tR\vexecutionId\":\n" +
-	"\x15GetGradeResultRequest\x12!\n" +
-	"\fexecution_id\x18\x01 \x01(\tR\vexecutionId\"\xf6\x01\n" +
+	"\atask_id\x18\x02 \x01(\tR\x06taskId\x12\x1b\n" +
+	"\trunner_id\x18\x03 \x01(\tR\brunnerId\"o\n" +
+	"\rTestCaseGroup\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x128\n" +
+	"\n" +
+	"test_cases\x18\x02 \x03(\v2\x19.grader.v1.TestCaseResultR\ttestCases\x12\x14\n" +
+	"\x05score\x18\x03 \x01(\x05R\x05score\"\xf3\x01\n" +
 	"\x13GradeResultResponse\x12!\n" +
 	"\fexecution_id\x18\x01 \x01(\tR\vexecutionId\x122\n" +
-	"\x06status\x18\x02 \x01(\x0e2\x1a.grader.v1.ExecutionStatusR\x06status\x12E\n" +
-	"\x11test_case_results\x18\x03 \x03(\v2\x19.grader.v1.TestCaseResultR\x0ftestCaseResults\x12\"\n" +
+	"\x06status\x18\x02 \x01(\x0e2\x1a.grader.v1.ExecutionStatusR\x06status\x12B\n" +
+	"\x10test_case_groups\x18\x03 \x03(\v2\x18.grader.v1.TestCaseGroupR\x0etestCaseGroups\x12\"\n" +
 	"\ravg_wall_time\x18\x04 \x01(\x02R\vavgWallTime\x12\x1d\n" +
 	"\n" +
 	"avg_memory\x18\x05 \x01(\x05R\tavgMemory\"M\n" +
@@ -1042,7 +1064,9 @@ const file_grader_v1_messages_proto_rawDesc = "" +
 	"\x05input\x18\x03 \x01(\tR\x05input\x12\x16\n" +
 	"\x06output\x18\x04 \x01(\tR\x06output\"R\n" +
 	"\x19GenerateTestCasesResponse\x125\n" +
-	"\aresults\x18\x01 \x03(\v2\x1b.grader.v1.TestCaseResponseR\aresults*\xa7\x02\n" +
+	"\aresults\x18\x01 \x03(\v2\x1b.grader.v1.TestCaseResponseR\aresults\"F\n" +
+	"\x10BroadcastRequest\x122\n" +
+	"\x06action\x18\x01 \x01(\x0e2\x1a.grader.v1.BroadcastActionR\x06action*\xa7\x02\n" +
 	"\x0fExecutionStatus\x12\x16\n" +
 	"\x12STATUS_UNSPECIFIED\x10\x00\x12\x19\n" +
 	"\x15STATUS_COMPILE_FAILED\x10\x01\x12\x15\n" +
@@ -1055,7 +1079,9 @@ const file_grader_v1_messages_proto_rawDesc = "" +
 	"\x13STATUS_GRADER_ERROR\x10\b\x12\x11\n" +
 	"\rSTATUS_QUEUED\x10\t\x12\x12\n" +
 	"\x0eSTATUS_RUNNING\x10\n" +
-	"B\x95\x01\n" +
+	"*%\n" +
+	"\x0fBroadcastAction\x12\x12\n" +
+	"\x0eREFETCH_CONFIG\x10\x00B\x95\x01\n" +
 	"\rcom.grader.v1B\rMessagesProtoP\x01Z0github.com/CSKU-Lab/grader-server/grpc/grader/v1\xa2\x02\x03GXX\xaa\x02\tGrader.V1\xca\x02\tGrader\\V1\xe2\x02\x15Grader\\V1\\GPBMetadata\xea\x02\n" +
 	"Grader::V1b\x06proto3"
 
@@ -1071,42 +1097,44 @@ func file_grader_v1_messages_proto_rawDescGZIP() []byte {
 	return file_grader_v1_messages_proto_rawDescData
 }
 
-var file_grader_v1_messages_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_grader_v1_messages_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
+var file_grader_v1_messages_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_grader_v1_messages_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_grader_v1_messages_proto_goTypes = []any{
 	(ExecutionStatus)(0),              // 0: grader.v1.ExecutionStatus
-	(*File)(nil),                      // 1: grader.v1.File
-	(*Limit)(nil),                     // 2: grader.v1.Limit
-	(*RunRequest)(nil),                // 3: grader.v1.RunRequest
-	(*GetRunResultRequest)(nil),       // 4: grader.v1.GetRunResultRequest
+	(BroadcastAction)(0),              // 1: grader.v1.BroadcastAction
+	(*File)(nil),                      // 2: grader.v1.File
+	(*Limit)(nil),                     // 3: grader.v1.Limit
+	(*RunRequest)(nil),                // 4: grader.v1.RunRequest
 	(*RunResultResponse)(nil),         // 5: grader.v1.RunResultResponse
 	(*TestCaseResult)(nil),            // 6: grader.v1.TestCaseResult
 	(*GradeRequest)(nil),              // 7: grader.v1.GradeRequest
-	(*GradedResponse)(nil),            // 8: grader.v1.GradedResponse
-	(*GetGradeResultRequest)(nil),     // 9: grader.v1.GetGradeResultRequest
-	(*GradeResultResponse)(nil),       // 10: grader.v1.GradeResultResponse
-	(*TestCaseRequest)(nil),           // 11: grader.v1.TestCaseRequest
-	(*GenerateTestCasesRequest)(nil),  // 12: grader.v1.GenerateTestCasesRequest
-	(*TestCaseResponse)(nil),          // 13: grader.v1.TestCaseResponse
-	(*GenerateTestCasesResponse)(nil), // 14: grader.v1.GenerateTestCasesResponse
+	(*TestCaseGroup)(nil),             // 8: grader.v1.TestCaseGroup
+	(*GradeResultResponse)(nil),       // 9: grader.v1.GradeResultResponse
+	(*TestCaseRequest)(nil),           // 10: grader.v1.TestCaseRequest
+	(*GenerateTestCasesRequest)(nil),  // 11: grader.v1.GenerateTestCasesRequest
+	(*TestCaseResponse)(nil),          // 12: grader.v1.TestCaseResponse
+	(*GenerateTestCasesResponse)(nil), // 13: grader.v1.GenerateTestCasesResponse
+	(*BroadcastRequest)(nil),          // 14: grader.v1.BroadcastRequest
 }
 var file_grader_v1_messages_proto_depIdxs = []int32{
-	1,  // 0: grader.v1.RunRequest.files:type_name -> grader.v1.File
-	2,  // 1: grader.v1.RunRequest.limit:type_name -> grader.v1.Limit
+	2,  // 0: grader.v1.RunRequest.files:type_name -> grader.v1.File
+	3,  // 1: grader.v1.RunRequest.limit:type_name -> grader.v1.Limit
 	0,  // 2: grader.v1.RunResultResponse.status:type_name -> grader.v1.ExecutionStatus
 	0,  // 3: grader.v1.TestCaseResult.status:type_name -> grader.v1.ExecutionStatus
-	1,  // 4: grader.v1.GradeRequest.files:type_name -> grader.v1.File
-	0,  // 5: grader.v1.GradeResultResponse.status:type_name -> grader.v1.ExecutionStatus
-	6,  // 6: grader.v1.GradeResultResponse.test_case_results:type_name -> grader.v1.TestCaseResult
-	1,  // 7: grader.v1.GenerateTestCasesRequest.files:type_name -> grader.v1.File
-	11, // 8: grader.v1.GenerateTestCasesRequest.testcases:type_name -> grader.v1.TestCaseRequest
-	2,  // 9: grader.v1.GenerateTestCasesRequest.limit:type_name -> grader.v1.Limit
-	13, // 10: grader.v1.GenerateTestCasesResponse.results:type_name -> grader.v1.TestCaseResponse
-	11, // [11:11] is the sub-list for method output_type
-	11, // [11:11] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	2,  // 4: grader.v1.GradeRequest.files:type_name -> grader.v1.File
+	6,  // 5: grader.v1.TestCaseGroup.test_cases:type_name -> grader.v1.TestCaseResult
+	0,  // 6: grader.v1.GradeResultResponse.status:type_name -> grader.v1.ExecutionStatus
+	8,  // 7: grader.v1.GradeResultResponse.test_case_groups:type_name -> grader.v1.TestCaseGroup
+	2,  // 8: grader.v1.GenerateTestCasesRequest.files:type_name -> grader.v1.File
+	10, // 9: grader.v1.GenerateTestCasesRequest.testcases:type_name -> grader.v1.TestCaseRequest
+	3,  // 10: grader.v1.GenerateTestCasesRequest.limit:type_name -> grader.v1.Limit
+	12, // 11: grader.v1.GenerateTestCasesResponse.results:type_name -> grader.v1.TestCaseResponse
+	1,  // 12: grader.v1.BroadcastRequest.action:type_name -> grader.v1.BroadcastAction
+	13, // [13:13] is the sub-list for method output_type
+	13, // [13:13] is the sub-list for method input_type
+	13, // [13:13] is the sub-list for extension type_name
+	13, // [13:13] is the sub-list for extension extendee
+	0,  // [0:13] is the sub-list for field type_name
 }
 
 func init() { file_grader_v1_messages_proto_init() }
@@ -1119,8 +1147,8 @@ func file_grader_v1_messages_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_grader_v1_messages_proto_rawDesc), len(file_grader_v1_messages_proto_rawDesc)),
-			NumEnums:      1,
-			NumMessages:   14,
+			NumEnums:      2,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

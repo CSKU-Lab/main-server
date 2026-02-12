@@ -152,6 +152,9 @@ func startApiServer(ctx context.Context, logger *zap.SugaredLogger, db *sqlx.DB,
 		SectionStudentRepository: sectionStudentRepo,
 		UserRepository:           userRepo,
 		MaterialRegistry:         materialRegistry,
+		SectionRepository:        sectionRepo,
+		LabSectionRepository:     labSectionRepo,
+		LabMaterialRepository:    labMaterialRepo,
 		PubSub:                   rClient,
 	})
 

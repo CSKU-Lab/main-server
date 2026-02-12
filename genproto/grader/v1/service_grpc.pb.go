@@ -11,6 +11,7 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -20,10 +21,9 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	GraderService_Run_FullMethodName               = "/grader.v1.GraderService/Run"
-	GraderService_GetRunResult_FullMethodName      = "/grader.v1.GraderService/GetRunResult"
 	GraderService_Grade_FullMethodName             = "/grader.v1.GraderService/Grade"
-	GraderService_GetGradeResult_FullMethodName    = "/grader.v1.GraderService/GetGradeResult"
 	GraderService_GenerateTestCases_FullMethodName = "/grader.v1.GraderService/GenerateTestCases"
+	GraderService_Broadcast_FullMethodName         = "/grader.v1.GraderService/Broadcast"
 )
 
 // GraderServiceClient is the client API for GraderService service.
@@ -31,10 +31,9 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type GraderServiceClient interface {
 	Run(ctx context.Context, in *RunRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[RunResultResponse], error)
-	GetRunResult(ctx context.Context, in *GetRunResultRequest, opts ...grpc.CallOption) (*RunResultResponse, error)
-	Grade(ctx context.Context, in *GradeRequest, opts ...grpc.CallOption) (*GradedResponse, error)
-	GetGradeResult(ctx context.Context, in *GetGradeResultRequest, opts ...grpc.CallOption) (*GradeResultResponse, error)
+	Grade(ctx context.Context, in *GradeRequest, opts ...grpc.CallOption) (*GradeResultResponse, error)
 	GenerateTestCases(ctx context.Context, in *GenerateTestCasesRequest, opts ...grpc.CallOption) (*GenerateTestCasesResponse, error)
+	Broadcast(ctx context.Context, in *BroadcastRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type graderServiceClient struct {
@@ -64,30 +63,10 @@ func (c *graderServiceClient) Run(ctx context.Context, in *RunRequest, opts ...g
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type GraderService_RunClient = grpc.ServerStreamingClient[RunResultResponse]
 
-func (c *graderServiceClient) GetRunResult(ctx context.Context, in *GetRunResultRequest, opts ...grpc.CallOption) (*RunResultResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(RunResultResponse)
-	err := c.cc.Invoke(ctx, GraderService_GetRunResult_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *graderServiceClient) Grade(ctx context.Context, in *GradeRequest, opts ...grpc.CallOption) (*GradedResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GradedResponse)
-	err := c.cc.Invoke(ctx, GraderService_Grade_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *graderServiceClient) GetGradeResult(ctx context.Context, in *GetGradeResultRequest, opts ...grpc.CallOption) (*GradeResultResponse, error) {
+func (c *graderServiceClient) Grade(ctx context.Context, in *GradeRequest, opts ...grpc.CallOption) (*GradeResultResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GradeResultResponse)
-	err := c.cc.Invoke(ctx, GraderService_GetGradeResult_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, GraderService_Grade_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -104,15 +83,24 @@ func (c *graderServiceClient) GenerateTestCases(ctx context.Context, in *Generat
 	return out, nil
 }
 
+func (c *graderServiceClient) Broadcast(ctx context.Context, in *BroadcastRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, GraderService_Broadcast_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // GraderServiceServer is the server API for GraderService service.
 // All implementations must embed UnimplementedGraderServiceServer
 // for forward compatibility.
 type GraderServiceServer interface {
 	Run(*RunRequest, grpc.ServerStreamingServer[RunResultResponse]) error
-	GetRunResult(context.Context, *GetRunResultRequest) (*RunResultResponse, error)
-	Grade(context.Context, *GradeRequest) (*GradedResponse, error)
-	GetGradeResult(context.Context, *GetGradeResultRequest) (*GradeResultResponse, error)
+	Grade(context.Context, *GradeRequest) (*GradeResultResponse, error)
 	GenerateTestCases(context.Context, *GenerateTestCasesRequest) (*GenerateTestCasesResponse, error)
+	Broadcast(context.Context, *BroadcastRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedGraderServiceServer()
 }
 
@@ -126,17 +114,14 @@ type UnimplementedGraderServiceServer struct{}
 func (UnimplementedGraderServiceServer) Run(*RunRequest, grpc.ServerStreamingServer[RunResultResponse]) error {
 	return status.Errorf(codes.Unimplemented, "method Run not implemented")
 }
-func (UnimplementedGraderServiceServer) GetRunResult(context.Context, *GetRunResultRequest) (*RunResultResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetRunResult not implemented")
-}
-func (UnimplementedGraderServiceServer) Grade(context.Context, *GradeRequest) (*GradedResponse, error) {
+func (UnimplementedGraderServiceServer) Grade(context.Context, *GradeRequest) (*GradeResultResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Grade not implemented")
-}
-func (UnimplementedGraderServiceServer) GetGradeResult(context.Context, *GetGradeResultRequest) (*GradeResultResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetGradeResult not implemented")
 }
 func (UnimplementedGraderServiceServer) GenerateTestCases(context.Context, *GenerateTestCasesRequest) (*GenerateTestCasesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GenerateTestCases not implemented")
+}
+func (UnimplementedGraderServiceServer) Broadcast(context.Context, *BroadcastRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Broadcast not implemented")
 }
 func (UnimplementedGraderServiceServer) mustEmbedUnimplementedGraderServiceServer() {}
 func (UnimplementedGraderServiceServer) testEmbeddedByValue()                       {}
@@ -170,24 +155,6 @@ func _GraderService_Run_Handler(srv interface{}, stream grpc.ServerStream) error
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type GraderService_RunServer = grpc.ServerStreamingServer[RunResultResponse]
 
-func _GraderService_GetRunResult_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetRunResultRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(GraderServiceServer).GetRunResult(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: GraderService_GetRunResult_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GraderServiceServer).GetRunResult(ctx, req.(*GetRunResultRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _GraderService_Grade_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GradeRequest)
 	if err := dec(in); err != nil {
@@ -202,24 +169,6 @@ func _GraderService_Grade_Handler(srv interface{}, ctx context.Context, dec func
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(GraderServiceServer).Grade(ctx, req.(*GradeRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _GraderService_GetGradeResult_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetGradeResultRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(GraderServiceServer).GetGradeResult(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: GraderService_GetGradeResult_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GraderServiceServer).GetGradeResult(ctx, req.(*GetGradeResultRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -242,6 +191,24 @@ func _GraderService_GenerateTestCases_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _GraderService_Broadcast_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BroadcastRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GraderServiceServer).Broadcast(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GraderService_Broadcast_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GraderServiceServer).Broadcast(ctx, req.(*BroadcastRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // GraderService_ServiceDesc is the grpc.ServiceDesc for GraderService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -250,20 +217,16 @@ var GraderService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*GraderServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "GetRunResult",
-			Handler:    _GraderService_GetRunResult_Handler,
-		},
-		{
 			MethodName: "Grade",
 			Handler:    _GraderService_Grade_Handler,
 		},
 		{
-			MethodName: "GetGradeResult",
-			Handler:    _GraderService_GetGradeResult_Handler,
-		},
-		{
 			MethodName: "GenerateTestCases",
 			Handler:    _GraderService_GenerateTestCases_Handler,
+		},
+		{
+			MethodName: "Broadcast",
+			Handler:    _GraderService_Broadcast_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

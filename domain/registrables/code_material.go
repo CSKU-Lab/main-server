@@ -3,6 +3,7 @@ package registrables
 import (
 	"context"
 
+	"github.com/CSKU-Lab/main-server/domain/models"
 	"github.com/CSKU-Lab/main-server/domain/registries"
 	"github.com/CSKU-Lab/main-server/domain/repositories"
 	configPB "github.com/CSKU-Lab/main-server/genproto/config/v1"
@@ -111,6 +112,31 @@ func (c *codeMaterial) GetScore(ctx context.Context, ID string) (int, error) {
 		autoScore += v.Score
 	}
 	return int(autoScore), nil
+}
+
+func (c *codeMaterial) GetMaxScore(ctx context.Context, ID string) (*models.SubmissionScore, error) {
+	codeMat, err := c.repo.GetByID(ctx, ID)
+	if err != nil {
+		return nil, err
+	}
+
+	task, err := c.taskGRPCClient.GetTask(ctx, &taskPB.GetTaskRequest{
+		Id: codeMat.TaskID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var maxAutoScore int32
+	var maxManualScore int32
+	for _, v := range task.GetTestCaseGroups() {
+		maxAutoScore += v.MaxAutoScore
+		maxManualScore += v.MaxManualScore
+	}
+	return &models.SubmissionScore{
+		Auto:   int(maxAutoScore),
+		Manual: int(maxManualScore),
+	}, nil
 }
 
 func (c *codeMaterial) GetByID(ctx context.Context, ID string) (any, error) {

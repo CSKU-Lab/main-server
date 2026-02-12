@@ -23,6 +23,7 @@ type SubmissionService interface {
 	Listen(ctx context.Context, submissionID string) (<-chan *models.Submission, error)
 	GetUserSubmissionsByMaterial(ctx context.Context, userID string, materialID string, page int, pageSize int, sortOrder string) ([]models.Submission, int, error)
 	GetLatestSubmissionsByMaterial(ctx context.Context, materialID string) ([]models.StudentLatestSubmission, error)
+	GetGradebookBySectionID(ctx context.Context, ID string) (*models.Gradebook, error)
 }
 
 type UpdateSubmissionPayload struct {
@@ -39,6 +40,9 @@ type submissionService struct {
 	registry           registries.SubmissionRegistry
 	userRepo           repositories.User
 	materialReigstry   registries.Material
+	sectionRepo        repositories.SectionRepository
+	labSectionRepo     repositories.LabSectionRepository
+	labMatRepo         repositories.LabMaterialRepository
 	ps                 pubsub.PubSub
 }
 
@@ -50,6 +54,9 @@ type SubmissionServiceArgs struct {
 	SectionStudentRepository repositories.SectionStudentRepository
 	UserRepository           repositories.User
 	MaterialRegistry         registries.Material
+	SectionRepository        repositories.SectionRepository
+	LabSectionRepository     repositories.LabSectionRepository
+	LabMaterialRepository    repositories.LabMaterialRepository
 	PubSub                   pubsub.PubSub
 }
 
@@ -61,9 +68,116 @@ func NewSubmissionService(args *SubmissionServiceArgs) SubmissionService {
 		registry:           args.SubmissionRegistry,
 		sectionStudentRepo: args.SectionStudentRepository,
 		userRepo:           args.UserRepository,
+		sectionRepo:        args.SectionRepository,
+		labSectionRepo:     args.LabSectionRepository,
+		labMatRepo:         args.LabMaterialRepository,
 		materialReigstry:   args.MaterialRegistry,
 		ps:                 args.PubSub,
 	}
+}
+
+func (s *submissionService) GetGradebookBySectionID(ctx context.Context, ID string) (*models.Gradebook, error) {
+	_, err := s.sectionRepo.GetByID(ctx, ID)
+	if err != nil {
+		return nil, err
+	}
+
+	students, err := s.sectionStudentRepo.GetBySectionID(ctx, ID)
+	if err != nil {
+		return nil, err
+	}
+
+	labs, err := s.labSectionRepo.GetBySectionID(ctx, ID)
+	if err != nil {
+		return nil, err
+	}
+
+	res := &models.Gradebook{}
+	labMaterials := make(map[string][]*repositories.Material)
+
+	for _, lab := range labs {
+		labMats, err := s.labMatRepo.GetByLabID(ctx, lab.ID)
+		if err != nil {
+			return nil, err
+		}
+
+		var totalMaxAutoScore int
+		var totalMaxManualScore int
+
+		for _, lm := range labMats {
+			mat, err := s.materialRepo.GetByID(ctx, lm.ID)
+			if err != nil {
+				return nil, err
+			}
+
+			materialHandler, exists := s.materialReigstry.GetHandler(mat.Type)
+			if !exists {
+				return nil, cserrors.New(&cserrors.Option{
+					HttpStatus: http.StatusBadRequest,
+					Message:    "Unsupported material type",
+				})
+			}
+
+			maxScore, err := materialHandler.GetMaxScore(ctx, mat.ID)
+			if err != nil {
+				return nil, err
+			}
+
+			totalMaxAutoScore += maxScore.Auto
+			totalMaxManualScore += maxScore.Manual
+			labMaterials[lab.ID] = append(labMaterials[lab.ID], mat)
+		}
+
+		res.LabCol = append(res.LabCol, models.LabCol{
+			LabID:          lab.ID,
+			LabName:        lab.DisplayName,
+			MaxAutoScore:   totalMaxAutoScore,
+			MaxManualScore: totalMaxManualScore,
+		})
+	}
+
+	for _, student := range students {
+
+		studentRow := models.StudentRow{
+			Username:    student.Username,
+			DisplayName: student.DisplayName,
+		}
+		studentRow.LabScores = make(map[string]models.LabScore)
+
+		for _, lab := range labs {
+
+			var totalAutoScore int
+			var totalManualScore int
+
+			for _, mat := range labMaterials[lab.ID] {
+
+				materialHandler, _ := s.materialReigstry.GetHandler(mat.Type)
+
+				autoScore, err := materialHandler.GetScore(ctx, mat.ID)
+				if err != nil {
+					return nil, err
+				}
+
+				submission, err := s.repo.GetLatestByMaterialAndStudentID(ctx, mat.ID, student.ID)
+				if err != nil {
+					return nil, err
+				}
+
+				totalAutoScore += autoScore
+				totalManualScore += submission.ManualScore
+			}
+
+			studentRow.LabScores[lab.ID] = models.LabScore{
+				AutoScore:   totalAutoScore,
+				ManualScore: totalManualScore,
+			}
+
+		}
+
+		res.StudentRow = append(res.StudentRow, studentRow)
+	}
+
+	return res, nil
 }
 
 func (s *submissionService) Create(ctx context.Context, req *requests.Submission, rawPayload []byte) (string, error) {

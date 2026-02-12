@@ -186,14 +186,16 @@ func (x *TestCase) GetIsHidden() bool {
 }
 
 type TestCaseGroup struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Score         int32                  `protobuf:"varint,3,opt,name=score,proto3" json:"score,omitempty"`
-	Order         int32                  `protobuf:"varint,4,opt,name=order,proto3" json:"order,omitempty"`
-	TestCases     []*TestCase            `protobuf:"bytes,5,rep,name=test_cases,json=testCases,proto3" json:"test_cases,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Id             string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name           string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Score          int32                  `protobuf:"varint,3,opt,name=score,proto3" json:"score,omitempty"`
+	Order          int32                  `protobuf:"varint,4,opt,name=order,proto3" json:"order,omitempty"`
+	TestCases      []*TestCase            `protobuf:"bytes,5,rep,name=test_cases,json=testCases,proto3" json:"test_cases,omitempty"`
+	MaxAutoScore   int32                  `protobuf:"varint,6,opt,name=max_auto_score,json=maxAutoScore,proto3" json:"max_auto_score,omitempty"`
+	MaxManualScore int32                  `protobuf:"varint,7,opt,name=max_manual_score,json=maxManualScore,proto3" json:"max_manual_score,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *TestCaseGroup) Reset() {
@@ -259,6 +261,20 @@ func (x *TestCaseGroup) GetTestCases() []*TestCase {
 		return x.TestCases
 	}
 	return nil
+}
+
+func (x *TestCaseGroup) GetMaxAutoScore() int32 {
+	if x != nil {
+		return x.MaxAutoScore
+	}
+	return 0
+}
+
+func (x *TestCaseGroup) GetMaxManualScore() int32 {
+	if x != nil {
+		return x.MaxManualScore
+	}
+	return 0
 }
 
 type TaskResponse struct {
@@ -729,6 +745,94 @@ func (x *CreateTaskResponse) GetId() string {
 	return ""
 }
 
+type RemoveRunnerOnCascadeRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RunnerId      string                 `protobuf:"bytes,1,opt,name=runner_id,json=runnerId,proto3" json:"runner_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RemoveRunnerOnCascadeRequest) Reset() {
+	*x = RemoveRunnerOnCascadeRequest{}
+	mi := &file_task_v1_messages_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RemoveRunnerOnCascadeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RemoveRunnerOnCascadeRequest) ProtoMessage() {}
+
+func (x *RemoveRunnerOnCascadeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_task_v1_messages_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RemoveRunnerOnCascadeRequest.ProtoReflect.Descriptor instead.
+func (*RemoveRunnerOnCascadeRequest) Descriptor() ([]byte, []int) {
+	return file_task_v1_messages_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *RemoveRunnerOnCascadeRequest) GetRunnerId() string {
+	if x != nil {
+		return x.RunnerId
+	}
+	return ""
+}
+
+type RemoveCompareScriptOnCascadeRequest struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	CompareScriptId string                 `protobuf:"bytes,1,opt,name=compare_script_id,json=compareScriptId,proto3" json:"compare_script_id,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *RemoveCompareScriptOnCascadeRequest) Reset() {
+	*x = RemoveCompareScriptOnCascadeRequest{}
+	mi := &file_task_v1_messages_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RemoveCompareScriptOnCascadeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RemoveCompareScriptOnCascadeRequest) ProtoMessage() {}
+
+func (x *RemoveCompareScriptOnCascadeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_task_v1_messages_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RemoveCompareScriptOnCascadeRequest.ProtoReflect.Descriptor instead.
+func (*RemoveCompareScriptOnCascadeRequest) Descriptor() ([]byte, []int) {
+	return file_task_v1_messages_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *RemoveCompareScriptOnCascadeRequest) GetCompareScriptId() string {
+	if x != nil {
+		return x.CompareScriptId
+	}
+	return ""
+}
+
 var File_task_v1_messages_proto protoreflect.FileDescriptor
 
 const file_task_v1_messages_proto_rawDesc = "" +
@@ -743,14 +847,16 @@ const file_task_v1_messages_proto_rawDesc = "" +
 	"\x05order\x18\x02 \x01(\x05R\x05order\x12\x14\n" +
 	"\x05input\x18\x03 \x01(\tR\x05input\x12\x16\n" +
 	"\x06output\x18\x04 \x01(\tR\x06output\x12\x1b\n" +
-	"\tis_hidden\x18\x05 \x01(\bR\bisHidden\"\x91\x01\n" +
+	"\tis_hidden\x18\x05 \x01(\bR\bisHidden\"\xe1\x01\n" +
 	"\rTestCaseGroup\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
 	"\x05score\x18\x03 \x01(\x05R\x05score\x12\x14\n" +
 	"\x05order\x18\x04 \x01(\x05R\x05order\x120\n" +
 	"\n" +
-	"test_cases\x18\x05 \x03(\v2\x11.task.v1.TestCaseR\ttestCases\"\x92\x03\n" +
+	"test_cases\x18\x05 \x03(\v2\x11.task.v1.TestCaseR\ttestCases\x12$\n" +
+	"\x0emax_auto_score\x18\x06 \x01(\x05R\fmaxAutoScore\x12(\n" +
+	"\x10max_manual_score\x18\a \x01(\x05R\x0emaxManualScore\"\x92\x03\n" +
 	"\fTaskResponse\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12<\n" +
 	"\x0esolution_files\x18\x02 \x03(\v2\x15.task.v1.SolutionFileR\rsolutionFiles\x12@\n" +
@@ -791,7 +897,11 @@ const file_task_v1_messages_proto_rawDesc = "" +
 	"\x11DeleteTaskRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"$\n" +
 	"\x12CreateTaskResponse\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02idB\x88\x01\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\";\n" +
+	"\x1cRemoveRunnerOnCascadeRequest\x12\x1b\n" +
+	"\trunner_id\x18\x01 \x01(\tR\brunnerId\"Q\n" +
+	"#RemoveCompareScriptOnCascadeRequest\x12*\n" +
+	"\x11compare_script_id\x18\x01 \x01(\tR\x0fcompareScriptIdB\x88\x01\n" +
 	"\vcom.task.v1B\rMessagesProtoP\x01Z-github.com/CSKU-Lab/task-service/grpc/task/v1\xa2\x02\x03TXX\xaa\x02\aTask.V1\xca\x02\aTask\\V1\xe2\x02\x13Task\\V1\\GPBMetadata\xea\x02\bTask::V1b\x06proto3"
 
 var (
@@ -806,19 +916,21 @@ func file_task_v1_messages_proto_rawDescGZIP() []byte {
 	return file_task_v1_messages_proto_rawDescData
 }
 
-var file_task_v1_messages_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_task_v1_messages_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_task_v1_messages_proto_goTypes = []any{
-	(*GetTaskRequest)(nil),     // 0: task.v1.GetTaskRequest
-	(*GetTasksRequest)(nil),    // 1: task.v1.GetTasksRequest
-	(*TestCase)(nil),           // 2: task.v1.TestCase
-	(*TestCaseGroup)(nil),      // 3: task.v1.TestCaseGroup
-	(*TaskResponse)(nil),       // 4: task.v1.TaskResponse
-	(*GetTasksResponse)(nil),   // 5: task.v1.GetTasksResponse
-	(*Limit)(nil),              // 6: task.v1.Limit
-	(*SolutionFile)(nil),       // 7: task.v1.SolutionFile
-	(*UpdateTaskRequest)(nil),  // 8: task.v1.UpdateTaskRequest
-	(*DeleteTaskRequest)(nil),  // 9: task.v1.DeleteTaskRequest
-	(*CreateTaskResponse)(nil), // 10: task.v1.CreateTaskResponse
+	(*GetTaskRequest)(nil),                      // 0: task.v1.GetTaskRequest
+	(*GetTasksRequest)(nil),                     // 1: task.v1.GetTasksRequest
+	(*TestCase)(nil),                            // 2: task.v1.TestCase
+	(*TestCaseGroup)(nil),                       // 3: task.v1.TestCaseGroup
+	(*TaskResponse)(nil),                        // 4: task.v1.TaskResponse
+	(*GetTasksResponse)(nil),                    // 5: task.v1.GetTasksResponse
+	(*Limit)(nil),                               // 6: task.v1.Limit
+	(*SolutionFile)(nil),                        // 7: task.v1.SolutionFile
+	(*UpdateTaskRequest)(nil),                   // 8: task.v1.UpdateTaskRequest
+	(*DeleteTaskRequest)(nil),                   // 9: task.v1.DeleteTaskRequest
+	(*CreateTaskResponse)(nil),                  // 10: task.v1.CreateTaskResponse
+	(*RemoveRunnerOnCascadeRequest)(nil),        // 11: task.v1.RemoveRunnerOnCascadeRequest
+	(*RemoveCompareScriptOnCascadeRequest)(nil), // 12: task.v1.RemoveCompareScriptOnCascadeRequest
 }
 var file_task_v1_messages_proto_depIdxs = []int32{
 	2, // 0: task.v1.TestCaseGroup.test_cases:type_name -> task.v1.TestCase
@@ -849,7 +961,7 @@ func file_task_v1_messages_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_task_v1_messages_proto_rawDesc), len(file_task_v1_messages_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   11,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

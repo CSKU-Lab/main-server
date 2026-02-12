@@ -15,7 +15,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 )
 
-func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionService, semesterService services.SemesterService, labSectionService services.LabSectionService, sectionLogService services.SectionLogService, labService services.LabService) {
+func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionService, semesterService services.SemesterService, labSectionService services.LabSectionService, sectionLogService services.SectionLogService, labService services.LabService, submissionService services.SubmissionService) {
 	cmsSectionRouter := router.Group("/sections", middlewares.RBACMiddleware([]models.Role{
 		models.ADMIN,
 		models.INSTRUCTOR,
@@ -429,6 +429,16 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 			},
 			"data": logs,
 		})
+	})
+
+	cmsSectionRouter.Get("/:id/gradebook", func(c fiber.Ctx) error {
+		id := c.Params("id")
+		gradebook, err := submissionService.GetGradebookBySectionID(c.RequestCtx(), id)
+		if err != nil {
+			return err
+		}
+
+		return c.Status(fiber.StatusOK).JSON(gradebook)
 	})
 }
 
