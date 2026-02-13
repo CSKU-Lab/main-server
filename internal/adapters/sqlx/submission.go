@@ -136,10 +136,11 @@ func (s *submissionRepository) Count(ctx context.Context, userID string, materia
 }
 
 func (s *submissionRepository) GetLatestByMaterialAndStudentID(ctx context.Context, materialID string, studentID string) (*models.RawSubmission, error) {
-	query := `SELECT DISTINCT ON (user_id) id, user_id, lab_id, section_id, course_id, material_id, status, submission_order, created_at, updated_at, ip_address, manual_score
+	query := `SELECT id, user_id, lab_id, section_id, course_id, material_id, status, submission_order, created_at, updated_at, ip_address, manual_score
               FROM submissions 
               WHERE material_id = $1 AND user_id = $2
-							ORDER BY user_id, submission_order DESC
+							ORDER BY submission_order DESC
+							LIMIT 1
 	`
 
 	submission := submission{}
@@ -166,10 +167,11 @@ func (s *submissionRepository) GetLatestByMaterialAndStudentID(ctx context.Conte
 }
 
 func (s *submissionRepository) GetLatestByMaterialID(ctx context.Context, materialID string) ([]models.RawSubmission, error) {
-	query := `SELECT DISTINCT ON (user_id) id, user_id, lab_id, section_id, course_id, material_id, status, submission_order, created_at, updated_at, ip_address, manual_score
+	query := `SELECT id, user_id, lab_id, section_id, course_id, material_id, status, submission_order, created_at, updated_at, ip_address, manual_score
               FROM submissions 
               WHERE material_id = $1
-							ORDER BY user_id, submission_order DESC
+							ORDER BY submission_order DESC
+							LIMIT 1
 	`
 
 	submissions := []submission{}
