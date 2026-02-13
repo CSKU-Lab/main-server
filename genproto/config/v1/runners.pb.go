@@ -513,11 +513,115 @@ func (x *DeleteRunnerRequest) GetId() string {
 	return ""
 }
 
+type GetRunnersPaginationRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	IncludeName   bool                   `protobuf:"varint,1,opt,name=include_name,json=includeName,proto3" json:"include_name,omitempty"`
+	Pagination    *PaginationRequest     `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetRunnersPaginationRequest) Reset() {
+	*x = GetRunnersPaginationRequest{}
+	mi := &file_config_v1_runners_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetRunnersPaginationRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetRunnersPaginationRequest) ProtoMessage() {}
+
+func (x *GetRunnersPaginationRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_config_v1_runners_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetRunnersPaginationRequest.ProtoReflect.Descriptor instead.
+func (*GetRunnersPaginationRequest) Descriptor() ([]byte, []int) {
+	return file_config_v1_runners_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *GetRunnersPaginationRequest) GetIncludeName() bool {
+	if x != nil {
+		return x.IncludeName
+	}
+	return false
+}
+
+func (x *GetRunnersPaginationRequest) GetPagination() *PaginationRequest {
+	if x != nil {
+		return x.Pagination
+	}
+	return nil
+}
+
+type GetRunnersPaginationResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Runners       []*Runner              `protobuf:"bytes,1,rep,name=runners,proto3" json:"runners,omitempty"`
+	Count         int32                  `protobuf:"varint,2,opt,name=count,proto3" json:"count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetRunnersPaginationResponse) Reset() {
+	*x = GetRunnersPaginationResponse{}
+	mi := &file_config_v1_runners_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetRunnersPaginationResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetRunnersPaginationResponse) ProtoMessage() {}
+
+func (x *GetRunnersPaginationResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_config_v1_runners_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetRunnersPaginationResponse.ProtoReflect.Descriptor instead.
+func (*GetRunnersPaginationResponse) Descriptor() ([]byte, []int) {
+	return file_config_v1_runners_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *GetRunnersPaginationResponse) GetRunners() []*Runner {
+	if x != nil {
+		return x.Runners
+	}
+	return nil
+}
+
+func (x *GetRunnersPaginationResponse) GetCount() int32 {
+	if x != nil {
+		return x.Count
+	}
+	return 0
+}
+
 var File_config_v1_runners_proto protoreflect.FileDescriptor
 
 const file_config_v1_runners_proto_rawDesc = "" +
 	"\n" +
-	"\x17config/v1/runners.proto\x12\tconfig.v1\"A\n" +
+	"\x17config/v1/runners.proto\x12\tconfig.v1\x1a\x1aconfig/v1/pagination.proto\"A\n" +
 	"\x12GetRunnersResponse\x12+\n" +
 	"\arunners\x18\x01 \x03(\v2\x11.config.v1.RunnerR\arunners\"6\n" +
 	"\x11GetRunnersRequest\x12!\n" +
@@ -557,7 +661,15 @@ const file_config_v1_runners_proto_rawDesc = "" +
 	"\r_build_scriptB\r\n" +
 	"\v_run_script\"%\n" +
 	"\x13DeleteRunnerRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02idB\x94\x01\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"~\n" +
+	"\x1bGetRunnersPaginationRequest\x12!\n" +
+	"\finclude_name\x18\x01 \x01(\bR\vincludeName\x12<\n" +
+	"\n" +
+	"pagination\x18\x02 \x01(\v2\x1c.config.v1.PaginationRequestR\n" +
+	"pagination\"a\n" +
+	"\x1cGetRunnersPaginationResponse\x12+\n" +
+	"\arunners\x18\x01 \x03(\v2\x11.config.v1.RunnerR\arunners\x12\x14\n" +
+	"\x05count\x18\x02 \x01(\x05R\x05countB\x94\x01\n" +
 	"\rcom.config.v1B\fRunnersProtoP\x01Z0github.com/CSKU-Lab/config-server/grpc/config/v1\xa2\x02\x03CXX\xaa\x02\tConfig.V1\xca\x02\tConfig\\V1\xe2\x02\x15Config\\V1\\GPBMetadata\xea\x02\n" +
 	"Config::V1b\x06proto3"
 
@@ -573,25 +685,30 @@ func file_config_v1_runners_proto_rawDescGZIP() []byte {
 	return file_config_v1_runners_proto_rawDescData
 }
 
-var file_config_v1_runners_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_config_v1_runners_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_config_v1_runners_proto_goTypes = []any{
-	(*GetRunnersResponse)(nil),   // 0: config.v1.GetRunnersResponse
-	(*GetRunnersRequest)(nil),    // 1: config.v1.GetRunnersRequest
-	(*GetRunnerRequest)(nil),     // 2: config.v1.GetRunnerRequest
-	(*Runner)(nil),               // 3: config.v1.Runner
-	(*RunnerResponse)(nil),       // 4: config.v1.RunnerResponse
-	(*CreateRunnerRequest)(nil),  // 5: config.v1.CreateRunnerRequest
-	(*CreateRunnerResponse)(nil), // 6: config.v1.CreateRunnerResponse
-	(*UpdateRunnerRequest)(nil),  // 7: config.v1.UpdateRunnerRequest
-	(*DeleteRunnerRequest)(nil),  // 8: config.v1.DeleteRunnerRequest
+	(*GetRunnersResponse)(nil),           // 0: config.v1.GetRunnersResponse
+	(*GetRunnersRequest)(nil),            // 1: config.v1.GetRunnersRequest
+	(*GetRunnerRequest)(nil),             // 2: config.v1.GetRunnerRequest
+	(*Runner)(nil),                       // 3: config.v1.Runner
+	(*RunnerResponse)(nil),               // 4: config.v1.RunnerResponse
+	(*CreateRunnerRequest)(nil),          // 5: config.v1.CreateRunnerRequest
+	(*CreateRunnerResponse)(nil),         // 6: config.v1.CreateRunnerResponse
+	(*UpdateRunnerRequest)(nil),          // 7: config.v1.UpdateRunnerRequest
+	(*DeleteRunnerRequest)(nil),          // 8: config.v1.DeleteRunnerRequest
+	(*GetRunnersPaginationRequest)(nil),  // 9: config.v1.GetRunnersPaginationRequest
+	(*GetRunnersPaginationResponse)(nil), // 10: config.v1.GetRunnersPaginationResponse
+	(*PaginationRequest)(nil),            // 11: config.v1.PaginationRequest
 }
 var file_config_v1_runners_proto_depIdxs = []int32{
-	3, // 0: config.v1.GetRunnersResponse.runners:type_name -> config.v1.Runner
-	1, // [1:1] is the sub-list for method output_type
-	1, // [1:1] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	3,  // 0: config.v1.GetRunnersResponse.runners:type_name -> config.v1.Runner
+	11, // 1: config.v1.GetRunnersPaginationRequest.pagination:type_name -> config.v1.PaginationRequest
+	3,  // 2: config.v1.GetRunnersPaginationResponse.runners:type_name -> config.v1.Runner
+	3,  // [3:3] is the sub-list for method output_type
+	3,  // [3:3] is the sub-list for method input_type
+	3,  // [3:3] is the sub-list for extension type_name
+	3,  // [3:3] is the sub-list for extension extendee
+	0,  // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_config_v1_runners_proto_init() }
@@ -599,6 +716,7 @@ func file_config_v1_runners_proto_init() {
 	if File_config_v1_runners_proto != nil {
 		return
 	}
+	file_config_v1_pagination_proto_init()
 	file_config_v1_runners_proto_msgTypes[3].OneofWrappers = []any{}
 	file_config_v1_runners_proto_msgTypes[4].OneofWrappers = []any{}
 	file_config_v1_runners_proto_msgTypes[5].OneofWrappers = []any{}
@@ -609,7 +727,7 @@ func file_config_v1_runners_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_config_v1_runners_proto_rawDesc), len(file_config_v1_runners_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
