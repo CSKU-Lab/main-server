@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"net/http"
@@ -160,11 +161,18 @@ func (s *submissionService) GetGradebookBySectionID(ctx context.Context, ID stri
 
 				submission, err := s.repo.GetLatestByMaterialAndStudentID(ctx, mat.ID, student.ID)
 				if err != nil {
-					return nil, err
+					if errors.Is(err, sql.ErrNoRows) {
+						submission = nil
+					} else {
+						return nil, err
+					}
+				}
+
+				if submission != nil {
+					totalManualScore += submission.ManualScore
 				}
 
 				totalAutoScore += autoScore
-				totalManualScore += submission.ManualScore
 			}
 
 			studentRow.LabScores[lab.ID] = models.LabScore{
