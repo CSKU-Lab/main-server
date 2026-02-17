@@ -74,15 +74,20 @@ type CompareScript struct {
 	Name string `json:"name"`
 }
 
+type SolutionRunner struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
 type CodeMaterialResponse struct {
-	Description      *string         `json:"description"`
-	SolutionFiles    []File          `json:"solution_files"`
-	SolutionRunnerID *string         `json:"solution_runner_id"`
-	TestCaseGroups   []TestCaseGroup `json:"test_case_groups"`
-	AllowedRunners   []Runner        `json:"allowed_runners"`
-	CompareScript    *CompareScript  `json:"compare_script"`
-	Limit            *Limit          `json:"limit"`
-	HideTestCases    bool            `json:"hide_test_cases"`
+	Description    *string         `json:"description"`
+	SolutionFiles  []File          `json:"solution_files"`
+	SolutionRunner *SolutionRunner `json:"solution_runner"`
+	TestCaseGroups []TestCaseGroup `json:"test_case_groups"`
+	AllowedRunners []Runner        `json:"allowed_runners"`
+	CompareScript  *CompareScript  `json:"compare_script"`
+	Limit          *Limit          `json:"limit"`
+	HideTestCases  bool            `json:"hide_test_cases"`
 }
 
 func NewCodeMaterial(repo repositories.CodeMaterialRepository, taskGRPCClient taskPB.TaskServiceClient, configGRPCClient configPB.ConfigServiceClient, graderGRPCClient graderPB.GraderServiceClient) registries.MaterialRegisterable {
@@ -174,12 +179,27 @@ func (c *codeMaterial) GetByID(ctx context.Context, ID string) (any, error) {
 		}
 	}
 
+	var solutionRunner *SolutionRunner
+	if task.GetSolutionRunnerId() != "" {
+		runner, err := c.configGRPCCLient.GetRunner(ctx, &configPB.GetRunnerRequest{
+			Id: task.GetSolutionRunnerId(),
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		solutionRunner = &SolutionRunner{
+			ID:   runner.GetId(),
+			Name: runner.GetName(),
+		}
+	}
+
 	res := &CodeMaterialResponse{
-		Description:      codeMat.Description,
-		TestCaseGroups:   make([]TestCaseGroup, len(task.GetTestCaseGroups())),
-		SolutionFiles:    solutionFilesRes,
-		SolutionRunnerID: task.SolutionRunnerId,
-		Limit:            limit,
+		Description:    codeMat.Description,
+		TestCaseGroups: make([]TestCaseGroup, len(task.GetTestCaseGroups())),
+		SolutionFiles:  solutionFilesRes,
+		SolutionRunner: solutionRunner,
+		Limit:          limit,
 	}
 
 	allowedRunners := make([]Runner, len(task.AllowedRunnerIds))
