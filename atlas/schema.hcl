@@ -804,6 +804,10 @@ table "submissions" {
   column "submission_order" {
     type = integer
   }
+  column "auto_score" {
+    type = int
+    default = 0
+  }
   column "manual_score" {
     type = int
     default = 0

@@ -33,6 +33,7 @@ type RawSubmission struct {
 	Payload    any              `json:"payload"`
 
 	ManualScore int    `json:"manual_score"`
+	AutoScore   int    `json:"auto_score"`
 	IPAddress   string `json:"ip_address"`
 }
 

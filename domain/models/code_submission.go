@@ -109,6 +109,7 @@ type GradeResult struct {
 	TestCaseGroupResults []TestCaseGroupResult `json:"test_case_group_results"`
 	AvgWallTime          float32               `json:"avg_wall_time"`
 	AvgMemory            int32                 `json:"avg_memory"`
+	Score                int32                 `json:"score"`
 }
 
 type CodeSubmissionOverviewPayload struct {

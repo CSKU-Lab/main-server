@@ -7,9 +7,16 @@ import (
 	"github.com/CSKU-Lab/main-server/domain/models"
 )
 
+type UpdateSubmissionRequest struct {
+	ID          string
+	Status      *models.SubmissionStatus
+	AutoScore   *int
+	ManualScore *int
+}
+
 type SubmissionRepository interface {
 	Create(ctx context.Context, req *Submission) error
-	Update(ctx context.Context, id string, status models.SubmissionStatus) error
+	Update(ctx context.Context, req *UpdateSubmissionRequest) error
 	Get(ctx context.Context, id string) (*Submission, error)
 	GetPagination(ctx context.Context, userID string, materialID string, page int, pageSize int, sortOrder string) ([]Submission, error)
 	GetLatestByMaterialID(ctx context.Context, materialID string) ([]models.RawSubmission, error)

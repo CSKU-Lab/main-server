@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 
 	contextkeys "github.com/CSKU-Lab/main-server/context_keys"
@@ -150,9 +149,9 @@ func (s *submissionService) GetGradebookBySectionID(ctx context.Context, ID stri
 
 				if submission != nil {
 					totalManualScore += submission.ManualScore
+					totalAutoScore += submission.AutoScore
 				}
 
-				totalAutoScore += mat.AutoScore
 			}
 
 			studentRow.LabScores[lab.ID] = models.LabScore{
@@ -226,7 +225,10 @@ func (s *submissionService) Create(ctx context.Context, req *requests.Submission
 // this method doesn't need to check the request because it just use internally
 func (s *submissionService) Update(ctx context.Context, submissionID string, payload *UpdateSubmissionPayload, rawPayload []byte) error {
 	return s.uowRepo.Execute(ctx, func(u repositories.UoWInstance) error {
-		err := u.Submission().Update(ctx, submissionID, payload.Status)
+		err := u.Submission().Update(ctx, &repositories.UpdateSubmissionRequest{
+			ID:     submissionID,
+			Status: &payload.Status,
+		})
 		if err != nil {
 			return err
 		}
@@ -399,9 +401,6 @@ func (s *submissionService) GetLatestSubmissionsByMaterial(ctx context.Context, 
 		return nil, err
 	}
 
-	// Use auto_score from material (stored in DB)
-	autoScore := mat.AutoScore
-
 	rawSubmissions, err := s.repo.GetLatestByMaterialID(ctx, materialID)
 	if err != nil {
 		return nil, err
@@ -441,7 +440,7 @@ func (s *submissionService) GetLatestSubmissionsByMaterial(ctx context.Context, 
 			CreatedAt: sub.CreatedAt,
 			UpdatedAt: sub.UpdatedAt,
 			Score: models.SubmissionScore{
-				Auto:   autoScore,
+				Auto:   sub.AutoScore,
 				Manual: sub.ManualScore,
 			},
 			IP:      sub.IPAddress,

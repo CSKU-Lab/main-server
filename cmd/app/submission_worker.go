@@ -95,7 +95,11 @@ func startSubmissionWorker(ctx context.Context, logger *zap.SugaredLogger, db *s
 				}
 
 				if result.Status == models.CODE_EXECUTION_QUEUED {
-					err := submissionRepo.Update(ctx, subPayload.SubmissionID, models.QUEUED)
+					status := models.QUEUED
+					err := submissionRepo.Update(ctx, &repositories.UpdateSubmissionRequest{
+						ID:     subPayload.SubmissionID,
+						Status: &status,
+					})
 					if err != nil {
 						return err
 					}
@@ -107,7 +111,11 @@ func startSubmissionWorker(ctx context.Context, logger *zap.SugaredLogger, db *s
 				}
 
 				if result.Status == models.CODE_EXECUTION_RUNNING {
-					err := submissionRepo.Update(ctx, subPayload.SubmissionID, models.RUNNING)
+					status := models.RUNNING
+					err := submissionRepo.Update(ctx, &repositories.UpdateSubmissionRequest{
+						ID:     subPayload.SubmissionID,
+						Status: &status,
+					})
 					if err != nil {
 						return err
 					}
@@ -143,7 +151,12 @@ func startSubmissionWorker(ctx context.Context, logger *zap.SugaredLogger, db *s
 				status = models.PASSED
 			}
 
-			err = submissionRepo.Update(ctx, subPayload.SubmissionID, status)
+			autoScore := int(result.Score)
+			err = submissionRepo.Update(ctx, &repositories.UpdateSubmissionRequest{
+				ID:        subPayload.SubmissionID,
+				Status:    &status,
+				AutoScore: &autoScore,
+			})
 			if err != nil {
 				logger.Errorln("Cannot update submission status", "error", err)
 				return

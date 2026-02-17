@@ -36,15 +36,34 @@ func (s *submissionRepository) Create(ctx context.Context, payload *repositories
 	return nil
 }
 
-func (s *submissionRepository) Update(ctx context.Context, id string, status models.SubmissionStatus) error {
-	query := `UPDATE submissions
-	SET status = $2, updated_at = NOW() WHERE id = $1`
-
-	_, err := s.db.ExecContext(ctx, query, id, string(status))
-	if err != nil {
-		return err
+func (s *submissionRepository) Update(ctx context.Context, req *repositories.UpdateSubmissionRequest) error {
+	record := &submission{
+		ID: req.ID,
 	}
-	return nil
+
+	if req.Status != nil {
+		record.Status = *req.Status
+	}
+	if req.AutoScore != nil {
+		record.AutoScore = *req.AutoScore
+	}
+	if req.ManualScore != nil {
+		record.ManualScore = *req.ManualScore
+	}
+
+	updateFields := getUpdateFields(record)
+	if len(updateFields) == 0 {
+		return nil
+	}
+
+	query := fmt.Sprintf(`
+		UPDATE submissions
+		SET %s, updated_at = NOW()
+		WHERE id = :id
+	`, updateFields)
+
+	_, err := s.db.NamedExecContext(ctx, query, record)
+	return err
 }
 
 type submission struct {
@@ -61,6 +80,7 @@ type submission struct {
 
 	IPAddress   string `db:"ip_address"`
 	ManualScore int    `db:"manual_score"`
+	AutoScore   int    `db:"auto_score"`
 }
 
 func (s *submissionRepository) Get(ctx context.Context, id string) (*repositories.Submission, error) {
@@ -136,11 +156,11 @@ func (s *submissionRepository) Count(ctx context.Context, userID string, materia
 }
 
 func (s *submissionRepository) GetLatestByMaterialAndStudentID(ctx context.Context, materialID string, studentID string) (*models.RawSubmission, error) {
-	query := `SELECT id, user_id, lab_id, section_id, course_id, material_id, status, submission_order, created_at, updated_at, ip_address, manual_score
+	query := `SELECT id, user_id, lab_id, section_id, course_id, material_id, status, submission_order, created_at, updated_at, ip_address, manual_score, auto_score
               FROM submissions 
               WHERE material_id = $1 AND user_id = $2
-							ORDER BY submission_order DESC
-							LIMIT 1
+						ORDER BY submission_order DESC
+						LIMIT 1
 	`
 
 	submission := submission{}
@@ -161,17 +181,18 @@ func (s *submissionRepository) GetLatestByMaterialAndStudentID(ctx context.Conte
 
 		IPAddress:   submission.IPAddress,
 		ManualScore: submission.ManualScore,
+		AutoScore:   submission.AutoScore,
 	}
 
 	return result, nil
 }
 
 func (s *submissionRepository) GetLatestByMaterialID(ctx context.Context, materialID string) ([]models.RawSubmission, error) {
-	query := `SELECT id, user_id, lab_id, section_id, course_id, material_id, status, submission_order, created_at, updated_at, ip_address, manual_score
+	query := `SELECT id, user_id, lab_id, section_id, course_id, material_id, status, submission_order, created_at, updated_at, ip_address, manual_score, auto_score
               FROM submissions 
               WHERE material_id = $1
-							ORDER BY submission_order DESC
-							LIMIT 1
+						ORDER BY submission_order DESC
+						LIMIT 1
 	`
 
 	submissions := []submission{}
@@ -194,6 +215,7 @@ func (s *submissionRepository) GetLatestByMaterialID(ctx context.Context, materi
 
 			IPAddress:   row.IPAddress,
 			ManualScore: row.ManualScore,
+			AutoScore:   row.AutoScore,
 		}
 	}
 
