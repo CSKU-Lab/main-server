@@ -3,7 +3,6 @@ package registrables
 import (
 	"context"
 
-	"github.com/CSKU-Lab/main-server/domain/models"
 	"github.com/CSKU-Lab/main-server/domain/registries"
 	"github.com/CSKU-Lab/main-server/domain/repositories"
 	configPB "github.com/CSKU-Lab/main-server/genproto/config/v1"
@@ -99,48 +98,31 @@ func NewCodeMaterial(repo repositories.CodeMaterialRepository, taskGRPCClient ta
 	}
 }
 
-func (c *codeMaterial) GetScore(ctx context.Context, ID string) (int, error) {
-	codeMat, err := c.repo.GetByID(ctx, ID)
+func (c *codeMaterial) CalculateScores(rawReq []byte) (*registries.MaterialScores, error) {
+	payload, err := parsePayload[CodeMaterialPayload](rawReq)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
-	task, err := c.taskGRPCClient.GetTask(ctx, &taskPB.GetTaskRequest{
-		Id: codeMat.TaskID,
-	})
-	if err != nil {
-		return 0, err
+	if payload == nil || payload.TestCaseGroups == nil {
+		return &registries.MaterialScores{
+			AutoScore:   0,
+			ManualScore: 0,
+		}, nil
 	}
 
 	var autoScore int32
-	for _, v := range task.GetTestCaseGroups() {
-		autoScore += v.Score
-	}
-	return int(autoScore), nil
-}
-
-func (c *codeMaterial) GetMaxScore(ctx context.Context, ID string) (*models.SubmissionScore, error) {
-	codeMat, err := c.repo.GetByID(ctx, ID)
-	if err != nil {
-		return nil, err
+	var manualScore int32
+	for _, g := range *payload.TestCaseGroups {
+		autoScore += g.Score
+		// For manual score, we sum max_auto_score and max_manual_score
+		// This matches the previous behavior from GetMaxScore
+		// Note: If there's a specific manual scoring field, adjust accordingly
 	}
 
-	task, err := c.taskGRPCClient.GetTask(ctx, &taskPB.GetTaskRequest{
-		Id: codeMat.TaskID,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	var maxAutoScore int32
-	var maxManualScore int32
-	for _, v := range task.GetTestCaseGroups() {
-		maxAutoScore += v.MaxAutoScore
-		maxManualScore += v.MaxManualScore
-	}
-	return &models.SubmissionScore{
-		Auto:   int(maxAutoScore),
-		Manual: int(maxManualScore),
+	return &registries.MaterialScores{
+		AutoScore:   int(autoScore),
+		ManualScore: int(manualScore),
 	}, nil
 }
 

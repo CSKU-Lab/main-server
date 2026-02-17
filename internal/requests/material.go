@@ -21,9 +21,11 @@ func (c *CreateMaterial) Validate() error {
 }
 
 type BaseUpdateMaterial struct {
-	Name       string    `json:"name"`
-	Tags       *[]string `json:"tags"`
-	Visibility string    `json:"visibility"`
+	Name        string    `json:"name"`
+	Tags        *[]string `json:"tags"`
+	Visibility  string    `json:"visibility"`
+	AutoScore   *int      `json:"auto_score"`
+	ManualScore *int      `json:"manual_score"`
 }
 
 func (u *BaseUpdateMaterial) Validate() error {

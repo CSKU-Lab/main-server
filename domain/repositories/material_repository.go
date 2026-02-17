@@ -18,10 +18,12 @@ type MaterialRepository interface {
 }
 
 type Material struct {
-	ID         string    `db:"id"`
-	Name       string    `db:"name"`
-	Type       string    `db:"type"`
-	Visibility string    `db:"visibility"`
-	CreatedAt  time.Time `db:"created_at"`
-	CreatedBy  string    `db:"created_by"`
+	ID          string
+	Name        string
+	Type        string
+	Visibility  string
+	CreatedAt   time.Time
+	CreatedBy   string
+	AutoScore   int
+	ManualScore int
 }

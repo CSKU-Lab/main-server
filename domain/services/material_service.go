@@ -243,7 +243,7 @@ func (s *materialService) GetByID(ctx context.Context, ID string) (*models.Mater
 }
 
 func isUpdateBaseMaterial(req *requests.BaseUpdateMaterial) bool {
-	return req.Name != "" || req.Tags != nil || req.Visibility != ""
+	return req.Name != "" || req.Tags != nil || req.Visibility != "" || req.AutoScore != nil || req.ManualScore != nil
 }
 
 func (s *materialService) UpdateByID(ctx context.Context, ID string, req *requests.BaseUpdateMaterial, rawReq []byte, userID string) error {
@@ -258,6 +258,31 @@ func (s *materialService) UpdateByID(ctx context.Context, ID string, req *reques
 		})
 	}
 
+	materialHandler, exists := s.materialRegistry.GetHandler(mat.Type)
+	if !exists {
+		return cserrors.New(&cserrors.Option{
+			HttpStatus: http.StatusBadRequest,
+			Message:    "Unsupported material type",
+		})
+	}
+
+	// First, update the external task service (this is the source of truth)
+	err = materialHandler.UpdateByID(ctx, ID, req, rawReq)
+	if err != nil {
+		return err
+	}
+
+	// Calculate scores from the raw request payload
+	scores, err := materialHandler.CalculateScores(rawReq)
+	if err != nil {
+		return err
+	}
+
+	// Set the calculated scores on the request
+	req.AutoScore = &scores.AutoScore
+	req.ManualScore = &scores.ManualScore
+
+	// Update the database with the new scores (and other base material fields if provided)
 	if isUpdateBaseMaterial(req) {
 		err := s.uowRepo.Execute(ctx, func(u repositories.UoWInstance) error {
 			err := u.Material().UpdateByID(ctx, ID, req)
@@ -276,15 +301,7 @@ func (s *materialService) UpdateByID(ctx context.Context, ID string, req *reques
 		}
 	}
 
-	materialHandler, exists := s.materialRegistry.GetHandler(mat.Type)
-	if !exists {
-		return cserrors.New(&cserrors.Option{
-			HttpStatus: http.StatusBadRequest,
-			Message:    "Unsupported material type",
-		})
-	}
-
-	return materialHandler.UpdateByID(ctx, ID, req, rawReq)
+	return nil
 }
 
 func (s *materialService) DeleteByID(ctx context.Context, ID string, userID string) error {

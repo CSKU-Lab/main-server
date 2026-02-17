@@ -14,11 +14,11 @@ type StudentRow struct {
 type LabCol struct {
 	LabID          string `json:"lab_id"`
 	LabName        string `json:"lab_name"`
-	MaxAutoScore   int    `json:"max_score"`
+	MaxAutoScore   int    `json:"max_auto_score"`
 	MaxManualScore int    `json:"max_manual_score"`
 }
 
 type Gradebook struct {
-	StudentRow []StudentRow `json:"student_row"`
-	LabCol     []LabCol     `json:"lab_col"`
+	StudentRow []StudentRow `json:"student_rows"`
+	LabCol     []LabCol     `json:"lab_cols"`
 }

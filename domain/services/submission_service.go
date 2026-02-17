@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 
 	contextkeys "github.com/CSKU-Lab/main-server/context_keys"
@@ -111,21 +112,8 @@ func (s *submissionService) GetGradebookBySectionID(ctx context.Context, ID stri
 				return nil, err
 			}
 
-			materialHandler, exists := s.materialReigstry.GetHandler(mat.Type)
-			if !exists {
-				return nil, cserrors.New(&cserrors.Option{
-					HttpStatus: http.StatusBadRequest,
-					Message:    "Unsupported material type",
-				})
-			}
-
-			maxScore, err := materialHandler.GetMaxScore(ctx, mat.ID)
-			if err != nil {
-				return nil, err
-			}
-
-			totalMaxAutoScore += maxScore.Auto
-			totalMaxManualScore += maxScore.Manual
+			totalMaxAutoScore += mat.AutoScore
+			totalMaxManualScore += mat.ManualScore
 			labMaterials[lab.ID] = append(labMaterials[lab.ID], mat)
 		}
 
@@ -151,14 +139,6 @@ func (s *submissionService) GetGradebookBySectionID(ctx context.Context, ID stri
 			var totalManualScore int
 
 			for _, mat := range labMaterials[lab.ID] {
-
-				materialHandler, _ := s.materialReigstry.GetHandler(mat.Type)
-
-				autoScore, err := materialHandler.GetScore(ctx, mat.ID)
-				if err != nil {
-					return nil, err
-				}
-
 				submission, err := s.repo.GetLatestByMaterialAndStudentID(ctx, mat.ID, student.ID)
 				if err != nil {
 					if errors.Is(err, sql.ErrNoRows) {
@@ -172,7 +152,7 @@ func (s *submissionService) GetGradebookBySectionID(ctx context.Context, ID stri
 					totalManualScore += submission.ManualScore
 				}
 
-				totalAutoScore += autoScore
+				totalAutoScore += mat.AutoScore
 			}
 
 			studentRow.LabScores[lab.ID] = models.LabScore{
@@ -419,18 +399,8 @@ func (s *submissionService) GetLatestSubmissionsByMaterial(ctx context.Context, 
 		return nil, err
 	}
 
-	materialHandler, exists := s.materialReigstry.GetHandler(mat.Type)
-	if !exists {
-		return nil, cserrors.New(&cserrors.Option{
-			HttpStatus: http.StatusBadRequest,
-			Message:    "Unsupported material type",
-		})
-	}
-
-	autoScore, err := materialHandler.GetScore(ctx, mat.ID)
-	if err != nil {
-		return nil, err
-	}
+	// Use auto_score from material (stored in DB)
+	autoScore := mat.AutoScore
 
 	rawSubmissions, err := s.repo.GetLatestByMaterialID(ctx, materialID)
 	if err != nil {

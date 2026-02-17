@@ -637,6 +637,14 @@ table "materials" {
   column "created_by" {
     type = uuid
   }
+  column "auto_score" {
+    type = int
+    default = 0
+  }
+  column "manual_score" {
+    type = int
+    default = 0
+  }
   column "created_at" {
     type = timestamp
     default = sql("CURRENT_TIMESTAMP")
