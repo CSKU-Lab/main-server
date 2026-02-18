@@ -60,15 +60,44 @@ func (ls *sqlxLabSectionRepository) ShiftDownPositions(ctx context.Context, sect
 	return nil
 }
 
-func (ls *sqlxLabSectionRepository) ShiftUpPositions(ctx context.Context, sectionID string, labID string, position int) error {
+func (ls *sqlxLabSectionRepository) ShiftUpPositions(ctx context.Context, sectionID string, position int) error {
 	_, err := ls.db.ExecContext(ctx, `
 		UPDATE lab_sections
 		SET position = position - 1
 		WHERE section_id = $1
 		  AND position >= $2
 			AND is_deleted = false
-			AND lab_id != $3
-	`, sectionID, position, labID)
+	`, sectionID, position)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (ls *sqlxLabSectionRepository) ShiftRangeDown(ctx context.Context, sectionID string, startPos int, endPos int) error {
+	_, err := ls.db.ExecContext(ctx, `
+		UPDATE lab_sections
+		SET position = position + 1
+		WHERE section_id = $1
+		  AND position >= $2
+		  AND position <= $3
+			AND is_deleted = false
+	`, sectionID, startPos, endPos)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (ls *sqlxLabSectionRepository) ShiftRangeUp(ctx context.Context, sectionID string, startPos int, endPos int) error {
+	_, err := ls.db.ExecContext(ctx, `
+		UPDATE lab_sections
+		SET position = position - 1
+		WHERE section_id = $1
+		  AND position >= $2
+		  AND position <= $3
+			AND is_deleted = false
+	`, sectionID, startPos, endPos)
 	if err != nil {
 		return err
 	}

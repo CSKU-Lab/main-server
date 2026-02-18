@@ -126,18 +126,30 @@ func (ls *labSectionService) mutationPermission(ctx context.Context, userID stri
 	return nil
 }
 
-func (ls *labSectionService) rearrangeUpdatedIndex(ctx context.Context, sectionID string, position *int, labID string) error {
+func (ls *labSectionService) rearrangeUpdatedIndex(ctx context.Context, sectionID string, newPos *int, labID string, oldPos int) error {
+	if newPos == nil || *newPos == oldPos {
+		return nil
+	}
+
 	err := ls.uowRepo.Execute(ctx, func(u repositories.UoWInstance) error {
-		maxPos, err := ls.labSectionRepo.GetMaxPosition(ctx, sectionID, labID)
+		maxPos, err := ls.labSectionRepo.GetMaxPosition(ctx, sectionID, "")
 		if err != nil {
 			return err
 		}
 
-		if maxPos < *position {
-			*position = maxPos
+		if *newPos >= maxPos {
+			*newPos = maxPos - 1
 		}
 
-		err = ls.labSectionRepo.ShiftDownPositions(ctx, sectionID, *position)
+		if *newPos < 1 {
+			*newPos = 1
+		}
+
+		if *newPos < oldPos {
+			err = ls.labSectionRepo.ShiftRangeDown(ctx, sectionID, *newPos, oldPos-1)
+		} else {
+			err = ls.labSectionRepo.ShiftRangeUp(ctx, sectionID, oldPos+1, *newPos)
+		}
 		if err != nil {
 			return err
 		}
@@ -149,8 +161,8 @@ func (ls *labSectionService) rearrangeUpdatedIndex(ctx context.Context, sectionI
 	return nil
 }
 
-func (ls *labSectionService) rearrangeDeletedIndex(ctx context.Context, sectionID string, labID string, position int) error {
-	err := ls.labSectionRepo.ShiftUpPositions(ctx, sectionID, labID, position)
+func (ls *labSectionService) rearrangeDeletedIndex(ctx context.Context, sectionID string, position int) error {
+	err := ls.labSectionRepo.ShiftUpPositions(ctx, sectionID, position)
 	if err != nil {
 		return err
 	}
@@ -274,7 +286,7 @@ func (ls *labSectionService) Update(ctx context.Context, userID string, sectionI
 		return err
 	}
 
-	err = ls.rearrangeUpdatedIndex(ctx, sectionID, &req.Position, req.LabID)
+	err = ls.rearrangeUpdatedIndex(ctx, sectionID, &req.Position, req.LabID, labSection.Position)
 	if err != nil {
 		return err
 	}
@@ -402,7 +414,7 @@ func (ls *labSectionService) Delete(ctx context.Context, sectionID string, userI
 	})
 
 	for _, lab := range labsToDelete {
-		err = ls.rearrangeDeletedIndex(ctx, sectionID, lab.labID, lab.position)
+		err = ls.rearrangeDeletedIndex(ctx, sectionID, lab.position)
 		if err != nil {
 			return err
 		}

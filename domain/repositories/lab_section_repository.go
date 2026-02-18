@@ -20,8 +20,10 @@ type CreateLabSectionParams struct {
 }
 
 type LabSectionRepository interface {
-	ShiftUpPositions(ctx context.Context, sectionID string, labID string, position int) error
+	ShiftUpPositions(ctx context.Context, sectionID string, position int) error
 	ShiftDownPositions(ctx context.Context, sectionID string, position int) error
+	ShiftRangeDown(ctx context.Context, sectionID string, startPos int, endPos int) error
+	ShiftRangeUp(ctx context.Context, sectionID string, startPos int, endPos int) error
 	Create(ctx context.Context, params CreateLabSectionParams) error
 	GetMaxPosition(ctx context.Context, sectionID string, labID string) (int, error)
 	GetPagination(ctx context.Context, page int, limit int, sortBy string, sortOrder string, filters []sanitize.Filter) ([]models.LabSection, error)
