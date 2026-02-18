@@ -186,16 +186,14 @@ func (x *TestCase) GetIsHidden() bool {
 }
 
 type TestCaseGroup struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	Id             string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Name           string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Score          int32                  `protobuf:"varint,3,opt,name=score,proto3" json:"score,omitempty"`
-	Order          int32                  `protobuf:"varint,4,opt,name=order,proto3" json:"order,omitempty"`
-	TestCases      []*TestCase            `protobuf:"bytes,5,rep,name=test_cases,json=testCases,proto3" json:"test_cases,omitempty"`
-	MaxAutoScore   int32                  `protobuf:"varint,6,opt,name=max_auto_score,json=maxAutoScore,proto3" json:"max_auto_score,omitempty"`
-	MaxManualScore int32                  `protobuf:"varint,7,opt,name=max_manual_score,json=maxManualScore,proto3" json:"max_manual_score,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Score         int32                  `protobuf:"varint,3,opt,name=score,proto3" json:"score,omitempty"`
+	Order         int32                  `protobuf:"varint,4,opt,name=order,proto3" json:"order,omitempty"`
+	TestCases     []*TestCase            `protobuf:"bytes,5,rep,name=test_cases,json=testCases,proto3" json:"test_cases,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *TestCaseGroup) Reset() {
@@ -261,20 +259,6 @@ func (x *TestCaseGroup) GetTestCases() []*TestCase {
 		return x.TestCases
 	}
 	return nil
-}
-
-func (x *TestCaseGroup) GetMaxAutoScore() int32 {
-	if x != nil {
-		return x.MaxAutoScore
-	}
-	return 0
-}
-
-func (x *TestCaseGroup) GetMaxManualScore() int32 {
-	if x != nil {
-		return x.MaxManualScore
-	}
-	return 0
 }
 
 type TaskResponse struct {
@@ -847,16 +831,14 @@ const file_task_v1_messages_proto_rawDesc = "" +
 	"\x05order\x18\x02 \x01(\x05R\x05order\x12\x14\n" +
 	"\x05input\x18\x03 \x01(\tR\x05input\x12\x16\n" +
 	"\x06output\x18\x04 \x01(\tR\x06output\x12\x1b\n" +
-	"\tis_hidden\x18\x05 \x01(\bR\bisHidden\"\xe1\x01\n" +
+	"\tis_hidden\x18\x05 \x01(\bR\bisHidden\"\x91\x01\n" +
 	"\rTestCaseGroup\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
 	"\x05score\x18\x03 \x01(\x05R\x05score\x12\x14\n" +
 	"\x05order\x18\x04 \x01(\x05R\x05order\x120\n" +
 	"\n" +
-	"test_cases\x18\x05 \x03(\v2\x11.task.v1.TestCaseR\ttestCases\x12$\n" +
-	"\x0emax_auto_score\x18\x06 \x01(\x05R\fmaxAutoScore\x12(\n" +
-	"\x10max_manual_score\x18\a \x01(\x05R\x0emaxManualScore\"\x92\x03\n" +
+	"test_cases\x18\x05 \x03(\v2\x11.task.v1.TestCaseR\ttestCases\"\x92\x03\n" +
 	"\fTaskResponse\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12<\n" +
 	"\x0esolution_files\x18\x02 \x03(\v2\x15.task.v1.SolutionFileR\rsolutionFiles\x12@\n" +
