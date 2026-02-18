@@ -244,3 +244,44 @@ func (s *submissionRepository) CountCompletedStudentsByLabAndSection(ctx context
 	err := s.db.GetContext(ctx, &count, query, labID, sectionID)
 	return count, err
 }
+
+func (s *submissionRepository) GetLatestByMaterialSectionAndLabID(ctx context.Context, materialID string, sectionID string, labID string) ([]models.RawSubmission, error) {
+	query := `
+		SELECT DISTINCT ON (s.user_id) 
+			s.id, s.user_id, s.lab_id, s.section_id, s.course_id, s.material_id, 
+			s.status, s.submission_order, s.created_at, s.updated_at, 
+			s.ip_address, s.manual_score, s.auto_score
+		FROM submissions s
+		JOIN section_students ss ON s.user_id = ss.student_id
+		WHERE s.material_id = $1 
+		  AND s.section_id = $2 
+		  AND s.lab_id = $3
+		  AND ss.section_id = $2
+		ORDER BY s.user_id, s.submission_order DESC
+	`
+
+	submissions := []submission{}
+	err := s.db.SelectContext(ctx, &submissions, query, materialID, sectionID, labID)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]models.RawSubmission, len(submissions))
+	for i, row := range submissions {
+		result[i] = models.RawSubmission{
+			ID:          row.ID,
+			UserID:      row.UserID,
+			LabID:       row.LabID,
+			MaterialID:  row.MaterialID,
+			Status:      row.Status,
+			Order:       row.Order,
+			CreatedAt:   row.CreatedAt,
+			UpdatedAt:   row.UpdatedAt,
+			IPAddress:   row.IPAddress,
+			ManualScore: row.ManualScore,
+			AutoScore:   row.AutoScore,
+		}
+	}
+
+	return result, nil
+}

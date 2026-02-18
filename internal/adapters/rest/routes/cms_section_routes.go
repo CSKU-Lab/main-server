@@ -404,6 +404,21 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 		})
 	})
 
+	cmsSectionRouter.Get("/:sectionID/labs/:labID/materials/:materialID/submissions", func(c fiber.Ctx) error {
+		sectionID := c.Params("sectionID")
+		labID := c.Params("labID")
+		materialID := c.Params("materialID")
+
+		submissions, err := submissionService.GetSectionLabMaterialSubmissions(c.RequestCtx(), sectionID, labID, materialID)
+		if err != nil {
+			return err
+		}
+
+		return c.Status(fiber.StatusOK).JSON(fiber.Map{
+			"data": submissions,
+		})
+	})
+
 	cmsSectionRouter.Patch("/:sectionID/labs/:labID", middlewares.ValidateMiddleware[requests.UpdateLabSectionStatus](), func(c fiber.Ctx) error {
 		user := c.Locals("user").(*models.User)
 		sectionID := c.Params("sectionID")

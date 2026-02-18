@@ -5,10 +5,11 @@ import "time"
 type SubmissionStatus string
 
 const (
-	QUEUED  SubmissionStatus = "queued"
-	RUNNING SubmissionStatus = "running"
-	PASSED  SubmissionStatus = "passed"
-	FAILED  SubmissionStatus = "failed"
+	QUEUED        SubmissionStatus = "queued"
+	RUNNING       SubmissionStatus = "running"
+	PASSED        SubmissionStatus = "passed"
+	FAILED        SubmissionStatus = "failed"
+	NOT_SUBMITTED SubmissionStatus = "not_submitted"
 )
 
 type Submission struct {
@@ -50,4 +51,14 @@ type StudentLatestSubmission struct {
 	UpdatedAt time.Time       `json:"updated_at"`
 	IP        string          `json:"ip"`
 	Payload   any             `json:"payload"`
+}
+
+type CMSSectionStudentSubmission struct {
+	Student          Student          `json:"student"`
+	AutoScore        int              `json:"auto_score"`
+	ManualScore      int              `json:"manual_score"`
+	IP               *string          `json:"ip"`
+	CreatedAt        time.Time        `json:"created_at"`
+	SubmissionStatus SubmissionStatus `json:"submission_status"`
+	Submission       any              `json:"submission"`
 }

@@ -26,6 +26,7 @@ type SubmissionService interface {
 	GetLatestSubmissionsByMaterial(ctx context.Context, materialID string) ([]models.StudentLatestSubmission, error)
 	GetGradebookBySectionID(ctx context.Context, ID string) (*models.Gradebook, error)
 	CountCompletedStudentsByLabAndSection(ctx context.Context, labID string, sectionID string) (int, error)
+	GetSectionLabMaterialSubmissions(ctx context.Context, sectionID string, labID string, materialID string) ([]models.CMSSectionStudentSubmission, error)
 }
 
 type UpdateSubmissionPayload struct {
@@ -454,4 +455,69 @@ func (s *submissionService) GetLatestSubmissionsByMaterial(ctx context.Context, 
 
 func (s *submissionService) CountCompletedStudentsByLabAndSection(ctx context.Context, labID string, sectionID string) (int, error) {
 	return s.repo.CountCompletedStudentsByLabAndSection(ctx, labID, sectionID)
+}
+
+func (s *submissionService) GetSectionLabMaterialSubmissions(ctx context.Context, sectionID string, labID string, materialID string) ([]models.CMSSectionStudentSubmission, error) {
+	_, err := s.labMatRepo.GetByID(ctx, labID, materialID)
+	if err != nil {
+		return nil, err
+	}
+
+	students, err := s.sectionStudentRepo.GetBySectionID(ctx, sectionID)
+	if err != nil {
+		return nil, err
+	}
+
+	rawSubmissions, err := s.repo.GetLatestByMaterialSectionAndLabID(ctx, materialID, sectionID, labID)
+	if err != nil {
+		return nil, err
+	}
+
+	mat, err := s.materialRepo.GetByID(ctx, materialID)
+	if err != nil {
+		return nil, err
+	}
+
+	handler, err := s.registry.GetHandler(mat.Type)
+	if err != nil {
+		return nil, err
+	}
+
+	submissionMap := make(map[string]models.RawSubmission)
+	for _, sub := range rawSubmissions {
+		submissionMap[sub.UserID] = sub
+	}
+
+	result := make([]models.CMSSectionStudentSubmission, len(students))
+	for i, student := range students {
+		sub, hasSubmission := submissionMap[student.ID]
+
+		if hasSubmission {
+			payload, err := handler.Get(ctx, sub.ID)
+			if err != nil {
+				return nil, err
+			}
+
+			result[i] = models.CMSSectionStudentSubmission{
+				Student:          student,
+				AutoScore:        sub.AutoScore,
+				ManualScore:      sub.ManualScore,
+				IP:               &sub.IPAddress,
+				SubmissionStatus: sub.Status,
+				CreatedAt:        sub.CreatedAt,
+				Submission:       payload,
+			}
+		} else {
+			result[i] = models.CMSSectionStudentSubmission{
+				Student:          student,
+				AutoScore:        0,
+				ManualScore:      0,
+				IP:               nil,
+				SubmissionStatus: models.NOT_SUBMITTED,
+				Submission:       nil,
+			}
+		}
+	}
+
+	return result, nil
 }
