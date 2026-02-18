@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
 	"github.com/CSKU-Lab/main-server/domain/models"
@@ -320,11 +321,12 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 		}
 
 		type labSectionResponse struct {
-			ID        string `json:"id"`
-			LabID     string `json:"lab_id"`
-			SectionID string `json:"section_id"`
-			Position  int    `json:"position"`
-			LabName   string `json:"lab_name"`
+			LabID    string     `json:"lab_id"`
+			Position int        `json:"position"`
+			Status   string     `json:"status"`
+			OpenedAt *time.Time `json:"opened_at"`
+			ClosedAt *time.Time `json:"closed_at"`
+			LabName  string     `json:"lab_name"`
 		}
 
 		responseSections := make([]labSectionResponse, len(labSections))
@@ -335,11 +337,12 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 			}
 
 			responseSections[i] = labSectionResponse{
-				ID:        section.ID,
-				LabID:     section.LabID,
-				SectionID: section.SectionID,
-				Position:  section.Position,
-				LabName:   lab.DisplayName,
+				LabID:    section.LabID,
+				Position: section.Position,
+				Status:   section.Status,
+				OpenedAt: section.OpenedAt,
+				ClosedAt: section.ClosedAt,
+				LabName:  lab.DisplayName,
 			}
 		}
 

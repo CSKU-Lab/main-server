@@ -156,7 +156,15 @@ func (s *sectionService) SetDefaultLabs(ctx context.Context, sectionID string, c
 				})
 			}
 
-			err = u.LabSection().Create(ctx, defaultLab.LabID, defaultLab.Position, labSecID.String(), sectionID)
+			err = u.LabSection().Create(ctx, repositories.CreateLabSectionParams{
+				LabID:     defaultLab.LabID,
+				SectionID: sectionID,
+				Position:  defaultLab.Position,
+				ID:        labSecID.String(),
+				Status:    "hidden",
+				OpenedAt:  nil,
+				ClosedAt:  nil,
+			})
 			if err != nil {
 				return err
 			}

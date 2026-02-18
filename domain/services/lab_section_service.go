@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"sort"
+	"time"
 
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
 	"github.com/CSKU-Lab/main-server/domain/models"
@@ -42,6 +43,7 @@ func NewLabSectionService(labSectionRepo repositories.LabSectionRepository, uowR
 		allowedFilterFields: map[string]bool{
 			"lab_id":     true,
 			"section_id": true,
+			"status":     true,
 		},
 		allowedSortFields: map[string]bool{
 			"position": true,
@@ -193,7 +195,15 @@ func (ls *labSectionService) Create(ctx context.Context, req *requests.SetLabSec
 			})
 		}
 
-		err = ls.labSectionRepo.Create(ctx, labID, position, ID.String(), sectionID)
+		err = ls.labSectionRepo.Create(ctx, repositories.CreateLabSectionParams{
+			LabID:     labID,
+			SectionID: sectionID,
+			Position:  position,
+			ID:        ID.String(),
+			Status:    "hidden",
+			OpenedAt:  nil,
+			ClosedAt:  nil,
+		})
 		if err != nil {
 			return err
 		}
@@ -259,6 +269,11 @@ func (ls *labSectionService) Update(ctx context.Context, userID string, sectionI
 		return err
 	}
 
+	err = ls.applyLabSectionSchedule(req, labSection)
+	if err != nil {
+		return err
+	}
+
 	err = ls.rearrangeUpdatedIndex(ctx, sectionID, &req.Position, req.LabID)
 	if err != nil {
 		return err
@@ -269,6 +284,84 @@ func (ls *labSectionService) Update(ctx context.Context, userID string, sectionI
 		return err
 	}
 	return nil
+}
+
+func (ls *labSectionService) applyLabSectionSchedule(req *requests.UpdateLabSection, current *models.LabSection) error {
+	status := ""
+	if req.Status != nil {
+		status = *req.Status
+	}
+	if status == "" {
+		status = current.Status
+	}
+
+	if status == "readonly" || status == "disabled" {
+		if req.OpenedAt != nil || req.ClosedAt != nil {
+			return cserrors.New(&cserrors.Option{
+				HttpStatus: http.StatusBadRequest,
+				Message:    "opened_at and closed_at are not allowed for readonly/disabled status",
+			})
+		}
+		return nil
+	}
+	if status != "" && status != "hidden" && status != "open" && status != "closed" {
+		return cserrors.New(&cserrors.Option{
+			HttpStatus: http.StatusBadRequest,
+			Message:    "status must be hidden, open, or closed when using opened_at/closed_at",
+		})
+	}
+	if req.OpenedAt == nil && req.ClosedAt == nil {
+		switch status {
+		case "open":
+			if current.OpenedAt == nil {
+				now := time.Now()
+				req.OpenedAt = &now
+			}
+		case "closed":
+			if current.ClosedAt == nil {
+				now := time.Now()
+				req.ClosedAt = &now
+			}
+		}
+		return nil
+	}
+	if status == "" {
+		return cserrors.New(&cserrors.Option{
+			HttpStatus: http.StatusBadRequest,
+			Message:    "status is required when opened_at or closed_at is provided",
+		})
+	}
+
+	effectiveOpenedAt := req.OpenedAt
+	if effectiveOpenedAt == nil {
+		effectiveOpenedAt = current.OpenedAt
+	}
+	effectiveClosedAt := req.ClosedAt
+	if effectiveClosedAt == nil {
+		effectiveClosedAt = current.ClosedAt
+	}
+
+	if effectiveOpenedAt != nil && effectiveClosedAt != nil && effectiveOpenedAt.After(*effectiveClosedAt) {
+		return cserrors.New(&cserrors.Option{
+			HttpStatus: http.StatusBadRequest,
+			Message:    "opened_at must be before closed_at",
+		})
+	}
+
+	now := time.Now()
+	derivedStatus := deriveScheduledStatus(now, effectiveOpenedAt, effectiveClosedAt)
+	req.Status = &derivedStatus
+	return nil
+}
+
+func deriveScheduledStatus(now time.Time, openedAt *time.Time, closedAt *time.Time) string {
+	if openedAt != nil && now.Before(*openedAt) {
+		return "hidden"
+	}
+	if closedAt != nil && now.After(*closedAt) {
+		return "closed"
+	}
+	return "open"
 }
 
 func (ls *labSectionService) Delete(ctx context.Context, sectionID string, userID string, req *requests.DeleteLabSection) error {

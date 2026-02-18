@@ -560,6 +560,11 @@ table "lab_materials" {
   }
 }
 
+enum "lab_section_status" {
+  schema = schema.public
+  values = [ "hidden" , "open", "closed", "readonly", "disabled" ]
+}
+
 table "lab_sections" {
   schema = schema.public
   column "id" {
@@ -577,6 +582,18 @@ table "lab_sections" {
   column "created_at" {
     type = timestamp
     default = sql("CURRENT_TIMESTAMP")
+  }
+  column "status" {
+    type = enum.lab_section_status
+    default = "hidden"
+  }
+  column "opened_at" {
+    type = timestamp
+    null = true
+  }
+  column "closed_at" {
+    type = timestamp
+    null = true
   }
   column "updated_at" {
     type = timestamp

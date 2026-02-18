@@ -1,6 +1,8 @@
 package requests
 
 import (
+	"time"
+
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/go-ozzo/ozzo-validation/v4/is"
 )
@@ -36,8 +38,11 @@ type (
 		LabIDs []string `json:"lab_ids"`
 	}
 	UpdateLabSection struct {
-		Position int    `json:"position"`
-		LabID    string `json:"lab_id"`
+		Position int        `json:"position"`
+		LabID    string     `json:"lab_id"`
+		Status   *string    `json:"status"`
+		OpenedAt *time.Time `json:"opened_at"`
+		ClosedAt *time.Time `json:"closed_at"`
 	}
 	DeleteLabSection struct {
 		LabIDs []string `json:"lab_ids"`
@@ -81,6 +86,13 @@ func (ls *UpdateLabSection) Validate() error {
 			validation.Min(1),
 		),
 		validation.Field(&ls.LabID, validation.Required, is.UUID),
+		validation.Field(
+			&ls.Status,
+			validation.Skip.When(ls.Status == nil),
+			validation.In("hidden", "open", "closed", "readonly", "disabled"),
+		),
+		validation.Field(&ls.OpenedAt, validation.Skip.When(ls.OpenedAt == nil)),
+		validation.Field(&ls.ClosedAt, validation.Skip.When(ls.ClosedAt == nil)),
 	)
 }
 
