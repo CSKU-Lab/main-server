@@ -404,6 +404,20 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 		})
 	})
 
+	cmsSectionRouter.Patch("/:sectionID/labs/:labID", middlewares.ValidateMiddleware[requests.UpdateLabSectionStatus](), func(c fiber.Ctx) error {
+		user := c.Locals("user").(*models.User)
+		sectionID := c.Params("sectionID")
+		labID := c.Params("labID")
+		req := c.Locals("body").(*requests.UpdateLabSectionStatus)
+
+		err := labSectionService.UpdateStatus(c.RequestCtx(), user.ID, sectionID, labID, req)
+		if err != nil {
+			return err
+		}
+
+		return c.SendStatus(fiber.StatusAccepted)
+	})
+
 	cmsSectionRouter.Post("/:sectionID/labs", middlewares.ValidateMiddleware[requests.SetLabSection](), func(c fiber.Ctx) error {
 		user := c.Locals("user").(*models.User)
 		sectionID := c.Params("sectionID")

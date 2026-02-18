@@ -19,6 +19,7 @@ type LabSectionService interface {
 	GetPagination(ctx context.Context, page int, limit int, sortBy string, sortOrder string, filterParams map[string]string) ([]models.LabSection, error)
 	GetByLabAndSectionID(ctx context.Context, labID string, sectionID string) (*models.LabSection, error)
 	Update(ctx context.Context, userID string, sectionID string, req *requests.UpdateLabSection) error
+	UpdateStatus(ctx context.Context, userID string, sectionID string, labID string, req *requests.UpdateLabSectionStatus) error
 	Delete(ctx context.Context, sectionID string, userID string, req *requests.DeleteLabSection) error
 	Count(ctx context.Context, filterParams map[string]string) (int, error)
 }
@@ -281,11 +282,6 @@ func (ls *labSectionService) Update(ctx context.Context, userID string, sectionI
 		return err
 	}
 
-	err = ls.applyLabSectionSchedule(req, labSection)
-	if err != nil {
-		return err
-	}
-
 	err = ls.rearrangeUpdatedIndex(ctx, sectionID, &req.Position, req.LabID, labSection.Position)
 	if err != nil {
 		return err
@@ -298,7 +294,37 @@ func (ls *labSectionService) Update(ctx context.Context, userID string, sectionI
 	return nil
 }
 
-func (ls *labSectionService) applyLabSectionSchedule(req *requests.UpdateLabSection, current *models.LabSection) error {
+func (ls *labSectionService) UpdateStatus(ctx context.Context, userID string, sectionID string, labID string, req *requests.UpdateLabSectionStatus) error {
+	err := ls.rowExists(ctx, labID, sectionID)
+	if err != nil {
+		return err
+	}
+
+	err = ls.mutationPermission(ctx, userID, sectionID)
+	if err != nil {
+		return err
+	}
+
+	labSection, err := ls.labSectionRepo.GetByID(ctx, labID, sectionID)
+	if err != nil {
+		return err
+	}
+
+	updateReq := &requests.UpdateLabSectionStatus{
+		Status:   req.Status,
+		OpenedAt: req.OpenedAt,
+		ClosedAt: req.ClosedAt,
+	}
+
+	err = ls.applyLabSectionSchedule(updateReq, labSection)
+	if err != nil {
+		return err
+	}
+
+	return ls.labSectionRepo.UpdateStatusByID(ctx, labID, sectionID, labSection.ID, updateReq)
+}
+
+func (ls *labSectionService) applyLabSectionSchedule(req *requests.UpdateLabSectionStatus, current *models.LabSection) error {
 	status := ""
 	if req.Status != nil {
 		status = *req.Status

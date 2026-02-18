@@ -31,6 +31,7 @@ type LabSectionRepository interface {
 	GetByLabID(ctx context.Context, labID string) ([]models.LabSection, error)
 	GetBySectionID(ctx context.Context, sectionID string) ([]models.Lab, error)
 	UpdateByID(ctx context.Context, labID string, sectionID string, id string, req *requests.UpdateLabSection) error
+	UpdateStatusByID(ctx context.Context, labID string, sectionID string, id string, req *requests.UpdateLabSectionStatus) error
 	DeleteByID(ctx context.Context, id string) error
 	Count(ctx context.Context, filters []sanitize.Filter) (int, error)
 }

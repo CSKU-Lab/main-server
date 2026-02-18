@@ -159,15 +159,6 @@ func (ls *sqlxLabSectionRepository) UpdateByID(ctx context.Context, labID string
 		SectionID: sectionID,
 		Position:  req.Position,
 	}
-	if req.Status != nil {
-		updatedSchema.Status = *req.Status
-	}
-	if req.OpenedAt != nil {
-		updatedSchema.OpenedAt = req.OpenedAt
-	}
-	if req.ClosedAt != nil {
-		updatedSchema.ClosedAt = req.ClosedAt
-	}
 
 	updateFields := getUpdateFields(updatedSchema)
 	if len(updateFields) == 0 {
@@ -187,6 +178,51 @@ func (ls *sqlxLabSectionRepository) UpdateByID(ctx context.Context, labID string
 	}
 
 	query = ls.db.Rebind(query)
+
+	_, err = ls.db.ExecContext(ctx, query, args...)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (ls *sqlxLabSectionRepository) UpdateStatusByID(ctx context.Context, labID string, sectionID string, id string, req *requests.UpdateLabSectionStatus) error {
+	updatedSchema := &labSectionSchema{
+		ID:        id,
+		LabID:     labID,
+		SectionID: sectionID,
+	}
+
+	if req.Status != nil {
+		updatedSchema.Status = *req.Status
+	}
+	if req.OpenedAt != nil {
+		updatedSchema.OpenedAt = req.OpenedAt
+	}
+	if req.ClosedAt != nil {
+		updatedSchema.ClosedAt = req.ClosedAt
+	}
+
+	updateFields := getUpdateFields(updatedSchema)
+	if len(updateFields) == 0 {
+		return nil
+	}
+
+	query := fmt.Sprintf(`
+	UPDATE lab_sections
+	SET %s , updated_at = NOW()
+	WHERE lab_id = :lab_id AND section_id = :section_id AND id = :id
+	AND is_deleted = false
+	`, updateFields)
+
+	query, args, err := sqlx.Named(query, updatedSchema)
+	if err != nil {
+		return err
+	}
+
+	query =
+		ls.db.Rebind(query)
 
 	_, err = ls.db.ExecContext(ctx, query, args...)
 	if err != nil {

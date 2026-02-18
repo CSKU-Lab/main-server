@@ -38,8 +38,10 @@ type (
 		LabIDs []string `json:"lab_ids"`
 	}
 	UpdateLabSection struct {
-		Position int        `json:"position"`
-		LabID    string     `json:"lab_id"`
+		Position int    `json:"position"`
+		LabID    string `json:"lab_id"`
+	}
+	UpdateLabSectionStatus struct {
 		Status   *string    `json:"status"`
 		OpenedAt *time.Time `json:"opened_at"`
 		ClosedAt *time.Time `json:"closed_at"`
@@ -86,6 +88,11 @@ func (ls *UpdateLabSection) Validate() error {
 			validation.Min(1),
 		),
 		validation.Field(&ls.LabID, validation.Required, is.UUID),
+	)
+}
+
+func (ls *UpdateLabSectionStatus) Validate() error {
+	return validation.ValidateStruct(ls,
 		validation.Field(
 			&ls.Status,
 			validation.Skip.When(ls.Status == nil),
