@@ -23,6 +23,8 @@ type SubmissionRepository interface {
 	GetLatestByMaterialAndStudentID(ctx context.Context, materialID string, studentID string) (*models.RawSubmission, error)
 
 	Count(ctx context.Context, userID string, materialID string) (int, error)
+
+	CountCompletedStudentsByLabAndSection(ctx context.Context, labID string, sectionID string) (int, error)
 }
 
 type Submission struct {

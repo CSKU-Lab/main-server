@@ -356,6 +356,54 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 		})
 	})
 
+	cmsSectionRouter.Get("/:sectionID/labs/:labID", func(c fiber.Ctx) error {
+		sectionID := c.Params("sectionID")
+		labID := c.Params("labID")
+
+		// Get lab section details
+		labSection, err := labSectionService.GetByLabAndSectionID(c.RequestCtx(), labID, sectionID)
+		if err != nil {
+			return err
+		}
+
+		// Get lab name
+		lab, err := labService.GetByID(c.RequestCtx(), labID)
+		if err != nil {
+			return err
+		}
+
+		// Get total students
+		students, err := sectionService.GetStudentsBySectionID(c.RequestCtx(), sectionID)
+		if err != nil {
+			return err
+		}
+		totalStudents := len(students)
+
+		// Get completed students (passed all materials)
+		completedStudents, err := submissionService.CountCompletedStudentsByLabAndSection(c.RequestCtx(), labID, sectionID)
+		if err != nil {
+			return err
+		}
+
+		type labDetailResponse struct {
+			LabName           string     `json:"lab_name"`
+			Status            string     `json:"status"`
+			OpenedAt          *time.Time `json:"opened_at"`
+			ClosedAt          *time.Time `json:"closed_at"`
+			CompletedStudents int        `json:"completed_students"`
+			TotalStudents     int        `json:"total_students"`
+		}
+
+		return c.JSON(labDetailResponse{
+			LabName:           lab.DisplayName,
+			Status:            labSection.Status,
+			OpenedAt:          labSection.OpenedAt,
+			ClosedAt:          labSection.ClosedAt,
+			CompletedStudents: completedStudents,
+			TotalStudents:     totalStudents,
+		})
+	})
+
 	cmsSectionRouter.Post("/:sectionID/labs", middlewares.ValidateMiddleware[requests.SetLabSection](), func(c fiber.Ctx) error {
 		user := c.Locals("user").(*models.User)
 		sectionID := c.Params("sectionID")

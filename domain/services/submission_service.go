@@ -25,6 +25,7 @@ type SubmissionService interface {
 	GetUserSubmissionsByMaterial(ctx context.Context, userID string, materialID string, page int, pageSize int, sortOrder string) ([]models.Submission, int, error)
 	GetLatestSubmissionsByMaterial(ctx context.Context, materialID string) ([]models.StudentLatestSubmission, error)
 	GetGradebookBySectionID(ctx context.Context, ID string) (*models.Gradebook, error)
+	CountCompletedStudentsByLabAndSection(ctx context.Context, labID string, sectionID string) (int, error)
 }
 
 type UpdateSubmissionPayload struct {
@@ -449,4 +450,8 @@ func (s *submissionService) GetLatestSubmissionsByMaterial(ctx context.Context, 
 	}
 
 	return result, nil
+}
+
+func (s *submissionService) CountCompletedStudentsByLabAndSection(ctx context.Context, labID string, sectionID string) (int, error) {
+	return s.repo.CountCompletedStudentsByLabAndSection(ctx, labID, sectionID)
 }
