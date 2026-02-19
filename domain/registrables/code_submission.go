@@ -91,7 +91,7 @@ func (c *codeSubmission) Update(ctx context.Context, uowRepo repositories.UoWIns
 	return uowRepo.CodeSubmission().Update(ctx, updatePayload)
 }
 
-func (c *codeSubmission) Get(ctx context.Context, submissionID string) (any, error) {
+func (c *codeSubmission) Get(ctx context.Context, submissionID string, viewBy string) (any, error) {
 	submission, err := c.submissionRepo.Get(ctx, submissionID)
 	if err != nil {
 		return nil, err
@@ -116,7 +116,7 @@ func (c *codeSubmission) Get(ctx context.Context, submissionID string) (any, err
 		TestCaseGroups: codeSubmission.TestCaseGroups,
 	}
 
-	if codeMat.HideTestCases {
+	if codeMat.HideTestCases && viewBy != "instructor" {
 		testCaseGroups := make([]models.TestCaseGroupResult, 0, len(codeSubmission.TestCaseGroups))
 		for _, tg := range codeSubmission.TestCaseGroups {
 			_tg := models.TestCaseGroupResult{

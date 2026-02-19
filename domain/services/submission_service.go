@@ -265,7 +265,7 @@ func (s *submissionService) Get(ctx context.Context, submissionID string) (*mode
 		return nil, err
 	}
 
-	payload, err := handler.Get(ctx, submission.ID)
+	payload, err := handler.Get(ctx, submission.ID, "")
 	if err != nil {
 		return nil, err
 	}
@@ -420,7 +420,7 @@ func (s *submissionService) GetLatestSubmissionsByMaterial(ctx context.Context, 
 	result := make([]models.StudentLatestSubmission, len(rawSubmissions))
 	for i, sub := range rawSubmissions {
 
-		payload, err := handler.Get(ctx, sub.ID)
+		payload, err := handler.Get(ctx, sub.ID, "instructor")
 		if err != nil {
 			return nil, err
 		}
@@ -493,7 +493,7 @@ func (s *submissionService) GetSectionLabMaterialSubmissions(ctx context.Context
 		sub, hasSubmission := submissionMap[student.ID]
 
 		if hasSubmission {
-			payload, err := handler.Get(ctx, sub.ID)
+			payload, err := handler.Get(ctx, sub.ID, "instructor")
 			if err != nil {
 				return nil, err
 			}
