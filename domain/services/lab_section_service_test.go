@@ -14,7 +14,7 @@ func TestApplyLabSectionScheduleRejectsDatesForReadonly(t *testing.T) {
 	service := &labSectionService{}
 	status := "readonly"
 	openedAt := time.Now().Add(1 * time.Hour)
-	req := &requests.UpdateLabSection{
+	req := &requests.UpdateLabSectionStatus{
 		Status:   &status,
 		OpenedAt: &openedAt,
 	}
@@ -32,7 +32,7 @@ func TestApplyLabSectionScheduleRejectsDatesForReadonly(t *testing.T) {
 func TestApplyLabSectionScheduleSetsOpenedAtWhenOpening(t *testing.T) {
 	service := &labSectionService{}
 	status := "open"
-	req := &requests.UpdateLabSection{Status: &status}
+	req := &requests.UpdateLabSectionStatus{Status: &status}
 
 	err := service.applyLabSectionSchedule(req, &models.LabSection{Status: "hidden"})
 	if err != nil {
@@ -49,7 +49,7 @@ func TestApplyLabSectionScheduleSetsOpenedAtWhenOpening(t *testing.T) {
 func TestApplyLabSectionScheduleSetsClosedAtWhenClosing(t *testing.T) {
 	service := &labSectionService{}
 	status := "closed"
-	req := &requests.UpdateLabSection{Status: &status}
+	req := &requests.UpdateLabSectionStatus{Status: &status}
 
 	err := service.applyLabSectionSchedule(req, &models.LabSection{Status: "open"})
 	if err != nil {
@@ -67,7 +67,7 @@ func TestApplyLabSectionScheduleDerivesStatusFromDates(t *testing.T) {
 	service := &labSectionService{}
 	status := "open"
 	openedAt := time.Now().Add(1 * time.Hour)
-	req := &requests.UpdateLabSection{
+	req := &requests.UpdateLabSectionStatus{
 		Status:   &status,
 		OpenedAt: &openedAt,
 	}
@@ -86,7 +86,7 @@ func TestApplyLabSectionScheduleRejectsInvalidRange(t *testing.T) {
 	status := "open"
 	openedAt := time.Now().Add(2 * time.Hour)
 	closedAt := time.Now().Add(1 * time.Hour)
-	req := &requests.UpdateLabSection{
+	req := &requests.UpdateLabSectionStatus{
 		Status:   &status,
 		OpenedAt: &openedAt,
 		ClosedAt: &closedAt,
