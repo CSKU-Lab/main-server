@@ -217,12 +217,14 @@ func (s *materialService) GetByID(ctx context.Context, ID string) (*models.Mater
 
 	matModel := &models.MaterialDetail{
 		Material: &models.Material{
-			ID:         mat.ID,
-			Name:       mat.Name,
-			Type:       mat.Type,
-			Tags:       tags,
-			Visibility: mat.Visibility,
-			CreatedAt:  mat.CreatedAt,
+			ID:             mat.ID,
+			Name:           mat.Name,
+			Type:           mat.Type,
+			Tags:           tags,
+			Visibility:     mat.Visibility,
+			MaxAutoScore:   mat.AutoScore,
+			MaxManualScore: mat.ManualScore,
+			CreatedAt:      mat.CreatedAt,
 			CreatedBy: &models.MaterialCreator{
 				ID:           creator.ID,
 				DisplayName:  creator.DisplayName,
