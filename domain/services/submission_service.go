@@ -513,7 +513,7 @@ func (s *submissionService) GetSectionLabMaterialSubmissions(ctx context.Context
 				IP:               &sub.IPAddress,
 				SubmissionStatus: sub.Status,
 				CreatedAt:        sub.CreatedAt,
-				Submission:       payload,
+				Payload:       payload,
 			}
 		} else {
 			result[i] = models.CMSSectionStudentSubmission{
@@ -522,7 +522,7 @@ func (s *submissionService) GetSectionLabMaterialSubmissions(ctx context.Context
 				ManualScore:      0,
 				IP:               nil,
 				SubmissionStatus: models.NOT_SUBMITTED,
-				Submission:       nil,
+				Payload:       nil,
 			}
 		}
 	}

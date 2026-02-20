@@ -60,5 +60,5 @@ type CMSSectionStudentSubmission struct {
 	IP               *string          `json:"ip"`
 	CreatedAt        time.Time        `json:"created_at"`
 	SubmissionStatus SubmissionStatus `json:"submission_status"`
-	Submission       any              `json:"submission"`
+	Payload          any              `json:"payload"`
 }
