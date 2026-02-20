@@ -10,6 +10,6 @@ type UpdateSubmissionManualScore struct {
 
 func (r *UpdateSubmissionManualScore) Validate() error {
 	return validation.ValidateStruct(r,
-		validation.Field(&r.ManualScore, validation.Required, validation.Min(0)),
+		validation.Field(&r.ManualScore, validation.Min(0)),
 	)
 }

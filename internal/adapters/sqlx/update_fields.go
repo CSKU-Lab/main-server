@@ -27,7 +27,7 @@ func getAllStructFields(s any) []string {
 	val := reflect.ValueOf(s)
 	keys := make([]string, 0)
 
-	if typ.Kind() == reflect.Ptr {
+	if typ.Kind() == reflect.Pointer {
 		typ = typ.Elem()
 		val = val.Elem()
 	}
@@ -40,7 +40,14 @@ func getAllStructFields(s any) []string {
 			keys = append(keys, getAllStructFields(value.Interface())...)
 		}
 
-		if !value.IsValid() || value.IsZero() {
+		if !value.IsValid() {
+			continue
+		}
+		if value.Kind() == reflect.Pointer {
+			if value.IsNil() {
+				continue
+			}
+		} else if value.IsZero() {
 			continue
 		}
 

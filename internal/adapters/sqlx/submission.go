@@ -37,18 +37,11 @@ func (s *submissionRepository) Create(ctx context.Context, payload *repositories
 }
 
 func (s *submissionRepository) Update(ctx context.Context, req *repositories.UpdateSubmissionRequest) error {
-	record := &submission{
-		ID: req.ID,
-	}
-
-	if req.Status != nil {
-		record.Status = *req.Status
-	}
-	if req.AutoScore != nil {
-		record.AutoScore = *req.AutoScore
-	}
-	if req.ManualScore != nil {
-		record.ManualScore = *req.ManualScore
+	record := &submissionUpdate{
+		ID:          req.ID,
+		Status:      req.Status,
+		AutoScore:   req.AutoScore,
+		ManualScore: req.ManualScore,
 	}
 
 	updateFields := getUpdateFields(record)
@@ -64,6 +57,15 @@ func (s *submissionRepository) Update(ctx context.Context, req *repositories.Upd
 
 	_, err := s.db.NamedExecContext(ctx, query, record)
 	return err
+}
+
+// submissionUpdate is used exclusively by the Update method.
+// Score fields are *int so that getUpdateFields includes them even when the value is 0.
+type submissionUpdate struct {
+	ID          string                   `db:"id"`
+	Status      *models.SubmissionStatus `db:"status"`
+	ManualScore *int                     `db:"manual_score"`
+	AutoScore   *int                     `db:"auto_score"`
 }
 
 type submission struct {
