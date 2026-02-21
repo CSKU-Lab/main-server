@@ -7,6 +7,7 @@ import (
 	"github.com/CSKU-Lab/main-server/domain/models"
 	"github.com/CSKU-Lab/main-server/domain/registries"
 	"github.com/CSKU-Lab/main-server/domain/repositories"
+	taskPB "github.com/CSKU-Lab/main-server/genproto/task/v1"
 	"github.com/google/uuid"
 )
 
@@ -14,13 +15,15 @@ type codeSubmission struct {
 	repo           repositories.CodeSubmissionRepository
 	codeMatRepo    repositories.CodeMaterialRepository
 	submissionRepo repositories.SubmissionRepository
+	taskGRPCClient taskPB.TaskServiceClient
 }
 
-func NewCodeSubmission(repo repositories.CodeSubmissionRepository, codeMatRepo repositories.CodeMaterialRepository, submissionRepo repositories.SubmissionRepository) registries.SubmissionRegistrable {
+func NewCodeSubmission(repo repositories.CodeSubmissionRepository, codeMatRepo repositories.CodeMaterialRepository, submissionRepo repositories.SubmissionRepository, taskGRPCClient taskPB.TaskServiceClient) registries.SubmissionRegistrable {
 	return &codeSubmission{
 		repo:           repo,
 		codeMatRepo:    codeMatRepo,
 		submissionRepo: submissionRepo,
+		taskGRPCClient: taskGRPCClient,
 	}
 }
 
@@ -35,6 +38,37 @@ type updateCodeSubmissionPayload struct {
 	AvgWallTime    float32                     `json:"avg_wall_time"`
 	AvgMemory      int32                       `json:"avg_memory"`
 	TestCaseGroups models.TestCaseGroupResults `json:"test_case_groups"`
+}
+
+func reorderTestCaseGroups(groups []models.TestCaseGroupResult, taskGroups []*taskPB.TestCaseGroup) []models.TestCaseGroupResult {
+	resultGroupByID := make(map[string]map[string]models.TestCaseResult, len(groups))
+	for _, g := range groups {
+		resultGroupByID[g.ID] = make(map[string]models.TestCaseResult, len(g.Results))
+		for _, tc := range g.Results {
+			resultGroupByID[g.ID][tc.ID] = tc
+		}
+	}
+
+	ordered := make([]models.TestCaseGroupResult, 0, len(taskGroups))
+	for _, tg := range taskGroups {
+		if _, exists := resultGroupByID[tg.GetId()]; !exists {
+			continue
+		}
+
+		orderedResults := make([]models.TestCaseResult, 0, len(tg.GetTestCases()))
+		for _, tc := range tg.GetTestCases() {
+			if tcResult, ok := resultGroupByID[tg.GetId()][tc.GetId()]; ok {
+				orderedResults = append(orderedResults, tcResult)
+			}
+		}
+
+		ordered = append(ordered, models.TestCaseGroupResult{
+			ID:      tg.GetId(),
+			Score:   tg.GetScore(),
+			Results: orderedResults,
+		})
+	}
+	return ordered
 }
 
 func (c *codeSubmission) Create(ctx context.Context, uowRepo repositories.UoWInstance, submissionID string, matId string, payload []byte) error {
@@ -107,18 +141,30 @@ func (c *codeSubmission) Get(ctx context.Context, submissionID string, viewBy st
 		return nil, err
 	}
 
+	task, err := c.taskGRPCClient.GetTask(ctx, &taskPB.GetTaskRequest{
+		Id: codeMat.TaskID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	testCaseGroups := codeSubmission.TestCaseGroups
+	if len(task.GetTestCaseGroups()) > 0 {
+		testCaseGroups = reorderTestCaseGroups(codeSubmission.TestCaseGroups, task.GetTestCaseGroups())
+	}
+
 	cleanedCodeSubmission := &models.CodeSubmission{
 		SubmissionID:   codeSubmission.SubmissionID,
 		Files:          codeSubmission.Files,
 		Status:         codeSubmission.Status,
 		AvgWallTime:    codeSubmission.AvgWallTime,
 		AvgMemory:      codeSubmission.AvgMemory,
-		TestCaseGroups: codeSubmission.TestCaseGroups,
+		TestCaseGroups: testCaseGroups,
 	}
 
 	if codeMat.HideTestCases && viewBy != "instructor" {
-		testCaseGroups := make([]models.TestCaseGroupResult, 0, len(codeSubmission.TestCaseGroups))
-		for _, tg := range codeSubmission.TestCaseGroups {
+		cleanedTestCaseGroups := make([]models.TestCaseGroupResult, 0, len(testCaseGroups))
+		for _, tg := range testCaseGroups {
 			_tg := models.TestCaseGroupResult{
 				ID:      tg.ID,
 				Score:   tg.Score,
@@ -134,9 +180,9 @@ func (c *codeSubmission) Get(ctx context.Context, submissionID string, viewBy st
 					Memory:   tc.Memory,
 				})
 			}
-			testCaseGroups = append(testCaseGroups, _tg)
+			cleanedTestCaseGroups = append(cleanedTestCaseGroups, _tg)
 		}
-		cleanedCodeSubmission.TestCaseGroups = testCaseGroups
+		cleanedCodeSubmission.TestCaseGroups = cleanedTestCaseGroups
 	}
 
 	return cleanedCodeSubmission, nil
@@ -160,18 +206,30 @@ func (c *codeSubmission) GetByIDs(ctx context.Context, submissionIDs []string, v
 			return nil, err
 		}
 
+		task, err := c.taskGRPCClient.GetTask(ctx, &taskPB.GetTaskRequest{
+			Id: codeMat.TaskID,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		testCaseGroups := codeSubmission.TestCaseGroups
+		if len(task.GetTestCaseGroups()) > 0 {
+			testCaseGroups = reorderTestCaseGroups(codeSubmission.TestCaseGroups, task.GetTestCaseGroups())
+		}
+
 		cleanedCodeSubmission := &models.CodeSubmission{
 			SubmissionID:   codeSubmission.SubmissionID,
 			Files:          codeSubmission.Files,
 			Status:         codeSubmission.Status,
 			AvgWallTime:    codeSubmission.AvgWallTime,
 			AvgMemory:      codeSubmission.AvgMemory,
-			TestCaseGroups: codeSubmission.TestCaseGroups,
+			TestCaseGroups: testCaseGroups,
 		}
 
 		if codeMat.HideTestCases && viewBy != "instructor" {
-			testCaseGroups := make([]models.TestCaseGroupResult, 0, len(codeSubmission.TestCaseGroups))
-			for _, tg := range codeSubmission.TestCaseGroups {
+			cleanedTestCaseGroups := make([]models.TestCaseGroupResult, 0, len(testCaseGroups))
+			for _, tg := range testCaseGroups {
 				_tg := models.TestCaseGroupResult{
 					ID:      tg.ID,
 					Score:   tg.Score,
@@ -187,9 +245,9 @@ func (c *codeSubmission) GetByIDs(ctx context.Context, submissionIDs []string, v
 						Memory:   tc.Memory,
 					})
 				}
-				testCaseGroups = append(testCaseGroups, _tg)
+				cleanedTestCaseGroups = append(cleanedTestCaseGroups, _tg)
 			}
-			cleanedCodeSubmission.TestCaseGroups = testCaseGroups
+			cleanedCodeSubmission.TestCaseGroups = cleanedTestCaseGroups
 		}
 
 		submissions[subID] = cleanedCodeSubmission
