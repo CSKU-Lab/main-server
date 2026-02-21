@@ -142,6 +142,62 @@ func (c *codeSubmission) Get(ctx context.Context, submissionID string, viewBy st
 	return cleanedCodeSubmission, nil
 }
 
+func (c *codeSubmission) GetByIDs(ctx context.Context, submissionIDs []string, viewBy string) (map[string]any, error) {
+	submissions := make(map[string]any, len(submissionIDs))
+	for _, subID := range submissionIDs {
+		submission, err := c.submissionRepo.Get(ctx, subID)
+		if err != nil {
+			return nil, err
+		}
+
+		codeMat, err := c.codeMatRepo.GetByID(ctx, submission.MaterialID)
+		if err != nil {
+			return nil, err
+		}
+
+		codeSubmission, err := c.repo.Get(ctx, subID)
+		if err != nil {
+			return nil, err
+		}
+
+		cleanedCodeSubmission := &models.CodeSubmission{
+			SubmissionID:   codeSubmission.SubmissionID,
+			Files:          codeSubmission.Files,
+			Status:         codeSubmission.Status,
+			AvgWallTime:    codeSubmission.AvgWallTime,
+			AvgMemory:      codeSubmission.AvgMemory,
+			TestCaseGroups: codeSubmission.TestCaseGroups,
+		}
+
+		if codeMat.HideTestCases && viewBy != "instructor" {
+			testCaseGroups := make([]models.TestCaseGroupResult, 0, len(codeSubmission.TestCaseGroups))
+			for _, tg := range codeSubmission.TestCaseGroups {
+				_tg := models.TestCaseGroupResult{
+					ID:      tg.ID,
+					Score:   tg.Score,
+					Results: make([]models.TestCaseResult, 0, len(tg.Results)),
+				}
+
+				for _, tc := range tg.Results {
+					_tg.Results = append(_tg.Results, models.TestCaseResult{
+						ID:       tc.ID,
+						Message:  tc.Message,
+						Status:   tc.Status,
+						WallTime: tc.WallTime,
+						Memory:   tc.Memory,
+					})
+				}
+				testCaseGroups = append(testCaseGroups, _tg)
+			}
+			cleanedCodeSubmission.TestCaseGroups = testCaseGroups
+		}
+
+		submissions[subID] = cleanedCodeSubmission
+	}
+
+	return submissions, nil
+}
+
 func (c *codeSubmission) GetOverviewStats(payload any) any {
 	codeSubmission, ok := payload.(*models.CodeSubmission)
 	if !ok || codeSubmission == nil {

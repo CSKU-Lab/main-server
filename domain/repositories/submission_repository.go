@@ -22,8 +22,10 @@ type SubmissionRepository interface {
 	GetLatestByMaterialID(ctx context.Context, materialID string) ([]models.RawSubmission, error)
 	GetLatestByMaterialAndStudentID(ctx context.Context, materialID string, studentID string) (*models.RawSubmission, error)
 	GetLatestByMaterialSectionAndLabID(ctx context.Context, materialID string, sectionID string, labID string) ([]models.RawSubmission, error)
+	GetPaginationByMaterialSectionLabAndStudentID(ctx context.Context, materialID string, sectionID string, labID string, studentID string, page int, pageSize int, sortBy, sortOrder string) ([]models.RawSubmission, error)
 
 	Count(ctx context.Context, userID string, materialID string) (int, error)
+	CountByMaterialSectionLabAndStudentID(ctx context.Context, materialID string, sectionID string, labID string, studentID string) (int, error)
 
 	CountCompletedStudentsByLabAndSection(ctx context.Context, labID string, sectionID string) (int, error)
 }

@@ -14,6 +14,7 @@ import (
 	"github.com/CSKU-Lab/main-server/domain/repositories"
 	"github.com/CSKU-Lab/main-server/internal/adapters/pubsub"
 	"github.com/CSKU-Lab/main-server/internal/requests"
+	"github.com/CSKU-Lab/main-server/internal/sanitize"
 	"github.com/google/uuid"
 )
 
@@ -27,6 +28,7 @@ type SubmissionService interface {
 	GetGradebookBySectionID(ctx context.Context, ID string) (*models.Gradebook, error)
 	CountCompletedStudentsByLabAndSection(ctx context.Context, labID string, sectionID string) (int, error)
 	GetSectionLabMaterialSubmissions(ctx context.Context, sectionID string, labID string, materialID string) ([]models.CMSSectionStudentSubmission, error)
+	GetStudentSubmissionsByMaterialSectionLab(ctx context.Context, materialID string, sectionID string, labID string, studentID string, page int, pageSize int, sortBy, sortOrder string) ([]models.StudentSubmission, int, error)
 	UpdateManualScore(ctx context.Context, submissionID string, manualScore int) error
 }
 
@@ -48,6 +50,7 @@ type submissionService struct {
 	labSectionRepo     repositories.LabSectionRepository
 	labMatRepo         repositories.LabMaterialRepository
 	ps                 pubsub.PubSub
+	allowedSortFields  map[string]bool
 }
 
 type SubmissionServiceArgs struct {
@@ -77,6 +80,10 @@ func NewSubmissionService(args *SubmissionServiceArgs) SubmissionService {
 		labMatRepo:         args.LabMaterialRepository,
 		materialReigstry:   args.MaterialRegistry,
 		ps:                 args.PubSub,
+		allowedSortFields: map[string]bool{
+			"order":      true,
+			"created_at": true,
+		},
 	}
 }
 
@@ -513,7 +520,7 @@ func (s *submissionService) GetSectionLabMaterialSubmissions(ctx context.Context
 				IP:               &sub.IPAddress,
 				SubmissionStatus: sub.Status,
 				CreatedAt:        sub.CreatedAt,
-				Payload:       payload,
+				Payload:          payload,
 			}
 		} else {
 			result[i] = models.CMSSectionStudentSubmission{
@@ -522,10 +529,81 @@ func (s *submissionService) GetSectionLabMaterialSubmissions(ctx context.Context
 				ManualScore:      0,
 				IP:               nil,
 				SubmissionStatus: models.NOT_SUBMITTED,
-				Payload:       nil,
+				Payload:          nil,
 			}
 		}
 	}
 
 	return result, nil
+}
+
+func (s *submissionService) GetStudentSubmissionsByMaterialSectionLab(ctx context.Context, materialID string, sectionID string, labID string, studentID string, page int, pageSize int, sortBy, sortOrder string) ([]models.StudentSubmission, int, error) {
+	sanitizedSortBy, err := sanitize.SortBy(sortBy, s.allowedSortFields)
+	if err != nil {
+		return nil, 0, cserrors.New(
+			&cserrors.Option{
+				HttpStatus: http.StatusBadRequest,
+				Message:    "Invalid sort by field",
+			})
+	}
+
+	sanitizedSortOrder, err := sanitize.SortOrder(sortOrder)
+	if err != nil {
+		return nil, 0, cserrors.New(
+			&cserrors.Option{
+				HttpStatus: http.StatusBadRequest,
+				Message:    "Invalid sort order",
+			})
+	}
+
+	mat, err := s.materialRepo.GetByID(ctx, materialID)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	rawSubmissions, err := s.repo.GetPaginationByMaterialSectionLabAndStudentID(ctx, materialID, sectionID, labID, studentID, page, pageSize, sanitizedSortBy, sanitizedSortOrder)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	count, err := s.repo.CountByMaterialSectionLabAndStudentID(ctx, materialID, sectionID, labID, studentID)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	if len(rawSubmissions) == 0 {
+		return []models.StudentSubmission{}, count, nil
+	}
+
+	handler, err := s.registry.GetHandler(mat.Type)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	submissionIDs := make([]string, len(rawSubmissions))
+	for i, sub := range rawSubmissions {
+		submissionIDs[i] = sub.ID
+	}
+
+	payloads, err := handler.GetByIDs(ctx, submissionIDs, "instructor")
+	if err != nil {
+		return nil, 0, err
+	}
+
+	result := make([]models.StudentSubmission, len(rawSubmissions))
+	for i, sub := range rawSubmissions {
+		result[i] = models.StudentSubmission{
+			ID:          sub.ID,
+			Status:      sub.Status,
+			Order:       sub.Order,
+			CreatedAt:   sub.CreatedAt,
+			UpdatedAt:   sub.UpdatedAt,
+			AutoScore:   sub.AutoScore,
+			ManualScore: sub.ManualScore,
+			IP:          sub.IPAddress,
+			Payload:     payloads[sub.ID],
+		}
+	}
+
+	return result, count, nil
 }

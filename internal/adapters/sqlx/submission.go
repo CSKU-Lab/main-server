@@ -3,6 +3,7 @@ package sqlx
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	contextkeys "github.com/CSKU-Lab/main-server/context_keys"
@@ -286,4 +287,67 @@ func (s *submissionRepository) GetLatestByMaterialSectionAndLabID(ctx context.Co
 	}
 
 	return result, nil
+}
+
+func (s *submissionRepository) GetPaginationByMaterialSectionLabAndStudentID(ctx context.Context, materialID string, sectionID string, labID string, studentID string, page int, pageSize int, sortBy, sortOrder string) ([]models.RawSubmission, error) {
+	query := `
+		SELECT id, user_id, lab_id, section_id, course_id, material_id, 
+			   status, submission_order, created_at, updated_at, 
+			   ip_address, manual_score, auto_score
+		FROM submissions
+		WHERE material_id = $1 
+		  AND section_id = $2 
+		  AND lab_id = $3
+		  AND user_id = $4
+		ORDER BY %s %s
+		OFFSET $5 LIMIT $6
+	`
+
+	query = fmt.Sprintf(query, sortBy, sortOrder)
+	offset := (page - 1) * pageSize
+	log.Println(query)
+
+	submissions := []submission{}
+	err := s.db.SelectContext(ctx, &submissions, query, materialID, sectionID, labID, studentID, offset, pageSize)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]models.RawSubmission, len(submissions))
+	for i, row := range submissions {
+		result[i] = models.RawSubmission{
+			ID:          row.ID,
+			UserID:      row.UserID,
+			LabID:       row.LabID,
+			MaterialID:  row.MaterialID,
+			Status:      row.Status,
+			Order:       row.Order,
+			CreatedAt:   row.CreatedAt,
+			UpdatedAt:   row.UpdatedAt,
+			IPAddress:   row.IPAddress,
+			ManualScore: row.ManualScore,
+			AutoScore:   row.AutoScore,
+		}
+	}
+
+	return result, nil
+}
+
+func (s *submissionRepository) CountByMaterialSectionLabAndStudentID(ctx context.Context, materialID string, sectionID string, labID string, studentID string) (int, error) {
+	query := `
+		SELECT COUNT(*) 
+		FROM submissions
+		WHERE material_id = $1 
+		  AND section_id = $2 
+		  AND lab_id = $3
+		  AND user_id = $4
+	`
+
+	var count int
+	err := s.db.GetContext(ctx, &count, query, materialID, sectionID, labID, studentID)
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
 }

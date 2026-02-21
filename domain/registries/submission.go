@@ -11,6 +11,7 @@ type SubmissionRegistrable interface {
 	Create(ctx context.Context, uowRepo repositories.UoWInstance, submissionID string, matId string, payload []byte) error
 	Update(ctx context.Context, uowRepo repositories.UoWInstance, submissioID string, payload []byte) error
 	Get(ctx context.Context, submissionId string, viewBy string) (any, error)
+	GetByIDs(ctx context.Context, submissionIds []string, viewBy string) (map[string]any, error)
 	GetOverviewsPayload(ctx context.Context, submissionIDs []string) (map[string]any, error)
 	GetOverviewStats(payload any) any
 	GetOverviewStatsByID(ctx context.Context, submissionID string) any

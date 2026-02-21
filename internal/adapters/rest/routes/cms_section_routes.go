@@ -408,6 +408,38 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 		sectionID := c.Params("sectionID")
 		labID := c.Params("labID")
 		materialID := c.Params("materialID")
+		studentID := c.Query("student_id", "")
+
+		if studentID != "" {
+			pageQuery := c.Query("page", "1")
+			pageSizeQuery := c.Query("page_size", "10")
+			sortBy := c.Query("sort_by", "created_at")
+			sortOrder := c.Query("sort_order", "desc")
+
+			page, err := strconv.Atoi(pageQuery)
+			if err != nil {
+				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusBadRequest, Message: "Invalid page"})
+			}
+
+			pageSize, err := strconv.Atoi(pageSizeQuery)
+			if err != nil {
+				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusBadRequest, Message: "Invalid page size"})
+			}
+
+			submissions, count, err := submissionService.GetStudentSubmissionsByMaterialSectionLab(c.RequestCtx(), materialID, sectionID, labID, studentID, page, pageSize, sortBy, sortOrder)
+			if err != nil {
+				return err
+			}
+
+			return c.JSON(fiber.Map{
+				"pagination": fiber.Map{
+					"page":       page,
+					"total_page": math.Ceil(float64(count) / float64(pageSize)),
+					"total_rows": count,
+				},
+				"data": submissions,
+			})
+		}
 
 		submissions, err := submissionService.GetSectionLabMaterialSubmissions(c.RequestCtx(), sectionID, labID, materialID)
 		if err != nil {
