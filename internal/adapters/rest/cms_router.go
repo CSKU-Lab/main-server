@@ -37,4 +37,5 @@ func NewCMSRouter(r *CMSRouter) {
 	routes.NewCMSLabRoutes(cmsRouter, r.LabService, r.LabSectionService, r.LabMaterialService)
 	routes.NewCMSConfigRoutes(cmsRouter, r.ConfigGRPCClient)
 	routes.NewCMSSubmissionRoutes(cmsRouter, r.SubmissionService)
+	routes.NewCMSUserRoute(cmsRouter, r.UserService)
 }

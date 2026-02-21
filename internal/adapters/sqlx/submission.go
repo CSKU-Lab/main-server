@@ -190,41 +190,6 @@ func (s *submissionRepository) GetLatestByMaterialAndStudentID(ctx context.Conte
 	return result, nil
 }
 
-func (s *submissionRepository) GetLatestByMaterialID(ctx context.Context, materialID string) ([]models.RawSubmission, error) {
-	query := `SELECT id, user_id, lab_id, section_id, course_id, material_id, status, submission_order, created_at, updated_at, ip_address, manual_score, auto_score
-              FROM submissions 
-              WHERE material_id = $1
-						ORDER BY submission_order DESC
-						LIMIT 1
-	`
-
-	submissions := []submission{}
-	err := s.db.SelectContext(ctx, &submissions, query, materialID)
-	if err != nil {
-		return nil, err
-	}
-
-	result := make([]models.RawSubmission, len(submissions))
-	for i, row := range submissions {
-		result[i] = models.RawSubmission{
-			ID:         row.ID,
-			UserID:     row.UserID,
-			LabID:      row.LabID,
-			MaterialID: row.MaterialID,
-			Status:     row.Status,
-			Order:      row.Order,
-			CreatedAt:  row.CreatedAt,
-			UpdatedAt:  row.UpdatedAt,
-
-			IPAddress:   row.IPAddress,
-			ManualScore: row.ManualScore,
-			AutoScore:   row.AutoScore,
-		}
-	}
-
-	return result, nil
-}
-
 func (s *submissionRepository) CountCompletedStudentsByLabAndSection(ctx context.Context, labID string, sectionID string) (int, error) {
 	query := `
 		SELECT COUNT(DISTINCT user_id)

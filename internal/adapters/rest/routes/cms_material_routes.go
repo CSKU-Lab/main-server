@@ -148,20 +148,6 @@ func NewCMSMaterialRoutes(router fiber.Router, materialService services.Material
 			"url": fileURL,
 		})
 	})
-
-	materialRouter.Get("/:id/submissions", middlewares.RBACMiddleware([]models.Role{
-		models.ADMIN,
-		models.INSTRUCTOR,
-	}), func(c fiber.Ctx) error {
-		materialID := c.Params("id")
-
-		studentLatestSubmissions, err := submissionService.GetLatestSubmissionsByMaterial(c.RequestCtx(), materialID)
-		if err != nil {
-			return err
-		}
-
-		return c.JSON(studentLatestSubmissions)
-	})
 }
 
 // fiber:context-methods migrated

@@ -43,24 +43,9 @@ type SubmissionScore struct {
 	Manual int `json:"manual"`
 }
 
-type StudentLatestSubmission struct {
-	ID        string          `json:"id"`
-	User      Student         `json:"user"`
-	Score     SubmissionScore `json:"score"`
-	CreatedAt time.Time       `json:"created_at"`
-	UpdatedAt time.Time       `json:"updated_at"`
-	IP        string          `json:"ip"`
-	Payload   any             `json:"payload"`
-}
-
 type CMSSectionStudentSubmission struct {
-	Student          Student          `json:"student"`
-	AutoScore        int              `json:"auto_score"`
-	ManualScore      int              `json:"manual_score"`
-	IP               *string          `json:"ip"`
-	CreatedAt        time.Time        `json:"created_at"`
-	SubmissionStatus SubmissionStatus `json:"submission_status"`
-	Payload          any              `json:"payload"`
+	*StudentSubmission
+	Student Student `json:"student"`
 }
 
 type StudentSubmission struct {

@@ -24,7 +24,6 @@ type SubmissionService interface {
 	Get(ctx context.Context, submissionID string) (*models.Submission, error)
 	Listen(ctx context.Context, submissionID string) (<-chan *models.Submission, error)
 	GetUserSubmissionsByMaterial(ctx context.Context, userID string, materialID string, page int, pageSize int, sortOrder string) ([]models.Submission, int, error)
-	GetLatestSubmissionsByMaterial(ctx context.Context, materialID string) ([]models.StudentLatestSubmission, error)
 	GetGradebookBySectionID(ctx context.Context, ID string) (*models.Gradebook, error)
 	CountCompletedStudentsByLabAndSection(ctx context.Context, labID string, sectionID string) (int, error)
 	GetSectionLabMaterialSubmissions(ctx context.Context, sectionID string, labID string, materialID string) ([]models.CMSSectionStudentSubmission, error)
@@ -405,62 +404,6 @@ func (s *submissionService) GetUserSubmissionsByMaterial(ctx context.Context, us
 	return result, count, nil
 }
 
-func (s *submissionService) GetLatestSubmissionsByMaterial(ctx context.Context, materialID string) ([]models.StudentLatestSubmission, error) {
-	mat, err := s.materialRepo.GetByID(ctx, materialID)
-	if err != nil {
-		return nil, err
-	}
-
-	rawSubmissions, err := s.repo.GetLatestByMaterialID(ctx, materialID)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(rawSubmissions) == 0 {
-		return []models.StudentLatestSubmission{}, nil
-	}
-
-	handler, err := s.registry.GetHandler(mat.Type)
-	if err != nil {
-		return nil, err
-	}
-
-	result := make([]models.StudentLatestSubmission, len(rawSubmissions))
-	for i, sub := range rawSubmissions {
-
-		payload, err := handler.Get(ctx, sub.ID, "instructor")
-		if err != nil {
-			return nil, err
-		}
-
-		user, err := s.userRepo.GetByID(ctx, sub.UserID)
-		if err != nil {
-			return nil, err
-		}
-		student := models.Student{
-			ID:           user.ID,
-			Username:     user.Username,
-			DisplayName:  user.DisplayName,
-			ProfileImage: user.ProfileImage,
-		}
-
-		result[i] = models.StudentLatestSubmission{
-			ID:        sub.ID,
-			User:      student,
-			CreatedAt: sub.CreatedAt,
-			UpdatedAt: sub.UpdatedAt,
-			Score: models.SubmissionScore{
-				Auto:   sub.AutoScore,
-				Manual: sub.ManualScore,
-			},
-			IP:      sub.IPAddress,
-			Payload: payload,
-		}
-	}
-
-	return result, nil
-}
-
 func (s *submissionService) CountCompletedStudentsByLabAndSection(ctx context.Context, labID string, sectionID string) (int, error) {
 	return s.repo.CountCompletedStudentsByLabAndSection(ctx, labID, sectionID)
 }
@@ -514,22 +457,28 @@ func (s *submissionService) GetSectionLabMaterialSubmissions(ctx context.Context
 			}
 
 			result[i] = models.CMSSectionStudentSubmission{
-				Student:          student,
-				AutoScore:        sub.AutoScore,
-				ManualScore:      sub.ManualScore,
-				IP:               &sub.IPAddress,
-				SubmissionStatus: sub.Status,
-				CreatedAt:        sub.CreatedAt,
-				Payload:          payload,
+				Student: student,
+				StudentSubmission: &models.StudentSubmission{
+					Order:       sub.Order,
+					AutoScore:   sub.AutoScore,
+					ManualScore: sub.ManualScore,
+					IP:          sub.IPAddress,
+					Status:      sub.Status,
+					CreatedAt:   sub.CreatedAt,
+					UpdatedAt:   sub.UpdatedAt,
+					Payload:     payload,
+				},
 			}
 		} else {
 			result[i] = models.CMSSectionStudentSubmission{
-				Student:          student,
-				AutoScore:        0,
-				ManualScore:      0,
-				IP:               nil,
-				SubmissionStatus: models.NOT_SUBMITTED,
-				Payload:          nil,
+				Student: student,
+				StudentSubmission: &models.StudentSubmission{
+					AutoScore:   0,
+					ManualScore: 0,
+					IP:          "",
+					Status:      models.NOT_SUBMITTED,
+					Payload:     nil,
+				},
 			}
 		}
 	}
