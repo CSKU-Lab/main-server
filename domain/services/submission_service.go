@@ -25,6 +25,7 @@ type SubmissionService interface {
 	Listen(ctx context.Context, submissionID string) (<-chan *models.Submission, error)
 	GetUserSubmissionsByMaterial(ctx context.Context, userID string, materialID string, page int, pageSize int, sortOrder string) ([]models.Submission, int, error)
 	GetGradebookBySectionID(ctx context.Context, ID string) (*models.Gradebook, error)
+	GetLabStudentStatus(ctx context.Context, sectionID, labID string) (*models.LabStudentStatus, error)
 	CountCompletedStudentsByLabAndSection(ctx context.Context, labID string, sectionID string) (int, error)
 	GetSectionLabMaterialSubmissions(ctx context.Context, sectionID string, labID string, materialID string) ([]models.CMSSectionStudentSubmission, error)
 	GetStudentSubmissionsByMaterialSectionLab(ctx context.Context, materialID string, sectionID string, labID string, studentID string, page int, pageSize int, sortBy, sortOrder string) ([]models.StudentSubmission, int, error)
@@ -171,6 +172,67 @@ func (s *submissionService) GetGradebookBySectionID(ctx context.Context, ID stri
 		}
 
 		res.StudentRow = append(res.StudentRow, studentRow)
+	}
+
+	return res, nil
+}
+
+func (s *submissionService) GetLabStudentStatus(ctx context.Context, sectionID, labID string) (*models.LabStudentStatus, error) {
+	students, err := s.sectionStudentRepo.GetBySectionID(ctx, sectionID)
+	if err != nil {
+		return nil, err
+	}
+
+	materials, err := s.labMatRepo.GetByLabID(ctx, labID)
+	if err != nil {
+		return nil, err
+	}
+
+	res := &models.LabStudentStatus{
+		StudentRows:  make([]models.StudentLabStatus, 0, len(students)),
+		MaterialCols: make([]models.MaterialCol, 0, len(materials)),
+	}
+
+	materialMap := make(map[string]*models.Material)
+	for i, mat := range materials {
+		materialMap[mat.ID] = &materials[i]
+		res.MaterialCols = append(res.MaterialCols, models.MaterialCol{
+			MaterialID:   mat.ID,
+			MaterialName: mat.Name,
+		})
+	}
+
+	for _, student := range students {
+		studentRow := models.StudentLabStatus{
+			Student: &models.Student{
+				ID:           student.ID,
+				Username:     student.Username,
+				DisplayName:  student.DisplayName,
+				ProfileImage: student.ProfileImage,
+			},
+			MaterialStatuses: make(map[string]models.MaterialStatus),
+		}
+
+		for _, mat := range materials {
+			submission, err := s.repo.GetLatestOfStudentIDInSectionID(ctx, sectionID, labID, mat.ID, student.ID)
+			if err != nil {
+				if errors.Is(err, sql.ErrNoRows) {
+					studentRow.MaterialStatuses[mat.ID] = models.MaterialStatus{
+						Status:      models.NOT_SUBMITTED,
+						SubmittedAt: nil,
+					}
+				} else {
+					return nil, err
+				}
+			} else {
+				studentRow.MaterialStatuses[mat.ID] = models.MaterialStatus{
+					Status:      submission.Status,
+					SubmittedAt: &submission.CreatedAt,
+				}
+			}
+		}
+
+		res.StudentRows = append(res.StudentRows, studentRow)
 	}
 
 	return res, nil
