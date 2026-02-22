@@ -147,7 +147,7 @@ func (s *submissionService) GetGradebookBySectionID(ctx context.Context, ID stri
 			var totalManualScore int
 
 			for _, mat := range labMaterials[lab.ID] {
-				submission, err := s.repo.GetLatestByMaterialAndStudentID(ctx, mat.ID, student.ID)
+				submission, err := s.repo.GetLatestOfStudentIDInSectionID(ctx, ID, lab.ID, mat.ID, student.ID)
 				if err != nil {
 					if errors.Is(err, sql.ErrNoRows) {
 						submission = nil

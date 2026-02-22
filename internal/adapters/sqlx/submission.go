@@ -158,33 +158,36 @@ func (s *submissionRepository) Count(ctx context.Context, userID string, materia
 	return count, nil
 }
 
-func (s *submissionRepository) GetLatestByMaterialAndStudentID(ctx context.Context, materialID string, studentID string) (*models.RawSubmission, error) {
+func (s *submissionRepository) GetLatestOfStudentIDInSectionID(ctx context.Context, sectionID, labID, materialID, studentID string) (*models.RawSubmission, error) {
 	query := `SELECT id, user_id, lab_id, section_id, course_id, material_id, status, submission_order, created_at, updated_at, ip_address, manual_score, auto_score
               FROM submissions 
-              WHERE material_id = $1 AND user_id = $2
-						ORDER BY submission_order DESC
-						LIMIT 1
+              WHERE section_id = $1 
+	      AND lab_id = $2
+	      AND material_id = $3
+	      AND user_id = $4
+	      ORDER BY submission_order DESC
+	      LIMIT 1
 	`
 
 	submission := submission{}
-	err := s.db.GetContext(ctx, &submission, query, materialID, studentID)
+	err := s.db.GetContext(ctx, &submission, query, sectionID, labID, materialID, studentID)
 	if err != nil {
 		return nil, err
 	}
 
 	result := &models.RawSubmission{
-		ID:         submission.ID,
-		UserID:     submission.UserID,
-		LabID:      submission.LabID,
-		MaterialID: submission.MaterialID,
-		Status:     submission.Status,
-		Order:      submission.Order,
-		CreatedAt:  submission.CreatedAt,
-		UpdatedAt:  submission.UpdatedAt,
-
+		ID:          submission.ID,
+		UserID:      submission.UserID,
+		LabID:       submission.LabID,
+		MaterialID:  submission.MaterialID,
+		Status:      submission.Status,
+		Order:       submission.Order,
+		CreatedAt:   submission.CreatedAt,
+		UpdatedAt:   submission.UpdatedAt,
 		IPAddress:   submission.IPAddress,
 		ManualScore: submission.ManualScore,
 		AutoScore:   submission.AutoScore,
+		SectionID:   submission.SectionID,
 	}
 
 	return result, nil

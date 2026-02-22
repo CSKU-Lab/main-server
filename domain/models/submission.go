@@ -25,8 +25,8 @@ type RawSubmission struct {
 	UserID     string           `json:"user_id"`
 	MaterialID string           `json:"material_id"`
 	LabID      string           `json:"lab_id"`
-	SectionID  string           `json:"section_id"`
-	CourseID   string           `json:"course_id"`
+	SectionID  *string          `json:"section_id"`
+	CourseID   *string          `json:"course_id"`
 	Status     SubmissionStatus `json:"status"`
 	Order      int              `json:"order"`
 	CreatedAt  time.Time        `json:"created_at"`
