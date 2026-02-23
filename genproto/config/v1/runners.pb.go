@@ -21,27 +21,31 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type GetRunnersResponse struct {
+type RunnerPaginationData struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Runners       []*Runner              `protobuf:"bytes,1,rep,name=runners,proto3" json:"runners,omitempty"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	BuildScript   string                 `protobuf:"bytes,3,opt,name=build_script,json=buildScript,proto3" json:"build_script,omitempty"`
+	RunScript     string                 `protobuf:"bytes,4,opt,name=run_script,json=runScript,proto3" json:"run_script,omitempty"`
+	Description   string                 `protobuf:"bytes,5,opt,name=description,proto3" json:"description,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GetRunnersResponse) Reset() {
-	*x = GetRunnersResponse{}
+func (x *RunnerPaginationData) Reset() {
+	*x = RunnerPaginationData{}
 	mi := &file_config_v1_runners_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GetRunnersResponse) String() string {
+func (x *RunnerPaginationData) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetRunnersResponse) ProtoMessage() {}
+func (*RunnerPaginationData) ProtoMessage() {}
 
-func (x *GetRunnersResponse) ProtoReflect() protoreflect.Message {
+func (x *RunnerPaginationData) ProtoReflect() protoreflect.Message {
 	mi := &file_config_v1_runners_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -53,73 +57,160 @@ func (x *GetRunnersResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetRunnersResponse.ProtoReflect.Descriptor instead.
-func (*GetRunnersResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use RunnerPaginationData.ProtoReflect.Descriptor instead.
+func (*RunnerPaginationData) Descriptor() ([]byte, []int) {
 	return file_config_v1_runners_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *GetRunnersResponse) GetRunners() []*Runner {
+func (x *RunnerPaginationData) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *RunnerPaginationData) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *RunnerPaginationData) GetBuildScript() string {
+	if x != nil {
+		return x.BuildScript
+	}
+	return ""
+}
+
+func (x *RunnerPaginationData) GetRunScript() string {
+	if x != nil {
+		return x.RunScript
+	}
+	return ""
+}
+
+func (x *RunnerPaginationData) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+type GetRunnersPaginationRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Pagination     *PaginationRequest     `protobuf:"bytes,1,opt,name=pagination,proto3" json:"pagination,omitempty"`
+	IncludeScripts bool                   `protobuf:"varint,2,opt,name=include_scripts,json=includeScripts,proto3" json:"include_scripts,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *GetRunnersPaginationRequest) Reset() {
+	*x = GetRunnersPaginationRequest{}
+	mi := &file_config_v1_runners_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetRunnersPaginationRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetRunnersPaginationRequest) ProtoMessage() {}
+
+func (x *GetRunnersPaginationRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_config_v1_runners_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetRunnersPaginationRequest.ProtoReflect.Descriptor instead.
+func (*GetRunnersPaginationRequest) Descriptor() ([]byte, []int) {
+	return file_config_v1_runners_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *GetRunnersPaginationRequest) GetPagination() *PaginationRequest {
+	if x != nil {
+		return x.Pagination
+	}
+	return nil
+}
+
+func (x *GetRunnersPaginationRequest) GetIncludeScripts() bool {
+	if x != nil {
+		return x.IncludeScripts
+	}
+	return false
+}
+
+type GetRunnersPaginationResponse struct {
+	state         protoimpl.MessageState  `protogen:"open.v1"`
+	Runners       []*RunnerPaginationData `protobuf:"bytes,1,rep,name=runners,proto3" json:"runners,omitempty"`
+	Count         int32                   `protobuf:"varint,2,opt,name=count,proto3" json:"count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetRunnersPaginationResponse) Reset() {
+	*x = GetRunnersPaginationResponse{}
+	mi := &file_config_v1_runners_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetRunnersPaginationResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetRunnersPaginationResponse) ProtoMessage() {}
+
+func (x *GetRunnersPaginationResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_config_v1_runners_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetRunnersPaginationResponse.ProtoReflect.Descriptor instead.
+func (*GetRunnersPaginationResponse) Descriptor() ([]byte, []int) {
+	return file_config_v1_runners_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *GetRunnersPaginationResponse) GetRunners() []*RunnerPaginationData {
 	if x != nil {
 		return x.Runners
 	}
 	return nil
 }
 
-type GetRunnersRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	IncludeName   bool                   `protobuf:"varint,1,opt,name=include_name,json=includeName,proto3" json:"include_name,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetRunnersRequest) Reset() {
-	*x = GetRunnersRequest{}
-	mi := &file_config_v1_runners_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetRunnersRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetRunnersRequest) ProtoMessage() {}
-
-func (x *GetRunnersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_config_v1_runners_proto_msgTypes[1]
+func (x *GetRunnersPaginationResponse) GetCount() int32 {
 	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
+		return x.Count
 	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetRunnersRequest.ProtoReflect.Descriptor instead.
-func (*GetRunnersRequest) Descriptor() ([]byte, []int) {
-	return file_config_v1_runners_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *GetRunnersRequest) GetIncludeName() bool {
-	if x != nil {
-		return x.IncludeName
-	}
-	return false
+	return 0
 }
 
 type GetRunnerRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	IncludeName   bool                   `protobuf:"varint,2,opt,name=include_name,json=includeName,proto3" json:"include_name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GetRunnerRequest) Reset() {
 	*x = GetRunnerRequest{}
-	mi := &file_config_v1_runners_proto_msgTypes[2]
+	mi := &file_config_v1_runners_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -131,7 +222,7 @@ func (x *GetRunnerRequest) String() string {
 func (*GetRunnerRequest) ProtoMessage() {}
 
 func (x *GetRunnerRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_config_v1_runners_proto_msgTypes[2]
+	mi := &file_config_v1_runners_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -144,7 +235,7 @@ func (x *GetRunnerRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRunnerRequest.ProtoReflect.Descriptor instead.
 func (*GetRunnerRequest) Descriptor() ([]byte, []int) {
-	return file_config_v1_runners_proto_rawDescGZIP(), []int{2}
+	return file_config_v1_runners_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *GetRunnerRequest) GetId() string {
@@ -154,87 +245,14 @@ func (x *GetRunnerRequest) GetId() string {
 	return ""
 }
 
-func (x *GetRunnerRequest) GetIncludeName() bool {
-	if x != nil {
-		return x.IncludeName
-	}
-	return false
-}
-
-type Runner struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Name          *string                `protobuf:"bytes,2,opt,name=name,proto3,oneof" json:"name,omitempty"`
-	BuildScript   string                 `protobuf:"bytes,3,opt,name=build_script,json=buildScript,proto3" json:"build_script,omitempty"`
-	RunScript     string                 `protobuf:"bytes,4,opt,name=run_script,json=runScript,proto3" json:"run_script,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *Runner) Reset() {
-	*x = Runner{}
-	mi := &file_config_v1_runners_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Runner) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Runner) ProtoMessage() {}
-
-func (x *Runner) ProtoReflect() protoreflect.Message {
-	mi := &file_config_v1_runners_proto_msgTypes[3]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Runner.ProtoReflect.Descriptor instead.
-func (*Runner) Descriptor() ([]byte, []int) {
-	return file_config_v1_runners_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *Runner) GetId() string {
-	if x != nil {
-		return x.Id
-	}
-	return ""
-}
-
-func (x *Runner) GetName() string {
-	if x != nil && x.Name != nil {
-		return *x.Name
-	}
-	return ""
-}
-
-func (x *Runner) GetBuildScript() string {
-	if x != nil {
-		return x.BuildScript
-	}
-	return ""
-}
-
-func (x *Runner) GetRunScript() string {
-	if x != nil {
-		return x.RunScript
-	}
-	return ""
-}
-
 type RunnerResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	BuildScript   *string                `protobuf:"bytes,3,opt,name=build_script,json=buildScript,proto3,oneof" json:"build_script,omitempty"`
+	BuildScript   string                 `protobuf:"bytes,3,opt,name=build_script,json=buildScript,proto3" json:"build_script,omitempty"`
 	RunScript     string                 `protobuf:"bytes,4,opt,name=run_script,json=runScript,proto3" json:"run_script,omitempty"`
+	Description   string                 `protobuf:"bytes,5,opt,name=description,proto3" json:"description,omitempty"`
+	InitialFiles  []*File                `protobuf:"bytes,6,rep,name=initial_files,json=initialFiles,proto3" json:"initial_files,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -284,8 +302,8 @@ func (x *RunnerResponse) GetName() string {
 }
 
 func (x *RunnerResponse) GetBuildScript() string {
-	if x != nil && x.BuildScript != nil {
-		return *x.BuildScript
+	if x != nil {
+		return x.BuildScript
 	}
 	return ""
 }
@@ -297,11 +315,24 @@ func (x *RunnerResponse) GetRunScript() string {
 	return ""
 }
 
+func (x *RunnerResponse) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *RunnerResponse) GetInitialFiles() []*File {
+	if x != nil {
+		return x.InitialFiles
+	}
+	return nil
+}
+
 type CreateRunnerRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	BuildScript   *string                `protobuf:"bytes,2,opt,name=build_script,json=buildScript,proto3,oneof" json:"build_script,omitempty"`
-	RunScript     string                 `protobuf:"bytes,3,opt,name=run_script,json=runScript,proto3" json:"run_script,omitempty"`
+	Description   string                 `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -343,16 +374,9 @@ func (x *CreateRunnerRequest) GetName() string {
 	return ""
 }
 
-func (x *CreateRunnerRequest) GetBuildScript() string {
-	if x != nil && x.BuildScript != nil {
-		return *x.BuildScript
-	}
-	return ""
-}
-
-func (x *CreateRunnerRequest) GetRunScript() string {
+func (x *CreateRunnerRequest) GetDescription() string {
 	if x != nil {
-		return x.RunScript
+		return x.Description
 	}
 	return ""
 }
@@ -407,6 +431,8 @@ type UpdateRunnerRequest struct {
 	Name          *string                `protobuf:"bytes,2,opt,name=name,proto3,oneof" json:"name,omitempty"`
 	BuildScript   *string                `protobuf:"bytes,3,opt,name=build_script,json=buildScript,proto3,oneof" json:"build_script,omitempty"`
 	RunScript     *string                `protobuf:"bytes,4,opt,name=run_script,json=runScript,proto3,oneof" json:"run_script,omitempty"`
+	Description   *string                `protobuf:"bytes,5,opt,name=description,proto3,oneof" json:"description,omitempty"`
+	InitialFiles  []*File                `protobuf:"bytes,6,rep,name=initial_files,json=initialFiles,proto3" json:"initial_files,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -469,6 +495,20 @@ func (x *UpdateRunnerRequest) GetRunScript() string {
 	return ""
 }
 
+func (x *UpdateRunnerRequest) GetDescription() string {
+	if x != nil && x.Description != nil {
+		return *x.Description
+	}
+	return ""
+}
+
+func (x *UpdateRunnerRequest) GetInitialFiles() []*File {
+	if x != nil {
+		return x.InitialFiles
+	}
+	return nil
+}
+
 type DeleteRunnerRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -513,163 +553,55 @@ func (x *DeleteRunnerRequest) GetId() string {
 	return ""
 }
 
-type GetRunnersPaginationRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	IncludeName   bool                   `protobuf:"varint,1,opt,name=include_name,json=includeName,proto3" json:"include_name,omitempty"`
-	Pagination    *PaginationRequest     `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetRunnersPaginationRequest) Reset() {
-	*x = GetRunnersPaginationRequest{}
-	mi := &file_config_v1_runners_proto_msgTypes[9]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetRunnersPaginationRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetRunnersPaginationRequest) ProtoMessage() {}
-
-func (x *GetRunnersPaginationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_config_v1_runners_proto_msgTypes[9]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetRunnersPaginationRequest.ProtoReflect.Descriptor instead.
-func (*GetRunnersPaginationRequest) Descriptor() ([]byte, []int) {
-	return file_config_v1_runners_proto_rawDescGZIP(), []int{9}
-}
-
-func (x *GetRunnersPaginationRequest) GetIncludeName() bool {
-	if x != nil {
-		return x.IncludeName
-	}
-	return false
-}
-
-func (x *GetRunnersPaginationRequest) GetPagination() *PaginationRequest {
-	if x != nil {
-		return x.Pagination
-	}
-	return nil
-}
-
-type GetRunnersPaginationResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Runners       []*Runner              `protobuf:"bytes,1,rep,name=runners,proto3" json:"runners,omitempty"`
-	Count         int32                  `protobuf:"varint,2,opt,name=count,proto3" json:"count,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetRunnersPaginationResponse) Reset() {
-	*x = GetRunnersPaginationResponse{}
-	mi := &file_config_v1_runners_proto_msgTypes[10]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetRunnersPaginationResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetRunnersPaginationResponse) ProtoMessage() {}
-
-func (x *GetRunnersPaginationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_config_v1_runners_proto_msgTypes[10]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetRunnersPaginationResponse.ProtoReflect.Descriptor instead.
-func (*GetRunnersPaginationResponse) Descriptor() ([]byte, []int) {
-	return file_config_v1_runners_proto_rawDescGZIP(), []int{10}
-}
-
-func (x *GetRunnersPaginationResponse) GetRunners() []*Runner {
-	if x != nil {
-		return x.Runners
-	}
-	return nil
-}
-
-func (x *GetRunnersPaginationResponse) GetCount() int32 {
-	if x != nil {
-		return x.Count
-	}
-	return 0
-}
-
 var File_config_v1_runners_proto protoreflect.FileDescriptor
 
 const file_config_v1_runners_proto_rawDesc = "" +
 	"\n" +
-	"\x17config/v1/runners.proto\x12\tconfig.v1\x1a\x1aconfig/v1/pagination.proto\"A\n" +
-	"\x12GetRunnersResponse\x12+\n" +
-	"\arunners\x18\x01 \x03(\v2\x11.config.v1.RunnerR\arunners\"6\n" +
-	"\x11GetRunnersRequest\x12!\n" +
-	"\finclude_name\x18\x01 \x01(\bR\vincludeName\"E\n" +
-	"\x10GetRunnerRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
-	"\finclude_name\x18\x02 \x01(\bR\vincludeName\"|\n" +
-	"\x06Runner\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
-	"\x04name\x18\x02 \x01(\tH\x00R\x04name\x88\x01\x01\x12!\n" +
+	"\x17config/v1/runners.proto\x12\tconfig.v1\x1a\x1aconfig/v1/pagination.proto\x1a\x14config/v1/file.proto\"\x9e\x01\n" +
+	"\x14RunnerPaginationData\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12!\n" +
 	"\fbuild_script\x18\x03 \x01(\tR\vbuildScript\x12\x1d\n" +
 	"\n" +
-	"run_script\x18\x04 \x01(\tR\trunScriptB\a\n" +
-	"\x05_name\"\x8c\x01\n" +
+	"run_script\x18\x04 \x01(\tR\trunScript\x12 \n" +
+	"\vdescription\x18\x05 \x01(\tR\vdescription\"\x84\x01\n" +
+	"\x1bGetRunnersPaginationRequest\x12<\n" +
+	"\n" +
+	"pagination\x18\x01 \x01(\v2\x1c.config.v1.PaginationRequestR\n" +
+	"pagination\x12'\n" +
+	"\x0finclude_scripts\x18\x02 \x01(\bR\x0eincludeScripts\"o\n" +
+	"\x1cGetRunnersPaginationResponse\x129\n" +
+	"\arunners\x18\x01 \x03(\v2\x1f.config.v1.RunnerPaginationDataR\arunners\x12\x14\n" +
+	"\x05count\x18\x02 \x01(\x05R\x05count\"\"\n" +
+	"\x10GetRunnerRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\xce\x01\n" +
 	"\x0eRunnerResponse\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\x12&\n" +
-	"\fbuild_script\x18\x03 \x01(\tH\x00R\vbuildScript\x88\x01\x01\x12\x1d\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12!\n" +
+	"\fbuild_script\x18\x03 \x01(\tR\vbuildScript\x12\x1d\n" +
 	"\n" +
-	"run_script\x18\x04 \x01(\tR\trunScriptB\x0f\n" +
-	"\r_build_script\"\x81\x01\n" +
+	"run_script\x18\x04 \x01(\tR\trunScript\x12 \n" +
+	"\vdescription\x18\x05 \x01(\tR\vdescription\x124\n" +
+	"\rinitial_files\x18\x06 \x03(\v2\x0f.config.v1.FileR\finitialFiles\"W\n" +
 	"\x13CreateRunnerRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12&\n" +
-	"\fbuild_script\x18\x02 \x01(\tH\x00R\vbuildScript\x88\x01\x01\x12\x1d\n" +
-	"\n" +
-	"run_script\x18\x03 \x01(\tR\trunScriptB\x0f\n" +
-	"\r_build_script\"&\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
+	"\vdescription\x18\x04 \x01(\tR\vdescriptionJ\x04\b\x02\x10\x03J\x04\b\x03\x10\x04\"&\n" +
 	"\x14CreateRunnerResponse\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"\xb3\x01\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\xa0\x02\n" +
 	"\x13UpdateRunnerRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\x04name\x18\x02 \x01(\tH\x00R\x04name\x88\x01\x01\x12&\n" +
 	"\fbuild_script\x18\x03 \x01(\tH\x01R\vbuildScript\x88\x01\x01\x12\"\n" +
 	"\n" +
-	"run_script\x18\x04 \x01(\tH\x02R\trunScript\x88\x01\x01B\a\n" +
+	"run_script\x18\x04 \x01(\tH\x02R\trunScript\x88\x01\x01\x12%\n" +
+	"\vdescription\x18\x05 \x01(\tH\x03R\vdescription\x88\x01\x01\x124\n" +
+	"\rinitial_files\x18\x06 \x03(\v2\x0f.config.v1.FileR\finitialFilesB\a\n" +
 	"\x05_nameB\x0f\n" +
 	"\r_build_scriptB\r\n" +
-	"\v_run_script\"%\n" +
+	"\v_run_scriptB\x0e\n" +
+	"\f_description\"%\n" +
 	"\x13DeleteRunnerRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"~\n" +
-	"\x1bGetRunnersPaginationRequest\x12!\n" +
-	"\finclude_name\x18\x01 \x01(\bR\vincludeName\x12<\n" +
-	"\n" +
-	"pagination\x18\x02 \x01(\v2\x1c.config.v1.PaginationRequestR\n" +
-	"pagination\"a\n" +
-	"\x1cGetRunnersPaginationResponse\x12+\n" +
-	"\arunners\x18\x01 \x03(\v2\x11.config.v1.RunnerR\arunners\x12\x14\n" +
-	"\x05count\x18\x02 \x01(\x05R\x05countB\x94\x01\n" +
+	"\x02id\x18\x01 \x01(\tR\x02idB\x94\x01\n" +
 	"\rcom.config.v1B\fRunnersProtoP\x01Z0github.com/CSKU-Lab/config-server/grpc/config/v1\xa2\x02\x03CXX\xaa\x02\tConfig.V1\xca\x02\tConfig\\V1\xe2\x02\x15Config\\V1\\GPBMetadata\xea\x02\n" +
 	"Config::V1b\x06proto3"
 
@@ -685,30 +617,30 @@ func file_config_v1_runners_proto_rawDescGZIP() []byte {
 	return file_config_v1_runners_proto_rawDescData
 }
 
-var file_config_v1_runners_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_config_v1_runners_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_config_v1_runners_proto_goTypes = []any{
-	(*GetRunnersResponse)(nil),           // 0: config.v1.GetRunnersResponse
-	(*GetRunnersRequest)(nil),            // 1: config.v1.GetRunnersRequest
-	(*GetRunnerRequest)(nil),             // 2: config.v1.GetRunnerRequest
-	(*Runner)(nil),                       // 3: config.v1.Runner
+	(*RunnerPaginationData)(nil),         // 0: config.v1.RunnerPaginationData
+	(*GetRunnersPaginationRequest)(nil),  // 1: config.v1.GetRunnersPaginationRequest
+	(*GetRunnersPaginationResponse)(nil), // 2: config.v1.GetRunnersPaginationResponse
+	(*GetRunnerRequest)(nil),             // 3: config.v1.GetRunnerRequest
 	(*RunnerResponse)(nil),               // 4: config.v1.RunnerResponse
 	(*CreateRunnerRequest)(nil),          // 5: config.v1.CreateRunnerRequest
 	(*CreateRunnerResponse)(nil),         // 6: config.v1.CreateRunnerResponse
 	(*UpdateRunnerRequest)(nil),          // 7: config.v1.UpdateRunnerRequest
 	(*DeleteRunnerRequest)(nil),          // 8: config.v1.DeleteRunnerRequest
-	(*GetRunnersPaginationRequest)(nil),  // 9: config.v1.GetRunnersPaginationRequest
-	(*GetRunnersPaginationResponse)(nil), // 10: config.v1.GetRunnersPaginationResponse
-	(*PaginationRequest)(nil),            // 11: config.v1.PaginationRequest
+	(*PaginationRequest)(nil),            // 9: config.v1.PaginationRequest
+	(*File)(nil),                         // 10: config.v1.File
 }
 var file_config_v1_runners_proto_depIdxs = []int32{
-	3,  // 0: config.v1.GetRunnersResponse.runners:type_name -> config.v1.Runner
-	11, // 1: config.v1.GetRunnersPaginationRequest.pagination:type_name -> config.v1.PaginationRequest
-	3,  // 2: config.v1.GetRunnersPaginationResponse.runners:type_name -> config.v1.Runner
-	3,  // [3:3] is the sub-list for method output_type
-	3,  // [3:3] is the sub-list for method input_type
-	3,  // [3:3] is the sub-list for extension type_name
-	3,  // [3:3] is the sub-list for extension extendee
-	0,  // [0:3] is the sub-list for field type_name
+	9,  // 0: config.v1.GetRunnersPaginationRequest.pagination:type_name -> config.v1.PaginationRequest
+	0,  // 1: config.v1.GetRunnersPaginationResponse.runners:type_name -> config.v1.RunnerPaginationData
+	10, // 2: config.v1.RunnerResponse.initial_files:type_name -> config.v1.File
+	10, // 3: config.v1.UpdateRunnerRequest.initial_files:type_name -> config.v1.File
+	4,  // [4:4] is the sub-list for method output_type
+	4,  // [4:4] is the sub-list for method input_type
+	4,  // [4:4] is the sub-list for extension type_name
+	4,  // [4:4] is the sub-list for extension extendee
+	0,  // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_config_v1_runners_proto_init() }
@@ -717,9 +649,7 @@ func file_config_v1_runners_proto_init() {
 		return
 	}
 	file_config_v1_pagination_proto_init()
-	file_config_v1_runners_proto_msgTypes[3].OneofWrappers = []any{}
-	file_config_v1_runners_proto_msgTypes[4].OneofWrappers = []any{}
-	file_config_v1_runners_proto_msgTypes[5].OneofWrappers = []any{}
+	file_config_v1_file_proto_init()
 	file_config_v1_runners_proto_msgTypes[7].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -727,7 +657,7 @@ func file_config_v1_runners_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_config_v1_runners_proto_rawDesc), len(file_config_v1_runners_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   11,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -6,22 +6,21 @@ import (
 )
 
 type CreateRunnerRequest struct {
-	Name        string  `json:"name"`
-	BuildScript *string `json:"build_script"`
-	RunScript   string  `json:"run_script"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
 }
 
 type UpdateRunnerRequest struct {
-	Name        *string `json:"name"`
-	BuildScript *string `json:"build_script"`
-	RunScript   *string `json:"run_script"`
+	Name         *string       `json:"name"`
+	BuildScript  *string       `json:"build_script"`
+	RunScript    *string       `json:"run_script"`
+	InitialFiles *[]ConfigFile `json:"initial_files"`
 }
 
 func (cr *CreateRunnerRequest) Validate() error {
 	return validation.ValidateStruct(cr,
 		validation.Field(&cr.Name, validation.Required),
-		validation.Field(&cr.BuildScript, validation.NilOrNotEmpty),
-		validation.Field(&cr.RunScript, validation.Required),
+		validation.Field(&cr.Description, validation.NilOrNotEmpty),
 	)
 }
 
@@ -29,27 +28,27 @@ func (ur *UpdateRunnerRequest) Validate() error {
 	return nil
 }
 
-type CompareFile struct {
+type ConfigFile struct {
 	Name    string `json:"name"`
 	Content string `json:"content"`
 }
 
 type CreateCompareRequest struct {
-	Name        string         `json:"name"`
-	Description string         `json:"description"`
-	BuildScript string         `json:"build_script"`
-	RunScript   string         `json:"run_script"`
-	RunName     string         `json:"run_name"`
-	Files       []*CompareFile `json:"files"`
+	Name        string       `json:"name"`
+	Description string       `json:"description"`
+	BuildScript string       `json:"build_script"`
+	RunScript   string       `json:"run_script"`
+	RunName     string       `json:"run_name"`
+	Files       []ConfigFile `json:"files"`
 }
 
 type UpdateCompareRequest struct {
-	Name        *string        `json:"name"`
-	Description *string        `json:"description"`
-	BuildScript *string        `json:"build_script"`
-	RunScript   *string        `json:"run_script"`
-	RunName     *string        `json:"run_name"`
-	Files       []*CompareFile `json:"files"`
+	Name        *string      `json:"name"`
+	Description *string      `json:"description"`
+	BuildScript *string      `json:"build_script"`
+	RunScript   *string      `json:"run_script"`
+	RunName     *string      `json:"run_name"`
+	Files       []ConfigFile `json:"files"`
 }
 
 func (cc *CreateCompareRequest) Validate() error {
@@ -74,7 +73,7 @@ func (uc *UpdateCompareRequest) Validate() error {
 	)
 }
 
-func MapCompareFilesToPB(files []*CompareFile) []*configPB.File {
+func MapConfigFilesToPB(files []ConfigFile) []*configPB.File {
 	pbFiles := make([]*configPB.File, len(files))
 	for i, file := range files {
 		pbFiles[i] = &configPB.File{
