@@ -26,11 +26,7 @@ func (cr *CreateRunnerRequest) Validate() error {
 }
 
 func (ur *UpdateRunnerRequest) Validate() error {
-	return validation.ValidateStruct(ur,
-		validation.Field(&ur.Name, validation.NilOrNotEmpty),
-		validation.Field(&ur.BuildScript, validation.NilOrNotEmpty),
-		validation.Field(&ur.RunScript, validation.NilOrNotEmpty),
-	)
+	return nil
 }
 
 type CompareFile struct {

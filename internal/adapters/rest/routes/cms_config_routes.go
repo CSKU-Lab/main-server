@@ -19,7 +19,9 @@ func NewCMSConfigRoutes(router fiber.Router, configGRPCClient configPB.ConfigSer
 		models.INSTRUCTOR,
 	}))
 
-	configRouter.Post("/runners", middlewares.ValidateMiddleware[requests.CreateRunnerRequest](), func(c fiber.Ctx) error {
+	runnerRouter := configRouter.Group("/runners")
+
+	runnerRouter.Post("/", middlewares.ValidateMiddleware[requests.CreateRunnerRequest](), func(c fiber.Ctx) error {
 		req := c.Locals("body").(*requests.CreateRunnerRequest)
 		runner, err := configGRPCClient.CreateRunner(c.RequestCtx(), &configPB.CreateRunnerRequest{
 			Name:        req.Name,
@@ -32,7 +34,7 @@ func NewCMSConfigRoutes(router fiber.Router, configGRPCClient configPB.ConfigSer
 		return c.JSON(runner)
 	})
 
-	configRouter.Patch("/runners/:id", middlewares.ValidateMiddleware[requests.UpdateRunnerRequest](), func(c fiber.Ctx) error {
+	runnerRouter.Patch("/:id", middlewares.ValidateMiddleware[requests.UpdateRunnerRequest](), func(c fiber.Ctx) error {
 		req := c.Locals("body").(*requests.UpdateRunnerRequest)
 		id := c.Params("id")
 		runner, err := configGRPCClient.UpdateRunner(c.RequestCtx(), &configPB.UpdateRunnerRequest{
@@ -47,7 +49,7 @@ func NewCMSConfigRoutes(router fiber.Router, configGRPCClient configPB.ConfigSer
 		return c.JSON(runner)
 	})
 
-	configRouter.Delete("/runners/:id", func(c fiber.Ctx) error {
+	runnerRouter.Delete("/:id", func(c fiber.Ctx) error {
 		id := c.Params("id")
 		_, err := configGRPCClient.DeleteRunner(c.RequestCtx(), &configPB.DeleteRunnerRequest{
 			Id: id,
@@ -60,7 +62,7 @@ func NewCMSConfigRoutes(router fiber.Router, configGRPCClient configPB.ConfigSer
 		})
 	})
 
-	configRouter.Get("/runners", func(c fiber.Ctx) error {
+	runnerRouter.Get("/", func(c fiber.Ctx) error {
 		includeScriptQuery := c.Query("include_script", "false")
 		pageQuery := c.Query("page", "1")
 		pageSizeQuery := c.Query("page_size", "20")
@@ -124,6 +126,17 @@ func NewCMSConfigRoutes(router fiber.Router, configGRPCClient configPB.ConfigSer
 			},
 			"data": paginationRes.Runners,
 		})
+	})
+
+	runnerRouter.Get("/:id", func(c fiber.Ctx) error {
+		id := c.Params("id")
+		runner, err := configGRPCClient.GetRunner(c.RequestCtx(), &configPB.GetRunnerRequest{
+			Id: id,
+		})
+		if err != nil {
+			return err
+		}
+		return c.JSON(runner)
 	})
 
 	configRouter.Get("/compare-scripts", func(c fiber.Ctx) error {
