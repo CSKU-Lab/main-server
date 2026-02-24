@@ -15,6 +15,7 @@ import (
 	configPB "github.com/CSKU-Lab/main-server/genproto/config/v1"
 	graderPB "github.com/CSKU-Lab/main-server/genproto/grader/v1"
 	taskPB "github.com/CSKU-Lab/main-server/genproto/task/v1"
+	"github.com/CSKU-Lab/queue"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/cors"
 	"github.com/jmoiron/sqlx"
@@ -160,6 +161,11 @@ func startApiServer(ctx context.Context, logger *zap.SugaredLogger, db *sqlx.DB,
 
 	materialService := services.NewMaterialService(materialRepo, submissionRepo, readMaterialTagRepo, uowRepo, userRepo, materialRegistry)
 
+	q, err := queue.NewRabbitMQ(config.RBMQ_SERVER_URL)
+	if err != nil {
+		logger.Fatalln(err)
+	}
+
 	app := fiber.New(fiber.Config{
 		ErrorHandler: errHandlerMiddleware.ErrorHandler,
 		BodyLimit:    10 * 1024 * 1024, // 10 MB,
@@ -286,6 +292,7 @@ func startApiServer(ctx context.Context, logger *zap.SugaredLogger, db *sqlx.DB,
 		MaterialAssetService:    materialAssetService,
 		ConfigGRPCClient:        configGRPCClient,
 		SubmissionService:       submissionService,
+		Queue:                   q,
 	})
 
 	rest.NewCoreRouter(&rest.CoreRouter{

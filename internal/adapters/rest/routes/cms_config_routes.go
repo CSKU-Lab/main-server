@@ -1,6 +1,11 @@
 package routes
 
 import (
+	"bufio"
+	"context"
+	"encoding/json"
+	"fmt"
+	"log"
 	"math"
 	"net/http"
 	"strconv"
@@ -10,16 +15,184 @@ import (
 	configPB "github.com/CSKU-Lab/main-server/genproto/config/v1"
 	"github.com/CSKU-Lab/main-server/internal/adapters/middlewares"
 	"github.com/CSKU-Lab/main-server/internal/requests"
+	"github.com/CSKU-Lab/queue"
 	"github.com/gofiber/fiber/v3"
 )
 
-func NewCMSConfigRoutes(router fiber.Router, configGRPCClient configPB.ConfigServiceClient) {
+func NewCMSConfigRoutes(router fiber.Router, configGRPCClient configPB.ConfigServiceClient, q queue.Queue) {
 	configRouter := router.Group("/configs", middlewares.RBACMiddleware([]models.Role{
 		models.ADMIN,
 		models.INSTRUCTOR,
 	}))
 
 	runnerRouter := configRouter.Group("/runners")
+
+	runnerRouter.Get("/:id", func(c fiber.Ctx) error {
+		id := c.Params("id")
+		runner, err := configGRPCClient.GetRunner(c.RequestCtx(), &configPB.GetRunnerRequest{
+			Id: id,
+		})
+		if err != nil {
+			return err
+		}
+		return c.JSON(&models.RunnerConfigDetail{
+			RunnerConfig: &models.RunnerConfig{
+				ID:          runner.GetId(),
+				Name:        runner.GetName(),
+				Description: runner.GetDescription(),
+			},
+			BuildScript:  runner.GetBuildScript(),
+			RunScript:    runner.GetRunScript(),
+			InitialFiles: pbFilesToModelFiles(runner.GetInitialFiles()),
+		})
+	})
+
+	runnerRouter.Post("/", middlewares.ValidateMiddleware[requests.CreateRunnerRequest](), func(c fiber.Ctx) error {
+		req := c.Locals("body").(*requests.CreateRunnerRequest)
+		runner, err := configGRPCClient.CreateRunner(c.RequestCtx(), &configPB.CreateRunnerRequest{
+			Name:        req.Name,
+			Description: req.Description,
+		})
+		if err != nil {
+			return err
+		}
+		return c.JSON(runner)
+	})
+
+	runnerRouter.Patch("/:id", middlewares.ValidateMiddleware[requests.UpdateRunnerRequest](), func(c fiber.Ctx) error {
+		req := c.Locals("body").(*requests.UpdateRunnerRequest)
+		id := c.Params("id")
+		payload := &configPB.UpdateRunnerRequest{
+			Id:          id,
+			Name:        req.Name,
+			Description: req.Description,
+			BuildScript: req.BuildScript,
+			RunScript:   req.RunScript,
+		}
+
+		if req.InitialFiles != nil {
+			payload.InitialFiles = requests.MapConfigFilesToPB(*req.InitialFiles)
+		}
+
+		runner, err := configGRPCClient.UpdateRunner(c.RequestCtx(), payload)
+		if err != nil {
+			return err
+		}
+
+		return c.JSON(runner)
+	})
+
+	runnerRouter.Delete("/:id", func(c fiber.Ctx) error {
+		id := c.Params("id")
+		_, err := configGRPCClient.DeleteRunner(c.RequestCtx(), &configPB.DeleteRunnerRequest{
+			Id: id,
+		})
+		if err != nil {
+			return err
+		}
+		return c.JSON(fiber.Map{
+			"message": "Runner deleted successfully",
+		})
+	})
+
+	type runnerTestRequest struct {
+		InitialFiles []models.ConfigFile `json:"initial_files"`
+		Input        string              `json:"input"`
+		RunScript    string              `json:"run_script"`
+		BuildScript  string              `json:"build_script"`
+	}
+
+	runnerRouter.Post("/:id/test", func(c fiber.Ctx) error {
+		id := c.Params("id")
+		body := requests.TestRunnerRequest{}
+
+		err := c.Bind().JSON(&body)
+		if err != nil {
+			return err
+		}
+
+		qName, err := q.CreateQueue(c.RequestCtx(), "runner_test:"+id, &queue.QueueOptions{
+			AutoDelete: true,
+			Exclusive:  true,
+		})
+
+		payloadBytes, err := json.Marshal(&runnerTestRequest{
+			InitialFiles: reqInitialFilesToModel(body.InitialFiles),
+			Input:        body.Input,
+			RunScript:    body.RunScript,
+			BuildScript:  body.BuildScript,
+		})
+		if err != nil {
+			return err
+		}
+
+		err = q.Publish(c.RequestCtx(), "", "runner_test", &queue.Derivery{
+			CorrelationID: id,
+			ReplyTo:       qName,
+			Body:          payloadBytes,
+		})
+		if err != nil {
+			return err
+		}
+
+		c.Set("Content-Type", "text/event-stream")
+		c.Set("Cache-Control", "no-cache")
+		c.Set("Connection", "keep-alive")
+		c.Set("Transfer-Encoding", "chunked")
+
+		ctx, cancel := context.WithCancel(context.Background())
+
+		c.Status(fiber.StatusOK).RequestCtx().SetBodyStreamWriter(func(w *bufio.Writer) {
+			fmt.Fprint(w, "event: connected\n\n")
+			err := w.Flush()
+			if err != nil {
+				cancel()
+				log.Println(err)
+				return
+			}
+
+			err = q.Consume(ctx, qName, 1, true, func(derivery *queue.Derivery, exit chan struct{}) error {
+				runResult := &models.TestRunnerResult{}
+				err := json.Unmarshal(derivery.Body, &runResult)
+				if err != nil {
+					return err
+				}
+
+				runResultBytes, err := json.Marshal(runResult)
+				if err != nil {
+					return err
+				}
+
+				fmt.Fprintf(w, "data: %s\n\n", runResultBytes)
+				err = w.Flush()
+				if err != nil {
+					cancel()
+					log.Println(err)
+					return err
+
+				}
+
+				if runResult.Status != models.CODE_EXECUTION_QUEUED && runResult.Status != models.CODE_EXECUTION_RUNNING {
+					exit <- struct{}{}
+				}
+
+				return nil
+			})
+			if err != nil {
+				log.Println("Error consuming runner test result:", err)
+				return
+			}
+
+			fmt.Fprint(w, "event: done\n\n")
+			err = w.Flush()
+			if err != nil {
+				cancel()
+				log.Println(err)
+				return
+			}
+		})
+		return nil
+	})
 
 	runnerRouter.Get("/", func(c fiber.Ctx) error {
 		includeScriptQuery := c.Query("include_script", "false")
@@ -88,73 +261,6 @@ func NewCMSConfigRoutes(router fiber.Router, configGRPCClient configPB.ConfigSer
 				"total_rows": paginationRes.Count,
 			},
 			"data": data,
-		})
-	})
-
-	runnerRouter.Get("/:id", func(c fiber.Ctx) error {
-		id := c.Params("id")
-		runner, err := configGRPCClient.GetRunner(c.RequestCtx(), &configPB.GetRunnerRequest{
-			Id: id,
-		})
-		if err != nil {
-			return err
-		}
-		return c.JSON(&models.RunnerConfigDetail{
-			RunnerConfig: &models.RunnerConfig{
-				ID:          runner.GetId(),
-				Name:        runner.GetName(),
-				Description: runner.GetDescription(),
-			},
-			BuildScript:  runner.GetBuildScript(),
-			RunScript:    runner.GetRunScript(),
-			InitialFiles: pbFilesToModelFiles(runner.GetInitialFiles()),
-		})
-	})
-
-	runnerRouter.Post("/", middlewares.ValidateMiddleware[requests.CreateRunnerRequest](), func(c fiber.Ctx) error {
-		req := c.Locals("body").(*requests.CreateRunnerRequest)
-		runner, err := configGRPCClient.CreateRunner(c.RequestCtx(), &configPB.CreateRunnerRequest{
-			Name:        req.Name,
-			Description: req.Description,
-		})
-		if err != nil {
-			return err
-		}
-		return c.JSON(runner)
-	})
-
-	runnerRouter.Patch("/:id", middlewares.ValidateMiddleware[requests.UpdateRunnerRequest](), func(c fiber.Ctx) error {
-		req := c.Locals("body").(*requests.UpdateRunnerRequest)
-		id := c.Params("id")
-		payload := &configPB.UpdateRunnerRequest{
-			Id:          id,
-			Name:        req.Name,
-			BuildScript: req.BuildScript,
-			RunScript:   req.RunScript,
-		}
-
-		if req.InitialFiles != nil {
-			payload.InitialFiles = requests.MapConfigFilesToPB(*req.InitialFiles)
-		}
-
-		runner, err := configGRPCClient.UpdateRunner(c.RequestCtx(), payload)
-		if err != nil {
-			return err
-		}
-
-		return c.JSON(runner)
-	})
-
-	runnerRouter.Delete("/:id", func(c fiber.Ctx) error {
-		id := c.Params("id")
-		_, err := configGRPCClient.DeleteRunner(c.RequestCtx(), &configPB.DeleteRunnerRequest{
-			Id: id,
-		})
-		if err != nil {
-			return err
-		}
-		return c.JSON(fiber.Map{
-			"message": "Runner deleted successfully",
 		})
 	})
 
@@ -270,4 +376,15 @@ func modelFilesToPBFiles(modelFiles []models.ConfigFile) []*configPB.File {
 		}
 	}
 	return files
+}
+
+func reqInitialFilesToModel(files []requests.ConfigFile) []models.ConfigFile {
+	modelFiles := make([]models.ConfigFile, len(files))
+	for i, file := range files {
+		modelFiles[i] = models.ConfigFile{
+			Name:    file.Name,
+			Content: file.Content,
+		}
+	}
+	return modelFiles
 }

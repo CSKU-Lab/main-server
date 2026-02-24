@@ -4,6 +4,7 @@ import (
 	"github.com/CSKU-Lab/main-server/domain/services"
 	configPB "github.com/CSKU-Lab/main-server/genproto/config/v1"
 	"github.com/CSKU-Lab/main-server/internal/adapters/rest/routes"
+	"github.com/CSKU-Lab/queue"
 	"github.com/gofiber/fiber/v3"
 )
 
@@ -23,6 +24,7 @@ type CMSRouter struct {
 	MaterialAssetService    services.MaterialAssetService
 	ConfigGRPCClient        configPB.ConfigServiceClient
 	SubmissionService       services.SubmissionService
+	Queue                   queue.Queue
 }
 
 func NewCMSRouter(r *CMSRouter) {
@@ -35,7 +37,7 @@ func NewCMSRouter(r *CMSRouter) {
 	routes.NewCMSUserExistancesRoutes(cmsRouter, r.UserService)
 	routes.NewCMSCourseRoutes(cmsRouter, r.CourseService, r.SectionService, r.SemesterService, r.DefaultLabService, r.LabService)
 	routes.NewCMSLabRoutes(cmsRouter, r.LabService, r.LabSectionService, r.LabMaterialService)
-	routes.NewCMSConfigRoutes(cmsRouter, r.ConfigGRPCClient)
+	routes.NewCMSConfigRoutes(cmsRouter, r.ConfigGRPCClient, r.Queue)
 	routes.NewCMSSubmissionRoutes(cmsRouter, r.SubmissionService)
 	routes.NewCMSUserRoute(cmsRouter, r.UserService)
 }

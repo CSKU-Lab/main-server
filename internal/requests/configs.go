@@ -12,6 +12,7 @@ type CreateRunnerRequest struct {
 
 type UpdateRunnerRequest struct {
 	Name         *string       `json:"name"`
+	Description  *string       `json:"description"`
 	BuildScript  *string       `json:"build_script"`
 	RunScript    *string       `json:"run_script"`
 	InitialFiles *[]ConfigFile `json:"initial_files"`
@@ -26,6 +27,13 @@ func (cr *CreateRunnerRequest) Validate() error {
 
 func (ur *UpdateRunnerRequest) Validate() error {
 	return nil
+}
+
+type TestRunnerRequest struct {
+	InitialFiles []ConfigFile `json:"initial_files"`
+	Input        string       `json:"input"`
+	RunScript    string       `json:"run_script"`
+	BuildScript  string       `json:"build_script"`
 }
 
 type ConfigFile struct {

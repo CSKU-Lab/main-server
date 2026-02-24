@@ -22,3 +22,11 @@ type CompareConfig struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
 }
+
+type TestRunnerResult struct {
+	ID       string              `json:"id"`
+	Status   CodeExecutionStatus `json:"status"`
+	Output   string              `json:"output"`
+	WallTime float32             `json:"wall_time"`
+	Memory   int32               `json:"memory"`
+}
