@@ -320,6 +320,7 @@ func (s *materialService) DeleteByID(ctx context.Context, ID string, userID stri
 	return s.repo.DeleteByID(ctx, ID)
 }
 
+// need to refactor this function, by separate Material from Submissions
 func (s *materialService) GetMaterialWithLatestSubmissionStatus(ctx context.Context, userID string, materialID string) (*models.MaterialWithSubmissionStatus, error) {
 	// Get material info (name and type)
 	material, err := s.repo.GetByID(ctx, materialID)
