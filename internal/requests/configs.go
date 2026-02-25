@@ -21,7 +21,6 @@ type UpdateRunnerRequest struct {
 func (cr *CreateRunnerRequest) Validate() error {
 	return validation.ValidateStruct(cr,
 		validation.Field(&cr.Name, validation.Required),
-		validation.Field(&cr.Description, validation.NilOrNotEmpty),
 	)
 }
 
