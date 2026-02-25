@@ -71,7 +71,7 @@ func (s *sectionStudentRepository) RemoveBySectionIDAndStudentID(ctx context.Con
 func (s *sectionStudentRepository) GetBySectionID(ctx context.Context, sectionID string) ([]models.Student, error) {
 	query := `SELECT id, username, display_name, profile_image FROM section_students ss
 		  JOIN users u ON ss.student_id = u.id
-		  WHERE ss.section_id = $1`
+		  WHERE ss.section_id = $1 AND u.is_deleted = false`
 
 	dbStudents := []student{}
 	err := s.db.SelectContext(ctx, &dbStudents, query, sectionID)
@@ -95,7 +95,7 @@ func (s *sectionStudentRepository) GetBySectionID(ctx context.Context, sectionID
 func (s *sectionStudentRepository) GetByStudentID(ctx context.Context, studentID string) ([]models.Section, error) {
 	query := `SELECT id, name, banner, semester_id, course_id FROM section_students ss
 		  JOIN sections s ON ss.section_id = s.id
-		  WHERE ss.student_id = $1`
+		  WHERE ss.student_id = $1 AND s.is_deleted = false`
 
 	dbSections := []sectionSchema{}
 	err := s.db.SelectContext(ctx, &dbSections, query, studentID)
@@ -116,7 +116,7 @@ func (s *sectionStudentRepository) GetByStudentID(ctx context.Context, studentID
 }
 
 func (s *sectionStudentRepository) GetBySectionAndStudentID(ctx context.Context, sectionID string, userID string) (*models.SectionStudent, error) {
-	query := `SELECT student_id, section_id FROM section_students WHERE student_id = $1 AND section_id = $2`
+	query := `SELECT student_id, section_id FROM section_students WHERE student_id = $1 AND section_id = $2 AND is_deleted = false`
 
 	sectionStudentSchema := &sectionStudentSchema{}
 	err := s.db.GetContext(ctx, sectionStudentSchema, query, userID, sectionID)
@@ -136,7 +136,7 @@ func (s *sectionStudentRepository) GetBySectionAndStudentID(ctx context.Context,
 func (s *sectionStudentRepository) Count(ctx context.Context, filters []sanitize.Filter) (int, error) {
 	filterWhereClause, filterArgs := buildFilterWhereClause(filters, 1)
 
-	baseQuery := `SELECT COUNT(*) FROM section_students WHERE true`
+	baseQuery := `SELECT COUNT(*) FROM section_students WHERE is_deleted = false`
 
 	query := baseQuery + filterWhereClause
 	fmt.Println("Count Query:", query)
