@@ -195,7 +195,7 @@ func NewCMSConfigRoutes(router fiber.Router, configGRPCClient configPB.ConfigSer
 	})
 
 	runnerRouter.Get("/", func(c fiber.Ctx) error {
-		includeScriptQuery := c.Query("include_script", "false")
+		includeScriptsQuery := c.Query("include_scripts", "false")
 		pageQuery := c.Query("page", "1")
 		pageSizeQuery := c.Query("page_size", "20")
 		sortOrder := c.Query("sort_order", "desc")
@@ -222,13 +222,14 @@ func NewCMSConfigRoutes(router fiber.Router, configGRPCClient configPB.ConfigSer
 				SortOrder: sortOrder,
 				Search:    search,
 			},
+			IncludeScripts: includeScriptsQuery == "true",
 		})
 		if err != nil {
 			return err
 		}
 
 		var data any
-		if includeScriptQuery == "true" {
+		if includeScriptsQuery == "true" {
 			runnerConfigs := make([]models.RunnerConfigDetail, len(paginationRes.Runners))
 			for i, runner := range paginationRes.Runners {
 				runnerConfigs[i] = models.RunnerConfigDetail{
@@ -237,8 +238,9 @@ func NewCMSConfigRoutes(router fiber.Router, configGRPCClient configPB.ConfigSer
 						Name:        runner.GetName(),
 						Description: runner.GetDescription(),
 					},
-					BuildScript: runner.GetBuildScript(),
-					RunScript:   runner.GetRunScript(),
+					BuildScript:  runner.GetBuildScript(),
+					RunScript:    runner.GetRunScript(),
+					InitialFiles: pbFilesToModelFiles(runner.GetInitialFiles()),
 				}
 			}
 			data = runnerConfigs

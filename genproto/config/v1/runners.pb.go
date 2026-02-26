@@ -28,6 +28,7 @@ type RunnerPaginationData struct {
 	BuildScript   string                 `protobuf:"bytes,3,opt,name=build_script,json=buildScript,proto3" json:"build_script,omitempty"`
 	RunScript     string                 `protobuf:"bytes,4,opt,name=run_script,json=runScript,proto3" json:"run_script,omitempty"`
 	Description   string                 `protobuf:"bytes,5,opt,name=description,proto3" json:"description,omitempty"`
+	InitialFiles  []*File                `protobuf:"bytes,6,rep,name=initial_files,json=initialFiles,proto3" json:"initial_files,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -95,6 +96,13 @@ func (x *RunnerPaginationData) GetDescription() string {
 		return x.Description
 	}
 	return ""
+}
+
+func (x *RunnerPaginationData) GetInitialFiles() []*File {
+	if x != nil {
+		return x.InitialFiles
+	}
+	return nil
 }
 
 type GetRunnersPaginationRequest struct {
@@ -245,6 +253,102 @@ func (x *GetRunnerRequest) GetId() string {
 	return ""
 }
 
+type GetAllRunnersRequest struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	IncludeMetadata bool                   `protobuf:"varint,1,opt,name=include_metadata,json=includeMetadata,proto3" json:"include_metadata,omitempty"`
+	IncludeScripts  bool                   `protobuf:"varint,2,opt,name=include_scripts,json=includeScripts,proto3" json:"include_scripts,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *GetAllRunnersRequest) Reset() {
+	*x = GetAllRunnersRequest{}
+	mi := &file_config_v1_runners_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetAllRunnersRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetAllRunnersRequest) ProtoMessage() {}
+
+func (x *GetAllRunnersRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_config_v1_runners_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetAllRunnersRequest.ProtoReflect.Descriptor instead.
+func (*GetAllRunnersRequest) Descriptor() ([]byte, []int) {
+	return file_config_v1_runners_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *GetAllRunnersRequest) GetIncludeMetadata() bool {
+	if x != nil {
+		return x.IncludeMetadata
+	}
+	return false
+}
+
+func (x *GetAllRunnersRequest) GetIncludeScripts() bool {
+	if x != nil {
+		return x.IncludeScripts
+	}
+	return false
+}
+
+type GetAllRunnersResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Runners       []*RunnerResponse      `protobuf:"bytes,1,rep,name=runners,proto3" json:"runners,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetAllRunnersResponse) Reset() {
+	*x = GetAllRunnersResponse{}
+	mi := &file_config_v1_runners_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetAllRunnersResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetAllRunnersResponse) ProtoMessage() {}
+
+func (x *GetAllRunnersResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_config_v1_runners_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetAllRunnersResponse.ProtoReflect.Descriptor instead.
+func (*GetAllRunnersResponse) Descriptor() ([]byte, []int) {
+	return file_config_v1_runners_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *GetAllRunnersResponse) GetRunners() []*RunnerResponse {
+	if x != nil {
+		return x.Runners
+	}
+	return nil
+}
+
 type RunnerResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -259,7 +363,7 @@ type RunnerResponse struct {
 
 func (x *RunnerResponse) Reset() {
 	*x = RunnerResponse{}
-	mi := &file_config_v1_runners_proto_msgTypes[4]
+	mi := &file_config_v1_runners_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -271,7 +375,7 @@ func (x *RunnerResponse) String() string {
 func (*RunnerResponse) ProtoMessage() {}
 
 func (x *RunnerResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_config_v1_runners_proto_msgTypes[4]
+	mi := &file_config_v1_runners_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -284,7 +388,7 @@ func (x *RunnerResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunnerResponse.ProtoReflect.Descriptor instead.
 func (*RunnerResponse) Descriptor() ([]byte, []int) {
-	return file_config_v1_runners_proto_rawDescGZIP(), []int{4}
+	return file_config_v1_runners_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *RunnerResponse) GetId() string {
@@ -339,7 +443,7 @@ type CreateRunnerRequest struct {
 
 func (x *CreateRunnerRequest) Reset() {
 	*x = CreateRunnerRequest{}
-	mi := &file_config_v1_runners_proto_msgTypes[5]
+	mi := &file_config_v1_runners_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -351,7 +455,7 @@ func (x *CreateRunnerRequest) String() string {
 func (*CreateRunnerRequest) ProtoMessage() {}
 
 func (x *CreateRunnerRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_config_v1_runners_proto_msgTypes[5]
+	mi := &file_config_v1_runners_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -364,7 +468,7 @@ func (x *CreateRunnerRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateRunnerRequest.ProtoReflect.Descriptor instead.
 func (*CreateRunnerRequest) Descriptor() ([]byte, []int) {
-	return file_config_v1_runners_proto_rawDescGZIP(), []int{5}
+	return file_config_v1_runners_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *CreateRunnerRequest) GetName() string {
@@ -390,7 +494,7 @@ type CreateRunnerResponse struct {
 
 func (x *CreateRunnerResponse) Reset() {
 	*x = CreateRunnerResponse{}
-	mi := &file_config_v1_runners_proto_msgTypes[6]
+	mi := &file_config_v1_runners_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -402,7 +506,7 @@ func (x *CreateRunnerResponse) String() string {
 func (*CreateRunnerResponse) ProtoMessage() {}
 
 func (x *CreateRunnerResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_config_v1_runners_proto_msgTypes[6]
+	mi := &file_config_v1_runners_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -415,7 +519,7 @@ func (x *CreateRunnerResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateRunnerResponse.ProtoReflect.Descriptor instead.
 func (*CreateRunnerResponse) Descriptor() ([]byte, []int) {
-	return file_config_v1_runners_proto_rawDescGZIP(), []int{6}
+	return file_config_v1_runners_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *CreateRunnerResponse) GetId() string {
@@ -439,7 +543,7 @@ type UpdateRunnerRequest struct {
 
 func (x *UpdateRunnerRequest) Reset() {
 	*x = UpdateRunnerRequest{}
-	mi := &file_config_v1_runners_proto_msgTypes[7]
+	mi := &file_config_v1_runners_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -451,7 +555,7 @@ func (x *UpdateRunnerRequest) String() string {
 func (*UpdateRunnerRequest) ProtoMessage() {}
 
 func (x *UpdateRunnerRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_config_v1_runners_proto_msgTypes[7]
+	mi := &file_config_v1_runners_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -464,7 +568,7 @@ func (x *UpdateRunnerRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateRunnerRequest.ProtoReflect.Descriptor instead.
 func (*UpdateRunnerRequest) Descriptor() ([]byte, []int) {
-	return file_config_v1_runners_proto_rawDescGZIP(), []int{7}
+	return file_config_v1_runners_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *UpdateRunnerRequest) GetId() string {
@@ -518,7 +622,7 @@ type DeleteRunnerRequest struct {
 
 func (x *DeleteRunnerRequest) Reset() {
 	*x = DeleteRunnerRequest{}
-	mi := &file_config_v1_runners_proto_msgTypes[8]
+	mi := &file_config_v1_runners_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -530,7 +634,7 @@ func (x *DeleteRunnerRequest) String() string {
 func (*DeleteRunnerRequest) ProtoMessage() {}
 
 func (x *DeleteRunnerRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_config_v1_runners_proto_msgTypes[8]
+	mi := &file_config_v1_runners_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -543,7 +647,7 @@ func (x *DeleteRunnerRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteRunnerRequest.ProtoReflect.Descriptor instead.
 func (*DeleteRunnerRequest) Descriptor() ([]byte, []int) {
-	return file_config_v1_runners_proto_rawDescGZIP(), []int{8}
+	return file_config_v1_runners_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *DeleteRunnerRequest) GetId() string {
@@ -557,14 +661,15 @@ var File_config_v1_runners_proto protoreflect.FileDescriptor
 
 const file_config_v1_runners_proto_rawDesc = "" +
 	"\n" +
-	"\x17config/v1/runners.proto\x12\tconfig.v1\x1a\x1aconfig/v1/pagination.proto\x1a\x14config/v1/file.proto\"\x9e\x01\n" +
+	"\x17config/v1/runners.proto\x12\tconfig.v1\x1a\x1aconfig/v1/pagination.proto\x1a\x14config/v1/file.proto\"\xd4\x01\n" +
 	"\x14RunnerPaginationData\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12!\n" +
 	"\fbuild_script\x18\x03 \x01(\tR\vbuildScript\x12\x1d\n" +
 	"\n" +
 	"run_script\x18\x04 \x01(\tR\trunScript\x12 \n" +
-	"\vdescription\x18\x05 \x01(\tR\vdescription\"\x84\x01\n" +
+	"\vdescription\x18\x05 \x01(\tR\vdescription\x124\n" +
+	"\rinitial_files\x18\x06 \x03(\v2\x0f.config.v1.FileR\finitialFiles\"\x84\x01\n" +
 	"\x1bGetRunnersPaginationRequest\x12<\n" +
 	"\n" +
 	"pagination\x18\x01 \x01(\v2\x1c.config.v1.PaginationRequestR\n" +
@@ -574,7 +679,12 @@ const file_config_v1_runners_proto_rawDesc = "" +
 	"\arunners\x18\x01 \x03(\v2\x1f.config.v1.RunnerPaginationDataR\arunners\x12\x14\n" +
 	"\x05count\x18\x02 \x01(\x05R\x05count\"\"\n" +
 	"\x10GetRunnerRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"\xce\x01\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"j\n" +
+	"\x14GetAllRunnersRequest\x12)\n" +
+	"\x10include_metadata\x18\x01 \x01(\bR\x0fincludeMetadata\x12'\n" +
+	"\x0finclude_scripts\x18\x02 \x01(\bR\x0eincludeScripts\"L\n" +
+	"\x15GetAllRunnersResponse\x123\n" +
+	"\arunners\x18\x01 \x03(\v2\x19.config.v1.RunnerResponseR\arunners\"\xce\x01\n" +
 	"\x0eRunnerResponse\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12!\n" +
@@ -617,30 +727,34 @@ func file_config_v1_runners_proto_rawDescGZIP() []byte {
 	return file_config_v1_runners_proto_rawDescData
 }
 
-var file_config_v1_runners_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_config_v1_runners_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_config_v1_runners_proto_goTypes = []any{
 	(*RunnerPaginationData)(nil),         // 0: config.v1.RunnerPaginationData
 	(*GetRunnersPaginationRequest)(nil),  // 1: config.v1.GetRunnersPaginationRequest
 	(*GetRunnersPaginationResponse)(nil), // 2: config.v1.GetRunnersPaginationResponse
 	(*GetRunnerRequest)(nil),             // 3: config.v1.GetRunnerRequest
-	(*RunnerResponse)(nil),               // 4: config.v1.RunnerResponse
-	(*CreateRunnerRequest)(nil),          // 5: config.v1.CreateRunnerRequest
-	(*CreateRunnerResponse)(nil),         // 6: config.v1.CreateRunnerResponse
-	(*UpdateRunnerRequest)(nil),          // 7: config.v1.UpdateRunnerRequest
-	(*DeleteRunnerRequest)(nil),          // 8: config.v1.DeleteRunnerRequest
-	(*PaginationRequest)(nil),            // 9: config.v1.PaginationRequest
-	(*File)(nil),                         // 10: config.v1.File
+	(*GetAllRunnersRequest)(nil),         // 4: config.v1.GetAllRunnersRequest
+	(*GetAllRunnersResponse)(nil),        // 5: config.v1.GetAllRunnersResponse
+	(*RunnerResponse)(nil),               // 6: config.v1.RunnerResponse
+	(*CreateRunnerRequest)(nil),          // 7: config.v1.CreateRunnerRequest
+	(*CreateRunnerResponse)(nil),         // 8: config.v1.CreateRunnerResponse
+	(*UpdateRunnerRequest)(nil),          // 9: config.v1.UpdateRunnerRequest
+	(*DeleteRunnerRequest)(nil),          // 10: config.v1.DeleteRunnerRequest
+	(*File)(nil),                         // 11: config.v1.File
+	(*PaginationRequest)(nil),            // 12: config.v1.PaginationRequest
 }
 var file_config_v1_runners_proto_depIdxs = []int32{
-	9,  // 0: config.v1.GetRunnersPaginationRequest.pagination:type_name -> config.v1.PaginationRequest
-	0,  // 1: config.v1.GetRunnersPaginationResponse.runners:type_name -> config.v1.RunnerPaginationData
-	10, // 2: config.v1.RunnerResponse.initial_files:type_name -> config.v1.File
-	10, // 3: config.v1.UpdateRunnerRequest.initial_files:type_name -> config.v1.File
-	4,  // [4:4] is the sub-list for method output_type
-	4,  // [4:4] is the sub-list for method input_type
-	4,  // [4:4] is the sub-list for extension type_name
-	4,  // [4:4] is the sub-list for extension extendee
-	0,  // [0:4] is the sub-list for field type_name
+	11, // 0: config.v1.RunnerPaginationData.initial_files:type_name -> config.v1.File
+	12, // 1: config.v1.GetRunnersPaginationRequest.pagination:type_name -> config.v1.PaginationRequest
+	0,  // 2: config.v1.GetRunnersPaginationResponse.runners:type_name -> config.v1.RunnerPaginationData
+	6,  // 3: config.v1.GetAllRunnersResponse.runners:type_name -> config.v1.RunnerResponse
+	11, // 4: config.v1.RunnerResponse.initial_files:type_name -> config.v1.File
+	11, // 5: config.v1.UpdateRunnerRequest.initial_files:type_name -> config.v1.File
+	6,  // [6:6] is the sub-list for method output_type
+	6,  // [6:6] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_config_v1_runners_proto_init() }
@@ -650,14 +764,14 @@ func file_config_v1_runners_proto_init() {
 	}
 	file_config_v1_pagination_proto_init()
 	file_config_v1_file_proto_init()
-	file_config_v1_runners_proto_msgTypes[7].OneofWrappers = []any{}
+	file_config_v1_runners_proto_msgTypes[9].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_config_v1_runners_proto_rawDesc), len(file_config_v1_runners_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

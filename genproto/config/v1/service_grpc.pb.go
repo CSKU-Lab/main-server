@@ -25,9 +25,11 @@ const (
 	ConfigService_GetRunner_FullMethodName             = "/config.v1.ConfigService/GetRunner"
 	ConfigService_UpdateRunner_FullMethodName          = "/config.v1.ConfigService/UpdateRunner"
 	ConfigService_DeleteRunner_FullMethodName          = "/config.v1.ConfigService/DeleteRunner"
+	ConfigService_GetAllRunners_FullMethodName         = "/config.v1.ConfigService/GetAllRunners"
 	ConfigService_CreateCompare_FullMethodName         = "/config.v1.ConfigService/CreateCompare"
 	ConfigService_GetComparesPagination_FullMethodName = "/config.v1.ConfigService/GetComparesPagination"
 	ConfigService_GetCompare_FullMethodName            = "/config.v1.ConfigService/GetCompare"
+	ConfigService_GetAllCompares_FullMethodName        = "/config.v1.ConfigService/GetAllCompares"
 	ConfigService_UpdateCompare_FullMethodName         = "/config.v1.ConfigService/UpdateCompare"
 	ConfigService_DeleteCompare_FullMethodName         = "/config.v1.ConfigService/DeleteCompare"
 )
@@ -41,9 +43,11 @@ type ConfigServiceClient interface {
 	GetRunner(ctx context.Context, in *GetRunnerRequest, opts ...grpc.CallOption) (*RunnerResponse, error)
 	UpdateRunner(ctx context.Context, in *UpdateRunnerRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	DeleteRunner(ctx context.Context, in *DeleteRunnerRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	GetAllRunners(ctx context.Context, in *GetAllRunnersRequest, opts ...grpc.CallOption) (*GetAllRunnersResponse, error)
 	CreateCompare(ctx context.Context, in *CreateCompareRequest, opts ...grpc.CallOption) (*CreateCompareResponse, error)
 	GetComparesPagination(ctx context.Context, in *GetComparesPaginationRequest, opts ...grpc.CallOption) (*GetComparesPaginationResponse, error)
 	GetCompare(ctx context.Context, in *GetCompareRequest, opts ...grpc.CallOption) (*CompareResponse, error)
+	GetAllCompares(ctx context.Context, in *GetAllComparesRequest, opts ...grpc.CallOption) (*GetAllComparesResponse, error)
 	UpdateCompare(ctx context.Context, in *UpdateCompareRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	DeleteCompare(ctx context.Context, in *DeleteCompareRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
@@ -106,6 +110,16 @@ func (c *configServiceClient) DeleteRunner(ctx context.Context, in *DeleteRunner
 	return out, nil
 }
 
+func (c *configServiceClient) GetAllRunners(ctx context.Context, in *GetAllRunnersRequest, opts ...grpc.CallOption) (*GetAllRunnersResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetAllRunnersResponse)
+	err := c.cc.Invoke(ctx, ConfigService_GetAllRunners_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *configServiceClient) CreateCompare(ctx context.Context, in *CreateCompareRequest, opts ...grpc.CallOption) (*CreateCompareResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CreateCompareResponse)
@@ -130,6 +144,16 @@ func (c *configServiceClient) GetCompare(ctx context.Context, in *GetCompareRequ
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CompareResponse)
 	err := c.cc.Invoke(ctx, ConfigService_GetCompare_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *configServiceClient) GetAllCompares(ctx context.Context, in *GetAllComparesRequest, opts ...grpc.CallOption) (*GetAllComparesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetAllComparesResponse)
+	err := c.cc.Invoke(ctx, ConfigService_GetAllCompares_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -165,9 +189,11 @@ type ConfigServiceServer interface {
 	GetRunner(context.Context, *GetRunnerRequest) (*RunnerResponse, error)
 	UpdateRunner(context.Context, *UpdateRunnerRequest) (*emptypb.Empty, error)
 	DeleteRunner(context.Context, *DeleteRunnerRequest) (*emptypb.Empty, error)
+	GetAllRunners(context.Context, *GetAllRunnersRequest) (*GetAllRunnersResponse, error)
 	CreateCompare(context.Context, *CreateCompareRequest) (*CreateCompareResponse, error)
 	GetComparesPagination(context.Context, *GetComparesPaginationRequest) (*GetComparesPaginationResponse, error)
 	GetCompare(context.Context, *GetCompareRequest) (*CompareResponse, error)
+	GetAllCompares(context.Context, *GetAllComparesRequest) (*GetAllComparesResponse, error)
 	UpdateCompare(context.Context, *UpdateCompareRequest) (*emptypb.Empty, error)
 	DeleteCompare(context.Context, *DeleteCompareRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedConfigServiceServer()
@@ -195,6 +221,9 @@ func (UnimplementedConfigServiceServer) UpdateRunner(context.Context, *UpdateRun
 func (UnimplementedConfigServiceServer) DeleteRunner(context.Context, *DeleteRunnerRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteRunner not implemented")
 }
+func (UnimplementedConfigServiceServer) GetAllRunners(context.Context, *GetAllRunnersRequest) (*GetAllRunnersResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetAllRunners not implemented")
+}
 func (UnimplementedConfigServiceServer) CreateCompare(context.Context, *CreateCompareRequest) (*CreateCompareResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateCompare not implemented")
 }
@@ -203,6 +232,9 @@ func (UnimplementedConfigServiceServer) GetComparesPagination(context.Context, *
 }
 func (UnimplementedConfigServiceServer) GetCompare(context.Context, *GetCompareRequest) (*CompareResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetCompare not implemented")
+}
+func (UnimplementedConfigServiceServer) GetAllCompares(context.Context, *GetAllComparesRequest) (*GetAllComparesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetAllCompares not implemented")
 }
 func (UnimplementedConfigServiceServer) UpdateCompare(context.Context, *UpdateCompareRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateCompare not implemented")
@@ -321,6 +353,24 @@ func _ConfigService_DeleteRunner_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ConfigService_GetAllRunners_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAllRunnersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ConfigServiceServer).GetAllRunners(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ConfigService_GetAllRunners_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ConfigServiceServer).GetAllRunners(ctx, req.(*GetAllRunnersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _ConfigService_CreateCompare_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CreateCompareRequest)
 	if err := dec(in); err != nil {
@@ -371,6 +421,24 @@ func _ConfigService_GetCompare_Handler(srv interface{}, ctx context.Context, dec
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ConfigServiceServer).GetCompare(ctx, req.(*GetCompareRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ConfigService_GetAllCompares_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAllComparesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ConfigServiceServer).GetAllCompares(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ConfigService_GetAllCompares_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ConfigServiceServer).GetAllCompares(ctx, req.(*GetAllComparesRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -439,6 +507,10 @@ var ConfigService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _ConfigService_DeleteRunner_Handler,
 		},
 		{
+			MethodName: "GetAllRunners",
+			Handler:    _ConfigService_GetAllRunners_Handler,
+		},
+		{
 			MethodName: "CreateCompare",
 			Handler:    _ConfigService_CreateCompare_Handler,
 		},
@@ -449,6 +521,10 @@ var ConfigService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetCompare",
 			Handler:    _ConfigService_GetCompare_Handler,
+		},
+		{
+			MethodName: "GetAllCompares",
+			Handler:    _ConfigService_GetAllCompares_Handler,
 		},
 		{
 			MethodName: "UpdateCompare",
