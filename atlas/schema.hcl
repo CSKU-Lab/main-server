@@ -312,6 +312,10 @@ table "section_students" {
   primary_key  {
     columns = [ column.section_id,  column.student_id ]
   }
+  column "is_deleted" {
+    type = boolean
+    default = false
+  }
   foreign_key "fk_section_id" {
     columns = [ column.section_id ]
     ref_columns = [ table.sections.column.id ]

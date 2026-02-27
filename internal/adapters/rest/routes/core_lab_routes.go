@@ -38,12 +38,12 @@ func NewCoreLabRoute(router fiber.Router, sectionService services.SectionService
 		return c.Status(fiber.StatusOK).JSON(lab)
 	})
 
-	coreLabRoute.Post("/:labID/materials", middlewares.ValidateMiddleware[requests.GetSection](), func(c fiber.Ctx) error {
+	coreLabRoute.Get("/:labID/materials", func(c fiber.Ctx) error {
 		labID := c.Params("labID")
-		req := c.Locals("body").(*requests.GetSection)
+		sectionID := c.Query("section_id", "")
 		user := c.Locals("user").(*models.User)
 
-		secStudent, err := sectionStudentService.GetBySectionAndStudentID(c.RequestCtx(), req.SectionID, user.ID)
+		secStudent, err := sectionStudentService.GetBySectionAndStudentID(c.RequestCtx(), sectionID, user.ID)
 		if err != nil {
 			return err
 		}
