@@ -96,7 +96,7 @@ func (ls *UpdateLabSectionStatus) Validate() error {
 		validation.Field(
 			&ls.Status,
 			validation.Skip.When(ls.Status == nil),
-			validation.In("hidden", "open", "closed", "readonly", "disabled"),
+			validation.In("hidden", "open", "readonly", "disabled"),
 		),
 		validation.Field(&ls.OpenedAt, validation.Skip.When(ls.OpenedAt == nil)),
 		validation.Field(&ls.ClosedAt, validation.Skip.When(ls.ClosedAt == nil)),

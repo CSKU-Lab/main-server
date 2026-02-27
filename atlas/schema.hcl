@@ -566,7 +566,7 @@ table "lab_materials" {
 
 enum "lab_section_status" {
   schema = schema.public
-  values = [ "hidden" , "open", "closed", "readonly", "disabled" ]
+  values = [ "hidden" , "open", "readonly", "disabled" ]
 }
 
 table "lab_sections" {

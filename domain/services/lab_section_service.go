@@ -333,19 +333,19 @@ func (ls *labSectionService) applyLabSectionSchedule(req *requests.UpdateLabSect
 		status = current.Status
 	}
 
-	if status == "readonly" || status == "disabled" {
+	if status == "disabled" {
 		if req.OpenedAt != nil || req.ClosedAt != nil {
 			return cserrors.New(&cserrors.Option{
 				HttpStatus: http.StatusBadRequest,
-				Message:    "opened_at and closed_at are not allowed for readonly/disabled status",
+				Message:    "opened_at and closed_at are not allowed for disabled status",
 			})
 		}
 		return nil
 	}
-	if status != "" && status != "hidden" && status != "open" && status != "closed" {
+	if status != "" && status != "hidden" && status != "open" && status != "readonly" {
 		return cserrors.New(&cserrors.Option{
 			HttpStatus: http.StatusBadRequest,
-			Message:    "status must be hidden, open, or closed when using opened_at/closed_at",
+			Message:    "status must be hidden, open or readonly when using opened_at/closed_at",
 		})
 	}
 	if req.OpenedAt == nil && req.ClosedAt == nil {
@@ -355,7 +355,7 @@ func (ls *labSectionService) applyLabSectionSchedule(req *requests.UpdateLabSect
 				now := time.Now()
 				req.OpenedAt = &now
 			}
-		case "closed":
+		case "readonly":
 			if current.ClosedAt == nil {
 				now := time.Now()
 				req.ClosedAt = &now
@@ -397,7 +397,7 @@ func deriveScheduledStatus(now time.Time, openedAt *time.Time, closedAt *time.Ti
 		return "hidden"
 	}
 	if closedAt != nil && now.After(*closedAt) {
-		return "closed"
+		return "readonly"
 	}
 	return "open"
 }

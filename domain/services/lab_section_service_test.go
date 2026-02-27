@@ -48,7 +48,7 @@ func TestApplyLabSectionScheduleSetsOpenedAtWhenOpening(t *testing.T) {
 
 func TestApplyLabSectionScheduleSetsClosedAtWhenClosing(t *testing.T) {
 	service := &labSectionService{}
-	status := "closed"
+	status := "readonly"
 	req := &requests.UpdateLabSectionStatus{Status: &status}
 
 	err := service.applyLabSectionSchedule(req, &models.LabSection{Status: "open"})
