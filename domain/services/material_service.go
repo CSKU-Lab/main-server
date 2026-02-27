@@ -20,7 +20,7 @@ type MaterialService interface {
 	GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string, filterParams map[string]string) ([]models.Material, error)
 	Count(ctx context.Context, search string, filters map[string]string) (int, error)
 	GetByID(ctx context.Context, ID string) (*models.MaterialDetail, error)
-	GetMaterialWithLatestSubmissionStatus(ctx context.Context, userID string, materialID string) (*models.MaterialWithSubmissionStatus, error)
+	GetMaterialWithLatestSubmissionStatus(ctx context.Context, userID string, materialID string, labID string, sectionID string) (*models.MaterialWithSubmissionStatus, error)
 	UpdateByID(ctx context.Context, ID string, req *requests.BaseUpdateMaterial, rawReq []byte, userID string) error
 	DeleteByID(ctx context.Context, ID string, userID string) error
 }
@@ -171,6 +171,8 @@ func (s *materialService) GetPagination(ctx context.Context, page int, limit int
 				DisplayName:  creator.DisplayName,
 				ProfileImage: creator.ProfileImage,
 			},
+			AutoScore:   mat.AutoScore,
+			ManualScore: mat.ManualScore,
 		})
 	}
 
@@ -217,14 +219,14 @@ func (s *materialService) GetByID(ctx context.Context, ID string) (*models.Mater
 
 	matModel := &models.MaterialDetail{
 		Material: &models.Material{
-			ID:             mat.ID,
-			Name:           mat.Name,
-			Type:           mat.Type,
-			Tags:           tags,
-			Visibility:     mat.Visibility,
-			MaxAutoScore:   mat.AutoScore,
-			MaxManualScore: mat.ManualScore,
-			CreatedAt:      mat.CreatedAt,
+			ID:          mat.ID,
+			Name:        mat.Name,
+			Type:        mat.Type,
+			Tags:        tags,
+			Visibility:  mat.Visibility,
+			AutoScore:   mat.AutoScore,
+			ManualScore: mat.ManualScore,
+			CreatedAt:   mat.CreatedAt,
 			CreatedBy: &models.MaterialCreator{
 				ID:           creator.ID,
 				DisplayName:  creator.DisplayName,
@@ -321,7 +323,7 @@ func (s *materialService) DeleteByID(ctx context.Context, ID string, userID stri
 }
 
 // need to refactor this function, by separate Material from Submissions
-func (s *materialService) GetMaterialWithLatestSubmissionStatus(ctx context.Context, userID string, materialID string) (*models.MaterialWithSubmissionStatus, error) {
+func (s *materialService) GetMaterialWithLatestSubmissionStatus(ctx context.Context, userID string, materialID string, labID string, sectionID string) (*models.MaterialWithSubmissionStatus, error) {
 	// Get material info (name and type)
 	material, err := s.repo.GetByID(ctx, materialID)
 	if err != nil {
@@ -329,7 +331,7 @@ func (s *materialService) GetMaterialWithLatestSubmissionStatus(ctx context.Cont
 	}
 
 	// Get latest submission status
-	submissions, err := s.submissionRepo.GetPagination(ctx, userID, materialID, 1, 1, "desc")
+	submissions, err := s.submissionRepo.GetPagination(ctx, userID, materialID, labID, sectionID, 1, 1, "desc")
 	if err != nil {
 		return nil, err
 	}

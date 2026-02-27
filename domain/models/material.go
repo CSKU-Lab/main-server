@@ -3,15 +3,15 @@ package models
 import "time"
 
 type Material struct {
-	ID             string           `json:"id"`
-	Name           string           `json:"name"`
-	Tags           []string         `json:"tags"`
-	Type           string           `json:"type"`
-	Visibility     string           `json:"visibility"`
-	MaxAutoScore   int              `json:"max_auto_score"`
-	MaxManualScore int              `json:"max_manual_score"`
-	CreatedAt      time.Time        `json:"created_at"`
-	CreatedBy      *MaterialCreator `json:"created_by"`
+	ID          string           `json:"id"`
+	Name        string           `json:"name"`
+	Tags        []string         `json:"tags"`
+	Type        string           `json:"type"`
+	Visibility  string           `json:"visibility"`
+	AutoScore   int              `json:"auto_score"`
+	ManualScore int              `json:"manual_score"`
+	CreatedAt   time.Time        `json:"created_at"`
+	CreatedBy   *MaterialCreator `json:"created_by"`
 }
 
 type MaterialCreator struct {
