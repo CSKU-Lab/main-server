@@ -23,7 +23,8 @@ type SubmissionService interface {
 	Update(ctx context.Context, submissionID string, payload *UpdateSubmissionPayload, rawPayload []byte) error
 	Get(ctx context.Context, submissionID string) (*models.Submission, error)
 	Listen(ctx context.Context, submissionID string) (<-chan *models.Submission, error)
-	GetUserSubmissionsByMaterial(ctx context.Context, userID string, materialID string, page int, pageSize int, sortOrder string) ([]models.Submission, int, error)
+	GetUserSubmissions(ctx context.Context, userID string, materialID string, labID string, sectionID string, page int, pageSize int, sortOrder string) ([]models.Submission, int, error)
+	GetUserSubmissionsWithMaterial(ctx context.Context, userID string, materialID string, labID string, sectionID string, page int, pageSize int, sortOrder string) ([]models.Submission, int, error)
 	GetGradebookBySectionID(ctx context.Context, ID string) (*models.Gradebook, error)
 	GetLabStudentStatus(ctx context.Context, sectionID, labID string) (*models.LabStudentStatus, error)
 	CountCompletedStudentsByLabAndSection(ctx context.Context, labID string, sectionID string) (int, error)
@@ -417,18 +418,46 @@ func (s *submissionService) Listen(ctx context.Context, submissionID string) (<-
 	return subChan, nil
 }
 
-func (s *submissionService) GetUserSubmissionsByMaterial(ctx context.Context, userID string, materialID string, page int, pageSize int, sortOrder string) ([]models.Submission, int, error) {
+func (s *submissionService) GetUserSubmissions(ctx context.Context, userID string, materialID string, labID string, sectionID string, page int, pageSize int, sortOrder string) ([]models.Submission, int, error) {
+	submissions, err := s.repo.GetPagination(ctx, userID, materialID, labID, sectionID, page, pageSize, sortOrder)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	count, err := s.repo.Count(ctx, userID, materialID, labID, sectionID)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	if len(submissions) == 0 {
+		return []models.Submission{}, count, nil
+	}
+
+	result := make([]models.Submission, len(submissions))
+	for i, sub := range submissions {
+		result[i] = models.Submission{
+			ID:        sub.ID,
+			Status:    sub.Status,
+			Order:     sub.Order,
+			CreatedAt: sub.CreatedAt,
+		}
+	}
+
+	return result, count, nil
+}
+
+func (s *submissionService) GetUserSubmissionsWithMaterial(ctx context.Context, userID string, materialID string, labID string, sectionID string, page int, pageSize int, sortOrder string) ([]models.Submission, int, error) {
 	mat, err := s.materialRepo.GetByID(ctx, materialID)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	submissions, err := s.repo.GetPagination(ctx, userID, materialID, page, pageSize, sortOrder)
+	submissions, err := s.repo.GetPagination(ctx, userID, materialID, labID, sectionID, page, pageSize, sortOrder)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	count, err := s.repo.Count(ctx, userID, materialID)
+	count, err := s.repo.Count(ctx, userID, materialID, labID, sectionID)
 	if err != nil {
 		return nil, 0, err
 	}

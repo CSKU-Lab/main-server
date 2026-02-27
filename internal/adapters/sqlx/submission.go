@@ -112,18 +112,55 @@ func (s *submissionRepository) Get(ctx context.Context, id string) (*repositorie
 	return model, nil
 }
 
-func (s *submissionRepository) GetPagination(ctx context.Context, userID string, materialID string, page int, pageSize int, sortOrder string) ([]repositories.Submission, error) {
-	query := `SELECT id, user_id, lab_id, section_id, course_id, material_id, status, submission_order, created_at
-			  FROM submissions
-			  WHERE user_id = $1 AND material_id = $2
-			  ORDER BY created_at %s
-			  OFFSET $3 LIMIT $4`
+func (s *submissionRepository) GetPagination(
+	ctx context.Context,
+	userID string,
+	materialID string,
+	labID string,
+	sectionID string,
+	page int,
+	pageSize int,
+	sortOrder string,
+) ([]repositories.Submission, error) {
+	if sortOrder != "ASC" && sortOrder != "DESC" {
+		sortOrder = "DESC"
+	}
 
-	query = fmt.Sprintf(query, sortOrder)
+	baseQuery := `
+		SELECT id, user_id, lab_id, section_id, course_id, material_id, status, submission_order, created_at
+		FROM submissions
+		WHERE user_id = $1
+	`
+
+	args := []interface{}{userID}
+	argIndex := 2
+
+	if materialID != "" {
+		baseQuery += fmt.Sprintf(" AND material_id = $%d", argIndex)
+		args = append(args, materialID)
+		argIndex++
+	}
+
+	if labID != "" {
+		baseQuery += fmt.Sprintf(" AND lab_id = $%d", argIndex)
+		args = append(args, labID)
+		argIndex++
+	}
+
+	if sectionID != "" {
+		baseQuery += fmt.Sprintf(" AND section_id = $%d", argIndex)
+		args = append(args, sectionID)
+		argIndex++
+	}
+
+	baseQuery += fmt.Sprintf(" ORDER BY created_at %s", sortOrder)
+
 	offset := (page - 1) * pageSize
+	baseQuery += fmt.Sprintf(" OFFSET $%d LIMIT $%d", argIndex, argIndex+1)
+	args = append(args, offset, pageSize)
 
 	rows := []submission{}
-	err := s.db.SelectContext(ctx, &rows, query, userID, materialID, offset, pageSize)
+	err := s.db.SelectContext(ctx, &rows, baseQuery, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -146,11 +183,42 @@ func (s *submissionRepository) GetPagination(ctx context.Context, userID string,
 	return result, nil
 }
 
-func (s *submissionRepository) Count(ctx context.Context, userID string, materialID string) (int, error) {
-	query := `SELECT COUNT(*) FROM submissions WHERE user_id = $1 AND material_id = $2`
+func (s *submissionRepository) Count(
+	ctx context.Context,
+	userID string,
+	materialID string,
+	labID string,
+	sectionID string,
+) (int, error) {
+	query := `
+		SELECT COUNT(*)
+		FROM submissions
+		WHERE user_id = $1
+	`
+
+	args := []interface{}{userID}
+	argIndex := 2
+
+	if materialID != "" {
+		query += fmt.Sprintf(" AND material_id = $%d", argIndex)
+		args = append(args, materialID)
+		argIndex++
+	}
+
+	if labID != "" {
+		query += fmt.Sprintf(" AND lab_id = $%d", argIndex)
+		args = append(args, labID)
+		argIndex++
+	}
+
+	if sectionID != "" {
+		query += fmt.Sprintf(" AND section_id = $%d", argIndex)
+		args = append(args, sectionID)
+		argIndex++
+	}
 
 	var count int
-	err := s.db.GetContext(ctx, &count, query, userID, materialID)
+	err := s.db.GetContext(ctx, &count, query, args...)
 	if err != nil {
 		return 0, err
 	}

@@ -18,12 +18,12 @@ type SubmissionRepository interface {
 	Create(ctx context.Context, req *Submission) error
 	Update(ctx context.Context, req *UpdateSubmissionRequest) error
 	Get(ctx context.Context, id string) (*Submission, error)
-	GetPagination(ctx context.Context, userID string, materialID string, page int, pageSize int, sortOrder string) ([]Submission, error)
+	GetPagination(ctx context.Context, userID string, materialID string, labID string, sectionID string, page int, pageSize int, sortOrder string) ([]Submission, error)
 	GetLatestOfStudentIDInSectionID(ctx context.Context, sectionID, labID, materialID, studentID string) (*models.RawSubmission, error)
 	GetLatestByMaterialSectionAndLabID(ctx context.Context, materialID string, sectionID string, labID string) ([]models.RawSubmission, error)
 	GetPaginationByMaterialSectionLabAndStudentID(ctx context.Context, materialID string, sectionID string, labID string, studentID string, page int, pageSize int, sortBy, sortOrder string) ([]models.RawSubmission, error)
 
-	Count(ctx context.Context, userID string, materialID string) (int, error)
+	Count(ctx context.Context, userID string, materialID string, labID string, sectionID string) (int, error)
 	CountByMaterialSectionLabAndStudentID(ctx context.Context, materialID string, sectionID string, labID string, studentID string) (int, error)
 
 	CountCompletedStudentsByLabAndSection(ctx context.Context, labID string, sectionID string) (int, error)

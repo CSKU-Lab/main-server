@@ -55,11 +55,14 @@ func NewCoreRouter(r *CoreRouter) {
 	routes.NewCoreSubmissionRoutes(
 		coreRouter,
 		r.SubmissionService,
+		r.LabSectionService,
+		r.LabMaterialService,
 	)
 
 	routes.NewCoreMaterialSubmissionRoutes(
 		coreRouter,
 		r.MaterialService,
 		r.SubmissionService,
+		r.LabSectionService,
 	)
 }
