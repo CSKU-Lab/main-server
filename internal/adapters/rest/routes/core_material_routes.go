@@ -15,14 +15,22 @@ func NewCoreMaterialSubmissionRoutes(
 	router fiber.Router,
 	materialService services.MaterialService,
 	submissionService services.SubmissionService,
+	labSectionService services.LabSectionService,
 ) {
 	materialRouter := router.Group("/materials")
 
 	materialRouter.Get("/:materialID", func(c fiber.Ctx) error {
 		materialID := c.Params("materialID")
 		user := c.Locals("user").(*models.User)
+		sectionID := c.Query("section_id", "")
+		labID := c.Query("lab_id", "")
 
-		result, err := materialService.GetMaterialWithLatestSubmissionStatus(c.RequestCtx(), user.ID, materialID)
+		labSec, err := labSectionService.GetByLabAndSectionID(c.RequestCtx(), labID, sectionID)
+		if err != nil {
+			return err
+		}
+
+		result, err := materialService.GetMaterialWithLatestSubmissionStatus(c.RequestCtx(), user.ID, materialID, labSec.LabID, labSec.SectionID)
 		if err != nil {
 			return err
 		}
@@ -33,6 +41,9 @@ func NewCoreMaterialSubmissionRoutes(
 	materialRouter.Get("/:materialID/submissions", func(c fiber.Ctx) error {
 		materialID := c.Params("materialID")
 		user := c.Locals("user").(*models.User)
+
+		sectionID := c.Query("section_id", "")
+		labID := c.Query("lab_id", "")
 
 		pageQuery := c.Query("page", "1")
 		pageSizeQuery := c.Query("page_size", "20")
@@ -52,7 +63,12 @@ func NewCoreMaterialSubmissionRoutes(
 			sortOrder = "desc"
 		}
 
-		submissions, count, err := submissionService.GetUserSubmissionsByMaterial(c.RequestCtx(), user.ID, materialID, page, pageSize, sortOrder)
+		labSec, err := labSectionService.GetByLabAndSectionID(c.RequestCtx(), labID, sectionID)
+		if err != nil {
+			return err
+		}
+
+		submissions, count, err := submissionService.GetUserSubmissionsWithMaterial(c.RequestCtx(), user.ID, materialID, labSec.LabID, labSec.SectionID, page, pageSize, sortOrder)
 		if err != nil {
 			return err
 		}
