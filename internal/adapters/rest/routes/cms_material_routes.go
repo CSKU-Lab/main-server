@@ -61,7 +61,7 @@ func NewCMSMaterialRoutes(router fiber.Router, materialService services.Material
 			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusBadRequest, Message: "Invalid page size"})
 		}
 
-		sems, err := materialService.GetPagination(c.RequestCtx(), page, pageSize, search, sortBy, sortOrder, filterParams)
+		mats, err := materialService.GetPagination(c.RequestCtx(), page, pageSize, search, sortBy, sortOrder, filterParams)
 		if err != nil {
 			return err
 		}
@@ -77,7 +77,7 @@ func NewCMSMaterialRoutes(router fiber.Router, materialService services.Material
 				"total_page": math.Ceil(float64(count/pageSize) + 1),
 				"total_rows": count,
 			},
-			"data": sems,
+			"data": mats,
 		})
 	})
 
