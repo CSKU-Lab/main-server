@@ -86,6 +86,24 @@ func NewCoreSectionRoute(router fiber.Router, sectionService services.SectionSer
 		})
 	})
 
+	coreSectionRouter.Get("/:sectionID/labs/:labID", func(c fiber.Ctx) error {
+		sectionID := c.Params("sectionID")
+		labID := c.Params("labID")
+		user := c.Locals("user").(*models.User)
+
+		secStudent, err := sectionStudentService.GetBySectionAndStudentID(c.RequestCtx(), sectionID, user.ID)
+		if err != nil {
+			return err
+		}
+
+		labSec, err := labSectionService.GetByLabAndSectionID(c.RequestCtx(), labID, secStudent.SectionID)
+		if err != nil {
+			return err
+		}
+
+		return c.JSON(labSec)
+	})
+
 	coreSectionRouter.Get("/:sectionID/labs", func(c fiber.Ctx) error {
 		pageQuery := c.Query("page", "1")
 		pageSizeQuery := c.Query("page_size", "10")
