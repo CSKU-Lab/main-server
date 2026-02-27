@@ -449,6 +449,15 @@ func (s *sectionService) DeleteByID(ctx context.Context, ID string, userID strin
 	return s.sectionLogService.Create(ctx, ID, "Deleted section")
 }
 
+func hasStudentRole(roles []string) bool {
+	for _, r := range roles {
+		if r == string(models.STUDENT) {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *sectionService) AddStudents(ctx context.Context, sectionID string, studentUsernames []string) error {
 	students, err := s.userRepo.GetManyByUsername(ctx, studentUsernames)
 	if err != nil {
@@ -464,6 +473,12 @@ func (s *sectionService) AddStudents(ctx context.Context, sectionID string, stud
 
 	return s.uowRepo.Execute(ctx, func(u repositories.UoWInstance) error {
 		for _, student := range students {
+
+			isStudent := hasStudentRole(student.Roles)
+			if !isStudent {
+				continue
+			}
+
 			err := u.SectionStudent().Add(ctx, sectionID, student.ID)
 			if err != nil {
 				var csErr *cserrors.Error
