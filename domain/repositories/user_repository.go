@@ -57,6 +57,6 @@ func (u *UserData) Model() (*models.User, error) {
 		ProfileImage: u.ProfileImage,
 		Roles:        userRoles,
 		CreatedAt:    u.CreatedAt,
-		UpdatedAt:    u.CreatedAt,
+		UpdatedAt:    u.UpdatedAt,
 	}, nil
 }
