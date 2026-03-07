@@ -50,22 +50,32 @@ type Limit struct {
 	NetworkAllow bool    `json:"network_allow"`
 }
 
-type CodeMaterialPayload struct {
-	Description      *string          `json:"description,omitempty"`
-	TestCaseGroups   *[]TestCaseGroup `json:"test_case_groups,omitempty"`
-	AllowedRunnerIDs []string         `json:"allowed_runner_ids,omitempty"`
-	CompareScriptID  *string          `json:"compare_script_id,omitempty"`
-	SolutionRunnerID *string          `json:"solution_runner_id,omitempty"`
-	SolutionFiles    []File           `json:"solution_files,omitempty"`
-	Limit            *Limit           `json:"limit,omitempty"`
-	HideTestCases    *bool            `json:"hide_test_cases"`
+// Solution groups the solution runner and its files together (request payload).
+type Solution struct {
+	RunnerID string `json:"runner_id"`
+	Files    []File `json:"files"`
 }
 
-type Runner struct {
+// AllowedRunner represents a runner with per-material customized starter files (request payload).
+type AllowedRunner struct {
+	RunnerID string `json:"runner_id"`
+	Files    []File `json:"files"`
+}
+
+// SolutionResponse is the solution as returned in the CMS GET response.
+type SolutionResponse struct {
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	Files []File `json:"files"`
+}
+
+// AllowedRunnerResponse is a runner as returned in the CMS GET response.
+type AllowedRunnerResponse struct {
 	ID          string `json:"id"`
 	Name        string `json:"name"`
 	RunScript   string `json:"run_script"`
 	BuildScript string `json:"build_script"`
+	Files       []File `json:"files"`
 }
 
 type CompareScript struct {
@@ -73,20 +83,28 @@ type CompareScript struct {
 	Name string `json:"name"`
 }
 
-type SolutionRunner struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+// CodeMaterialPayload is the request body under "payload" for PATCH /materials/:id.
+type CodeMaterialPayload struct {
+	Description     *string          `json:"description,omitempty"`
+	TestCaseGroups  *[]TestCaseGroup `json:"test_case_groups,omitempty"`
+	AllowedRunners  []AllowedRunner  `json:"allowed_runners,omitempty"`
+	CompareScriptID *string          `json:"compare_script_id,omitempty"`
+	Solution        *Solution        `json:"solution,omitempty"`
+	ResourceFiles   []File           `json:"resource_files,omitempty"`
+	Limit           *Limit           `json:"limit,omitempty"`
+	HideTestCases   *bool            `json:"hide_test_cases"`
 }
 
+// CodeMaterialResponse is the full payload returned from GET /materials/:id (CMS).
 type CodeMaterialResponse struct {
-	Description    *string         `json:"description"`
-	SolutionFiles  []File          `json:"solution_files"`
-	SolutionRunner *SolutionRunner `json:"solution_runner"`
-	TestCaseGroups []TestCaseGroup `json:"test_case_groups"`
-	AllowedRunners []Runner        `json:"allowed_runners"`
-	CompareScript  *CompareScript  `json:"compare_script"`
-	Limit          *Limit          `json:"limit"`
-	HideTestCases  bool            `json:"hide_test_cases"`
+	Description    *string                 `json:"description"`
+	Solution       *SolutionResponse       `json:"solution"`
+	ResourceFiles  []File                  `json:"resource_files"`
+	TestCaseGroups []TestCaseGroup         `json:"test_case_groups"`
+	AllowedRunners []AllowedRunnerResponse `json:"allowed_runners"`
+	CompareScript  *CompareScript          `json:"compare_script"`
+	Limit          *Limit                  `json:"limit"`
+	HideTestCases  bool                    `json:"hide_test_cases"`
 }
 
 func NewCodeMaterial(repo repositories.CodeMaterialRepository, taskGRPCClient taskPB.TaskServiceClient, configGRPCClient configPB.ConfigServiceClient, graderGRPCClient graderPB.GraderServiceClient) registries.MaterialRegisterable {
@@ -115,9 +133,6 @@ func (c *codeMaterial) CalculateScores(rawReq []byte) (*registries.MaterialScore
 	var manualScore int32
 	for _, g := range *payload.TestCaseGroups {
 		autoScore += g.Score
-		// For manual score, we sum max_auto_score and max_manual_score
-		// This matches the previous behavior from GetMaxScore
-		// Note: If there's a specific manual scoring field, adjust accordingly
 	}
 
 	return &registries.MaterialScores{
@@ -139,14 +154,16 @@ func (c *codeMaterial) GetByID(ctx context.Context, ID string) (any, error) {
 		return nil, err
 	}
 
-	solutionFilesRes := make([]File, 0, len(task.GetSolutionFiles()))
-	for _, f := range task.GetSolutionFiles() {
-		solutionFilesRes = append(solutionFilesRes, File{
+	// Build resource files
+	resourceFiles := make([]File, 0, len(task.GetResourceFiles()))
+	for _, f := range task.GetResourceFiles() {
+		resourceFiles = append(resourceFiles, File{
 			Name:    f.GetName(),
 			Content: f.GetContent(),
 		})
 	}
 
+	// Build limit
 	var limit *Limit
 	if task.Limit != nil {
 		limit = &Limit{
@@ -161,43 +178,64 @@ func (c *codeMaterial) GetByID(ctx context.Context, ID string) (any, error) {
 		}
 	}
 
-	var solutionRunner *SolutionRunner
-	if task.GetSolutionRunnerId() != "" {
+	// Build solution (runner metadata from config + files from task)
+	var solution *SolutionResponse
+	if task.GetSolution() != nil {
+		pbSolution := task.GetSolution()
 		runner, err := c.configGRPCCLient.GetRunner(ctx, &configPB.GetRunnerRequest{
-			Id: task.GetSolutionRunnerId(),
+			Id: pbSolution.GetRunnerId(),
 		})
 		if err != nil {
 			return nil, err
 		}
 
-		solutionRunner = &SolutionRunner{
-			ID:   runner.GetId(),
-			Name: runner.GetName(),
+		solutionFiles := make([]File, 0, len(pbSolution.GetFiles()))
+		for _, f := range pbSolution.GetFiles() {
+			solutionFiles = append(solutionFiles, File{
+				Name:    f.GetName(),
+				Content: f.GetContent(),
+			})
+		}
+
+		solution = &SolutionResponse{
+			ID:    runner.GetId(),
+			Name:  runner.GetName(),
+			Files: solutionFiles,
 		}
 	}
 
 	res := &CodeMaterialResponse{
 		Description:    codeMat.Description,
 		TestCaseGroups: make([]TestCaseGroup, len(task.GetTestCaseGroups())),
-		SolutionFiles:  solutionFilesRes,
-		SolutionRunner: solutionRunner,
+		Solution:       solution,
+		ResourceFiles:  resourceFiles,
 		Limit:          limit,
 	}
 
-	allowedRunners := make([]Runner, len(task.AllowedRunnerIds))
-	for i, runnerID := range task.AllowedRunnerIds {
+	// Build allowed runners (runner metadata from config + custom files from task)
+	allowedRunners := make([]AllowedRunnerResponse, len(task.GetAllowedRunners()))
+	for i, pbRunner := range task.GetAllowedRunners() {
 		runner, err := c.configGRPCCLient.GetRunner(ctx, &configPB.GetRunnerRequest{
-			Id: runnerID,
+			Id: pbRunner.GetRunnerId(),
 		})
 		if err != nil {
 			return nil, err
 		}
 
-		allowedRunners[i] = Runner{
+		runnerFiles := make([]File, 0, len(pbRunner.GetFiles()))
+		for _, f := range pbRunner.GetFiles() {
+			runnerFiles = append(runnerFiles, File{
+				Name:    f.GetName(),
+				Content: f.GetContent(),
+			})
+		}
+
+		allowedRunners[i] = AllowedRunnerResponse{
 			ID:          runner.GetId(),
 			Name:        runner.GetName(),
 			BuildScript: runner.GetBuildScript(),
 			RunScript:   runner.GetRunScript(),
+			Files:       runnerFiles,
 		}
 	}
 	res.AllowedRunners = allowedRunners
@@ -261,7 +299,7 @@ func (c *codeMaterial) UpdateByID(ctx context.Context, ID string, req *requests.
 		return err
 	}
 
-	// this mean there is no code material payload in the request
+	// no code material payload in the request
 	if payload == nil {
 		return nil
 	}
@@ -279,6 +317,7 @@ func (c *codeMaterial) UpdateByID(ctx context.Context, ID string, req *requests.
 		return err
 	}
 
+	// Build test case groups
 	var testCaseGroups []*taskPB.TestCaseGroup
 	if payload.TestCaseGroups != nil {
 		for _, g := range *payload.TestCaseGroups {
@@ -291,28 +330,61 @@ func (c *codeMaterial) UpdateByID(ctx context.Context, ID string, req *requests.
 			}
 
 			for i, tc := range g.TestCases {
-				testCase := &taskPB.TestCase{
+				testCaseGroup.TestCases[i] = &taskPB.TestCase{
 					Id:       tc.ID,
 					Order:    tc.Order,
 					Input:    tc.Input,
 					Output:   tc.Output,
 					IsHidden: tc.IsHidden,
 				}
-				testCaseGroup.TestCases[i] = testCase
 			}
 
 			testCaseGroups = append(testCaseGroups, testCaseGroup)
 		}
 	}
 
-	taskPBSolutionFiles := make([]*taskPB.SolutionFile, 0, len(payload.SolutionFiles))
-	for _, f := range payload.SolutionFiles {
-		taskPBSolutionFiles = append(taskPBSolutionFiles, &taskPB.SolutionFile{
+	// Build allowed runners
+	pbAllowedRunners := make([]*taskPB.AllowedRunner, 0, len(payload.AllowedRunners))
+	for _, ar := range payload.AllowedRunners {
+		pbFiles := make([]*taskPB.File, 0, len(ar.Files))
+		for _, f := range ar.Files {
+			pbFiles = append(pbFiles, &taskPB.File{
+				Name:    f.Name,
+				Content: f.Content,
+			})
+		}
+		pbAllowedRunners = append(pbAllowedRunners, &taskPB.AllowedRunner{
+			RunnerId: ar.RunnerID,
+			Files:    pbFiles,
+		})
+	}
+
+	// Build solution
+	var pbSolution *taskPB.Solution
+	if payload.Solution != nil {
+		pbSolutionFiles := make([]*taskPB.File, 0, len(payload.Solution.Files))
+		for _, f := range payload.Solution.Files {
+			pbSolutionFiles = append(pbSolutionFiles, &taskPB.File{
+				Name:    f.Name,
+				Content: f.Content,
+			})
+		}
+		pbSolution = &taskPB.Solution{
+			RunnerId: payload.Solution.RunnerID,
+			Files:    pbSolutionFiles,
+		}
+	}
+
+	// Build resource files
+	pbResourceFiles := make([]*taskPB.File, 0, len(payload.ResourceFiles))
+	for _, f := range payload.ResourceFiles {
+		pbResourceFiles = append(pbResourceFiles, &taskPB.File{
 			Name:    f.Name,
 			Content: f.Content,
 		})
 	}
 
+	// Build limit
 	var limit *taskPB.Limit
 	if payload.Limit != nil {
 		limit = &taskPB.Limit{
@@ -328,13 +400,13 @@ func (c *codeMaterial) UpdateByID(ctx context.Context, ID string, req *requests.
 	}
 
 	_, err = c.taskGRPCClient.UpdateTask(ctx, &taskPB.UpdateTaskRequest{
-		Id:               &codeMat.TaskID,
-		TestCaseGroups:   testCaseGroups,
-		AllowedRunnerIds: payload.AllowedRunnerIDs,
-		SolutionFiles:    taskPBSolutionFiles,
-		SolutionRunnerId: payload.SolutionRunnerID,
-		CompareScriptId:  payload.CompareScriptID,
-		Limit:            limit,
+		Id:              &codeMat.TaskID,
+		TestCaseGroups:  testCaseGroups,
+		AllowedRunners:  pbAllowedRunners,
+		Solution:        pbSolution,
+		ResourceFiles:   pbResourceFiles,
+		CompareScriptId: payload.CompareScriptID,
+		Limit:           limit,
 	})
 	if err != nil {
 		return err

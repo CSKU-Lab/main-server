@@ -369,29 +369,29 @@ func (s *materialService) filterPayloadForUser(materialType string, payload any)
 	switch materialType {
 	case "code":
 		if codePayload, ok := payload.(*registrables.CodeMaterialResponse); ok {
-			// Filter allowed_runners to only include id and name
-			filteredRunners := make([]struct {
-				ID   string `json:"id"`
-				Name string `json:"name"`
-			}, len(codePayload.AllowedRunners))
+			// Expose id, name, and starter files for each allowed runner
+			type studentRunner struct {
+				ID    string              `json:"id"`
+				Name  string              `json:"name"`
+				Files []registrables.File `json:"files"`
+			}
+			filteredRunners := make([]studentRunner, len(codePayload.AllowedRunners))
 			for i, runner := range codePayload.AllowedRunners {
-				filteredRunners[i] = struct {
-					ID   string `json:"id"`
-					Name string `json:"name"`
-				}{
-					ID:   runner.ID,
-					Name: runner.Name,
+				filteredRunners[i] = studentRunner{
+					ID:    runner.ID,
+					Name:  runner.Name,
+					Files: runner.Files,
 				}
 			}
 
 			return struct {
-				Description    *string `json:"description"`
-				AllowedRunners any     `json:"allowed_runners"`
-				Limits         any     `json:"limits"`
+				Description    *string         `json:"description"`
+				AllowedRunners []studentRunner `json:"allowed_runners"`
+				Limit          any             `json:"limit"`
 			}{
 				Description:    codePayload.Description,
 				AllowedRunners: filteredRunners,
-				Limits:         codePayload.Limit,
+				Limit:          codePayload.Limit,
 			}
 		}
 	}
