@@ -102,7 +102,7 @@ func startApiServer(ctx context.Context, logger *zap.SugaredLogger, db *sqlx.DB,
 	codeMaterialRepo := sqlxAdapter.NewCodeMaterialRepository(db)
 
 	materialRegistry := registries.NewMaterialRegistry()
-	codeMaterial := registrables.NewCodeMaterial(codeMaterialRepo, taskGrpcClient, configGRPCClient, graderGRPCClient)
+	codeMaterial := registrables.NewCodeMaterial(codeMaterialRepo, taskGrpcClient, configGRPCClient)
 	materialRegistry.Register("code", codeMaterial)
 
 	materialAssetService := services.NewMaterialAssetService(config, minio)

@@ -6,7 +6,6 @@ import (
 	"github.com/CSKU-Lab/main-server/domain/registries"
 	"github.com/CSKU-Lab/main-server/domain/repositories"
 	configPB "github.com/CSKU-Lab/main-server/genproto/config/v1"
-	graderPB "github.com/CSKU-Lab/main-server/genproto/grader/v1"
 	taskPB "github.com/CSKU-Lab/main-server/genproto/task/v1"
 	"github.com/CSKU-Lab/main-server/internal/requests"
 )
@@ -15,7 +14,6 @@ type codeMaterial struct {
 	repo             repositories.CodeMaterialRepository
 	taskGRPCClient   taskPB.TaskServiceClient
 	configGRPCCLient configPB.ConfigServiceClient
-	graderGRPCClient graderPB.GraderServiceClient
 }
 
 type TestCase struct {
@@ -62,11 +60,16 @@ type AllowedRunner struct {
 	Files    []File `json:"files"`
 }
 
+// RunnerInfo holds the basic identifying metadata for a runner.
+type RunnerInfo struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
 // SolutionResponse is the solution as returned in the CMS GET response.
 type SolutionResponse struct {
-	ID    string `json:"id"`
-	Name  string `json:"name"`
-	Files []File `json:"files"`
+	Runner RunnerInfo `json:"runner"`
+	Files  []File     `json:"files"`
 }
 
 // AllowedRunnerResponse is a runner as returned in the CMS GET response.
@@ -107,12 +110,11 @@ type CodeMaterialResponse struct {
 	HideTestCases  bool                    `json:"hide_test_cases"`
 }
 
-func NewCodeMaterial(repo repositories.CodeMaterialRepository, taskGRPCClient taskPB.TaskServiceClient, configGRPCClient configPB.ConfigServiceClient, graderGRPCClient graderPB.GraderServiceClient) registries.MaterialRegisterable {
+func NewCodeMaterial(repo repositories.CodeMaterialRepository, taskGRPCClient taskPB.TaskServiceClient, configGRPCClient configPB.ConfigServiceClient) registries.MaterialRegisterable {
 	return &codeMaterial{
 		repo:             repo,
 		taskGRPCClient:   taskGRPCClient,
 		configGRPCCLient: configGRPCClient,
-		graderGRPCClient: graderGRPCClient,
 	}
 }
 
@@ -198,8 +200,10 @@ func (c *codeMaterial) GetByID(ctx context.Context, ID string) (any, error) {
 		}
 
 		solution = &SolutionResponse{
-			ID:    runner.GetId(),
-			Name:  runner.GetName(),
+			Runner: RunnerInfo{
+				ID:   runner.GetId(),
+				Name: runner.GetName(),
+			},
 			Files: solutionFiles,
 		}
 	}
