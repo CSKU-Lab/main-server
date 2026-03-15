@@ -385,13 +385,15 @@ func (s *materialService) filterPayloadForUser(materialType string, payload any)
 			}
 
 			return struct {
-				Description    *string         `json:"description"`
-				AllowedRunners []studentRunner `json:"allowed_runners"`
-				Limit          any             `json:"limit"`
+				Description    *string             `json:"description"`
+				AllowedRunners []studentRunner     `json:"allowed_runners"`
+				ResourceFiles  []registrables.File `json:"resource_files"`
+				Limit          any                 `json:"limit"`
 			}{
 				Description:    codePayload.Description,
 				AllowedRunners: filteredRunners,
 				Limit:          codePayload.Limit,
+				ResourceFiles:  codePayload.ResourceFiles,
 			}
 		}
 	}
