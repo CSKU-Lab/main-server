@@ -7,7 +7,9 @@ import (
 
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
 	"github.com/CSKU-Lab/main-server/domain/models"
+	"github.com/CSKU-Lab/main-server/domain/permission"
 	"github.com/CSKU-Lab/main-server/domain/services"
+	"github.com/CSKU-Lab/main-server/internal/adapters/middlewares"
 	"github.com/gofiber/fiber/v3"
 )
 
@@ -16,10 +18,11 @@ func NewCoreMaterialSubmissionRoutes(
 	materialService services.MaterialService,
 	submissionService services.SubmissionService,
 	labSectionService services.LabSectionService,
+	permService permission.Service,
 ) {
 	materialRouter := router.Group("/materials")
 
-	materialRouter.Get("/:materialID", func(c fiber.Ctx) error {
+	materialRouter.Get("/:materialID", middlewares.Permission(permService).ForSection("section_id").CanView(), func(c fiber.Ctx) error {
 		materialID := c.Params("materialID")
 		user := c.Locals("user").(*models.User)
 		sectionID := c.Query("section_id", "")
@@ -38,7 +41,7 @@ func NewCoreMaterialSubmissionRoutes(
 		return c.JSON(result)
 	})
 
-	materialRouter.Get("/:materialID/submissions", func(c fiber.Ctx) error {
+	materialRouter.Get("/:materialID/submissions", middlewares.Permission(permService).ForSection("section_id").CanView(), func(c fiber.Ctx) error {
 		materialID := c.Params("materialID")
 		user := c.Locals("user").(*models.User)
 

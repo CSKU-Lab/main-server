@@ -8,11 +8,13 @@ import (
 
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
 	"github.com/CSKU-Lab/main-server/domain/models"
+	"github.com/CSKU-Lab/main-server/domain/permission"
 	"github.com/CSKU-Lab/main-server/domain/services"
+	"github.com/CSKU-Lab/main-server/internal/adapters/middlewares"
 	"github.com/gofiber/fiber/v3"
 )
 
-func NewCoreSectionRoute(router fiber.Router, sectionService services.SectionService, labSectionService services.LabSectionService, labService services.LabService, sectionStudentService services.SectionStudentService, labMaterialService services.LabMaterialService, courseService services.CourseService) {
+func NewCoreSectionRoute(router fiber.Router, sectionService services.SectionService, labSectionService services.LabSectionService, labService services.LabService, sectionStudentService services.SectionStudentService, labMaterialService services.LabMaterialService, courseService services.CourseService, permService permission.Service) {
 	coreSectionRouter := router.Group("/sections")
 
 	coreSectionRouter.Get("/", func(c fiber.Ctx) error {
@@ -62,7 +64,7 @@ func NewCoreSectionRoute(router fiber.Router, sectionService services.SectionSer
 		})
 	})
 
-	coreSectionRouter.Get("/:sectionID", func(c fiber.Ctx) error {
+	coreSectionRouter.Get("/:sectionID", middlewares.Permission(permService).ForSection("sectionID").CanView(), func(c fiber.Ctx) error {
 		sectionID := c.Params("sectionID")
 		user := c.Locals("user").(*models.User)
 
@@ -86,7 +88,7 @@ func NewCoreSectionRoute(router fiber.Router, sectionService services.SectionSer
 		})
 	})
 
-	coreSectionRouter.Get("/:sectionID/labs/:labID", func(c fiber.Ctx) error {
+	coreSectionRouter.Get("/:sectionID/labs/:labID", middlewares.Permission(permService).ForSection("sectionID").CanView(), func(c fiber.Ctx) error {
 		sectionID := c.Params("sectionID")
 		labID := c.Params("labID")
 		user := c.Locals("user").(*models.User)
@@ -104,7 +106,7 @@ func NewCoreSectionRoute(router fiber.Router, sectionService services.SectionSer
 		return c.JSON(labSec)
 	})
 
-	coreSectionRouter.Get("/:sectionID/labs", func(c fiber.Ctx) error {
+	coreSectionRouter.Get("/:sectionID/labs", middlewares.Permission(permService).ForSection("sectionID").CanView(), func(c fiber.Ctx) error {
 		pageQuery := c.Query("page", "1")
 		pageSizeQuery := c.Query("page_size", "10")
 		// search := c.Query("search", "")
@@ -182,7 +184,7 @@ func NewCoreSectionRoute(router fiber.Router, sectionService services.SectionSer
 		})
 	})
 
-	coreSectionRouter.Delete("/:sectionID/unenroll", func(c fiber.Ctx) error {
+	coreSectionRouter.Delete("/:sectionID/unenroll", middlewares.Permission(permService).ForSection("sectionID").CanView(), func(c fiber.Ctx) error {
 		sectionID := c.Params("sectionID")
 		user := c.Locals("user").(*models.User)
 
