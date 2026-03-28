@@ -16,7 +16,7 @@ import (
 
 // CreateTestUser creates a test user with the specified role and returns the user ID
 func (s *TestSuite) CreateTestUser(role string, roles []string) string {
-	userID := fmt.Sprintf("e2e_test_%s_%s", role, uuid.New().String()[:8])
+	userID := uuid.New().String()
 	username := fmt.Sprintf("test_%s_%s", role, uuid.New().String()[:8])
 	email := fmt.Sprintf("%s@e2etest.example.com", username)
 	now := time.Now()
@@ -46,9 +46,9 @@ func (s *TestSuite) CreateTestUser(role string, roles []string) string {
 
 	// Insert password
 	_, err = s.DB.ExecContext(s.Ctx, `
-		INSERT INTO user_passwords (id, user_id, password_hash, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5)
-	`, uuid.New().String(), userID, string(passwordHash), now, now)
+		INSERT INTO user_passwords (user_id, password)
+		VALUES ($1, $2)
+	`, userID, string(passwordHash))
 	s.Require().NoError(err, "Failed to create user password")
 
 	return userID
@@ -56,7 +56,7 @@ func (s *TestSuite) CreateTestUser(role string, roles []string) string {
 
 // CreateTestCourse creates a test course and returns the course ID
 func (s *TestSuite) CreateTestCourse(creatorID string) string {
-	courseID := fmt.Sprintf("e2e_test_course_%s", uuid.New().String()[:8])
+	courseID := uuid.New().String()
 	now := time.Now()
 
 	_, err := s.DB.ExecContext(s.Ctx, `
@@ -77,7 +77,7 @@ func (s *TestSuite) CreateTestCourse(creatorID string) string {
 
 // CreateTestSection creates a test section for a course and returns the section ID
 func (s *TestSuite) CreateTestSection(courseID string, semesterID string, instructorIDs []string, studentIDs []string) string {
-	sectionID := fmt.Sprintf("e2e_test_section_%s", uuid.New().String()[:8])
+	sectionID := uuid.New().String()
 	now := time.Now()
 
 	if semesterID == "" {
@@ -114,7 +114,7 @@ func (s *TestSuite) CreateTestSection(courseID string, semesterID string, instru
 
 // CreateTestSemester creates a test semester and returns the semester ID
 func (s *TestSuite) CreateTestSemester() string {
-	semesterID := fmt.Sprintf("e2e_test_semester_%s", uuid.New().String()[:8])
+	semesterID := uuid.New().String()
 	now := time.Now()
 
 	_, err := s.DB.ExecContext(s.Ctx, `
@@ -128,7 +128,7 @@ func (s *TestSuite) CreateTestSemester() string {
 
 // CreateTestLab creates a test lab for a course and returns the lab ID
 func (s *TestSuite) CreateTestLab(courseID string, createdBy string) string {
-	labID := fmt.Sprintf("e2e_test_lab_%s", uuid.New().String()[:8])
+	labID := uuid.New().String()
 	now := time.Now()
 
 	_, err := s.DB.ExecContext(s.Ctx, `
@@ -142,7 +142,7 @@ func (s *TestSuite) CreateTestLab(courseID string, createdBy string) string {
 
 // CreateTestLabSection creates a lab section association
 func (s *TestSuite) CreateTestLabSection(labID string, sectionID string) string {
-	labSectionID := fmt.Sprintf("e2e_test_lab_section_%s", uuid.New().String()[:8])
+	labSectionID := uuid.New().String()
 	now := time.Now()
 
 	_, err := s.DB.ExecContext(s.Ctx, `
@@ -156,7 +156,7 @@ func (s *TestSuite) CreateTestLabSection(labID string, sectionID string) string 
 
 // CreateTestMaterial creates a test material for a lab and returns the material ID
 func (s *TestSuite) CreateTestMaterial(labID string, materialType string) string {
-	materialID := fmt.Sprintf("e2e_test_material_%s", uuid.New().String()[:8])
+	materialID := uuid.New().String()
 	now := time.Now()
 
 	_, err := s.DB.ExecContext(s.Ctx, `
@@ -166,7 +166,7 @@ func (s *TestSuite) CreateTestMaterial(labID string, materialType string) string
 	s.Require().NoError(err, "Failed to create test material")
 
 	// Create lab material association
-	labMaterialID := fmt.Sprintf("e2e_test_lab_material_%s", uuid.New().String()[:8])
+	labMaterialID := uuid.New().String()
 	_, err = s.DB.ExecContext(s.Ctx, `
 		INSERT INTO lab_materials (id, lab_id, material_id, position, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6)
@@ -192,7 +192,7 @@ func (s *TestSuite) CreateTestCodeMaterial(labID string, taskID string) string {
 
 // CreateTestSubmission creates a test submission and returns the submission ID
 func (s *TestSuite) CreateTestSubmission(userID string, materialID string, labID string, sectionID string) string {
-	submissionID := fmt.Sprintf("e2e_test_submission_%s", uuid.New().String()[:8])
+	submissionID := uuid.New().String()
 	now := time.Now()
 
 	_, err := s.DB.ExecContext(s.Ctx, `
