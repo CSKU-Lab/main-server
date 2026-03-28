@@ -529,3 +529,211 @@ func TestLabService_UpdateByID_SameNameNoCheck(t *testing.T) {
 	// Verify ExistsByNameInCourseExcludingID was NOT called
 	mockLabRepo.AssertNotCalled(t, "ExistsByNameInCourseExcludingID")
 }
+
+// TestLabService_Create_CourseNotFound tests error handling when course doesn't exist
+func TestLabService_Create_CourseNotFound(t *testing.T) {
+	mockLabRepo := new(MockLabRepository)
+	mockCourseRepo := new(MockCourseRepository)
+	mockUoWRepo := new(MockUoWRepository)
+
+	service := NewLabService(mockLabRepo, mockCourseRepo, mockUoWRepo)
+
+	req := &requests.CreateLab{
+		DisplayName: "Test Lab",
+		CourseID:    "nonexistent-course",
+	}
+	userID := "user-123"
+
+	// Mock course not found
+	mockCourseRepo.On("GetByID", mock.Anything, "nonexistent-course").Return(nil, errors.New("course not found"))
+
+	labID, err := service.Create(context.Background(), req, userID)
+
+	assert.Error(t, err)
+	assert.Empty(t, labID)
+	assert.Contains(t, err.Error(), "course not found")
+	mockCourseRepo.AssertExpectations(t)
+	mockLabRepo.AssertNotCalled(t, "ExistsByNameInCourse")
+	mockUoWRepo.AssertNotCalled(t, "Execute")
+}
+
+// TestLabService_Create_RepositoryError tests error handling when repository fails
+func TestLabService_Create_RepositoryError(t *testing.T) {
+	mockLabRepo := new(MockLabRepository)
+	mockCourseRepo := new(MockCourseRepository)
+	mockUoWRepo := new(MockUoWRepository)
+
+	service := NewLabService(mockLabRepo, mockCourseRepo, mockUoWRepo)
+
+	req := &requests.CreateLab{
+		DisplayName: "Test Lab",
+		CourseID:    "course-123",
+	}
+	userID := "user-123"
+
+	// Mock course exists
+	mockCourseRepo.On("GetByID", mock.Anything, "course-123").Return(&models.Course{ID: "course-123"}, nil)
+
+	// Mock repository error during existence check
+	mockLabRepo.On("ExistsByNameInCourse", mock.Anything, "Test Lab", "course-123").Return(false, errors.New("database connection error"))
+
+	labID, err := service.Create(context.Background(), req, userID)
+
+	assert.Error(t, err)
+	assert.Empty(t, labID)
+	assert.Contains(t, err.Error(), "database connection error")
+	mockCourseRepo.AssertExpectations(t)
+	mockLabRepo.AssertExpectations(t)
+	mockUoWRepo.AssertNotCalled(t, "Execute")
+}
+
+// TestLabService_UpdateByID_LabNotFound tests error handling when lab doesn't exist
+func TestLabService_UpdateByID_LabNotFound(t *testing.T) {
+	mockLabRepo := new(MockLabRepository)
+	mockCourseRepo := new(MockCourseRepository)
+	mockUoWRepo := new(MockUoWRepository)
+
+	service := NewLabService(mockLabRepo, mockCourseRepo, mockUoWRepo)
+
+	labID := "nonexistent-lab"
+	userID := "user-123"
+	req := &requests.BaseUpdateLab{
+		DisplayName: "Updated Lab Name",
+	}
+
+	// Mock lab not found
+	mockLabRepo.On("GetByID", mock.Anything, labID).Return(nil, errors.New("lab not found"))
+
+	err := service.UpdateByID(context.Background(), labID, userID, req)
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "lab not found")
+	mockLabRepo.AssertExpectations(t)
+	mockCourseRepo.AssertNotCalled(t, "GetByID")
+	mockUoWRepo.AssertNotCalled(t, "Execute")
+	mockLabRepo.AssertNotCalled(t, "ExistsByNameInCourseExcludingID")
+	mockLabRepo.AssertNotCalled(t, "UpdateByID")
+}
+
+// TestLabService_UpdateByID_RepositoryError tests error handling during duplicate check
+func TestLabService_UpdateByID_RepositoryError(t *testing.T) {
+	mockLabRepo := new(MockLabRepository)
+	mockCourseRepo := new(MockCourseRepository)
+	mockUoWRepo := new(MockUoWRepository)
+
+	service := NewLabService(mockLabRepo, mockCourseRepo, mockUoWRepo)
+
+	labID := "lab-123"
+	userID := "user-123"
+	req := &requests.BaseUpdateLab{
+		DisplayName: "Updated Lab Name",
+	}
+
+	// Mock get lab by ID
+	mockLabRepo.On("GetByID", mock.Anything, labID).Return(&models.Lab{
+		ID:          labID,
+		DisplayName: "Old Lab Name",
+		CourseID:    "course-123",
+	}, nil)
+
+	// Mock repository error during duplicate check
+	mockLabRepo.On("ExistsByNameInCourseExcludingID", mock.Anything, "Updated Lab Name", "course-123", labID).Return(false, errors.New("database query failed"))
+
+	err := service.UpdateByID(context.Background(), labID, userID, req)
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "database query failed")
+	mockLabRepo.AssertExpectations(t)
+	mockCourseRepo.AssertNotCalled(t, "GetByID")
+	mockUoWRepo.AssertNotCalled(t, "Execute")
+	mockLabRepo.AssertNotCalled(t, "UpdateByID")
+}
+
+// TestLabService_UpdateByID_CourseNotFound tests error handling when course doesn't exist during update
+func TestLabService_UpdateByID_CourseNotFound(t *testing.T) {
+	mockLabRepo := new(MockLabRepository)
+	mockCourseRepo := new(MockCourseRepository)
+	mockUoWRepo := new(MockUoWRepository)
+
+	service := NewLabService(mockLabRepo, mockCourseRepo, mockUoWRepo)
+
+	labID := "lab-123"
+	userID := "user-123"
+	req := &requests.BaseUpdateLab{
+		DisplayName: "Updated Lab Name",
+	}
+
+	// Mock get lab by ID
+	mockLabRepo.On("GetByID", mock.Anything, labID).Return(&models.Lab{
+		ID:          labID,
+		DisplayName: "Old Lab Name",
+		CourseID:    "course-123",
+	}, nil)
+
+	// Mock no duplicate name
+	mockLabRepo.On("ExistsByNameInCourseExcludingID", mock.Anything, "Updated Lab Name", "course-123", labID).Return(false, nil)
+
+	// Mock course not found
+	mockCourseRepo.On("GetByID", mock.Anything, "course-123").Return(nil, errors.New("course not found"))
+
+	err := service.UpdateByID(context.Background(), labID, userID, req)
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "course not found")
+	mockLabRepo.AssertExpectations(t)
+	mockCourseRepo.AssertExpectations(t)
+	mockUoWRepo.AssertNotCalled(t, "Execute")
+	mockLabRepo.AssertNotCalled(t, "UpdateByID")
+}
+
+// TestLabService_UpdateByID_UpdateRepositoryError tests error handling when update fails
+func TestLabService_UpdateByID_UpdateRepositoryError(t *testing.T) {
+	mockLabRepo := new(MockLabRepository)
+	mockCourseRepo := new(MockCourseRepository)
+	mockUoWInstance := new(MockUoWInstance)
+	mockUoWRepo := &MockUoWRepository{MockUoW: mockUoWInstance}
+
+	service := NewLabService(mockLabRepo, mockCourseRepo, mockUoWRepo)
+
+	labID := "lab-123"
+	userID := "user-123"
+	req := &requests.BaseUpdateLab{
+		DisplayName: "Updated Lab Name",
+	}
+
+	// Mock get lab by ID
+	mockLabRepo.On("GetByID", mock.Anything, labID).Return(&models.Lab{
+		ID:          labID,
+		DisplayName: "Old Lab Name",
+		CourseID:    "course-123",
+	}, nil)
+
+	// Mock no duplicate name
+	mockLabRepo.On("ExistsByNameInCourseExcludingID", mock.Anything, "Updated Lab Name", "course-123", labID).Return(false, nil)
+
+	// Mock get course
+	mockCourseRepo.On("GetByID", mock.Anything, "course-123").Return(&models.Course{
+		ID:       "course-123",
+		Creators: []models.CourseCreator{{ID: userID}},
+	}, nil)
+
+	// Mock UoW for permission check
+	mockUserRepo := new(MockUserRepository)
+	mockUoWInstance.On("User").Return(mockUserRepo)
+	mockUserRepo.On("GetByID", mock.Anything, userID).Return(&repositories.UserData{
+		ID:    userID,
+		Roles: []string{"instructor"},
+	}, nil)
+	mockUoWRepo.On("Execute", mock.Anything, mock.Anything).Return(nil)
+
+	// Mock update failure
+	mockLabRepo.On("UpdateByID", mock.Anything, labID, req).Return(errors.New("update failed: constraint violation"))
+
+	err := service.UpdateByID(context.Background(), labID, userID, req)
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "update failed")
+	mockLabRepo.AssertExpectations(t)
+	mockCourseRepo.AssertExpectations(t)
+	mockUoWRepo.AssertExpectations(t)
+}
