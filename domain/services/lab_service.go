@@ -64,6 +64,19 @@ func (l *labService) Create(ctx context.Context, req *requests.CreateLab, userID
 		return "", err
 	}
 
+	// Check if a lab with the same name already exists in this course
+	exists, err := l.labRepo.ExistsByNameInCourse(ctx, req.DisplayName, req.CourseID)
+	if err != nil {
+		return "", err
+	}
+	if exists {
+		return "", cserrors.New(&cserrors.Option{
+			Code:       cserrors.LabAlreadyExists,
+			Message:    "A lab with this name already exists in the course",
+			HttpStatus: http.StatusConflict,
+		})
+	}
+
 	var labID string
 	err = l.uowRepo.Execute(ctx, func(u repositories.UoWInstance) error {
 		id, err := uuid.NewV7()
@@ -150,6 +163,22 @@ func (l *labService) UpdateByID(ctx context.Context, labID string, userID string
 	if err != nil {
 		return err
 	}
+
+	// If display_name is being updated, check for duplicates in the same course
+	if req.DisplayName != "" && req.DisplayName != lab.DisplayName {
+		exists, err := l.labRepo.ExistsByNameInCourseExcludingID(ctx, req.DisplayName, lab.CourseID, labID)
+		if err != nil {
+			return err
+		}
+		if exists {
+			return cserrors.New(&cserrors.Option{
+				Code:       cserrors.LabAlreadyExists,
+				Message:    "A lab with this name already exists in the course",
+				HttpStatus: http.StatusConflict,
+			})
+		}
+	}
+
 	course, err := l.courseRepo.GetByID(ctx, lab.CourseID)
 	if err != nil {
 		return err

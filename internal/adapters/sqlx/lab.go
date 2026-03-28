@@ -165,3 +165,23 @@ func (l *sqlxLabRepository) DeleteByID(ctx context.Context, labID string) error 
 	}
 	return nil
 }
+
+func (l *sqlxLabRepository) ExistsByNameInCourse(ctx context.Context, displayName string, courseID string) (bool, error) {
+	query := `SELECT EXISTS(SELECT 1 FROM labs WHERE display_name = $1 AND course_id = $2 AND is_deleted = false)`
+	var exists bool
+	err := l.db.GetContext(ctx, &exists, query, displayName, courseID)
+	if err != nil {
+		return false, err
+	}
+	return exists, nil
+}
+
+func (l *sqlxLabRepository) ExistsByNameInCourseExcludingID(ctx context.Context, displayName string, courseID string, excludeLabID string) (bool, error) {
+	query := `SELECT EXISTS(SELECT 1 FROM labs WHERE display_name = $1 AND course_id = $2 AND id != $3 AND is_deleted = false)`
+	var exists bool
+	err := l.db.GetContext(ctx, &exists, query, displayName, courseID, excludeLabID)
+	if err != nil {
+		return false, err
+	}
+	return exists, nil
+}
