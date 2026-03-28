@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
-	"github.com/CSKU-Lab/main-server/domain/models"
 	"github.com/CSKU-Lab/main-server/domain/services"
 	"github.com/CSKU-Lab/main-server/internal/adapters/middlewares"
 	"github.com/CSKU-Lab/main-server/internal/requests"
@@ -16,9 +15,7 @@ import (
 )
 
 func NewAdminSemesterRoutes(router fiber.Router, service services.SemesterService, sectionService services.SectionService, courseService services.CourseService) {
-	semesterRouter := router.Group("/semesters", middlewares.RBACMiddleware([]models.Role{
-		models.ADMIN,
-	}))
+	semesterRouter := router.Group("/semesters", middlewares.RequireAdmin())
 
 	semesterRouter.Post("/", middlewares.ValidateMiddleware[requests.CreateSemester](), func(c fiber.Ctx) error {
 		sem := c.Locals("body").(*requests.CreateSemester)
