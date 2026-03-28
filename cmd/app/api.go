@@ -91,6 +91,8 @@ func startApiServer(ctx context.Context, logger *zap.SugaredLogger, db *sqlx.DB,
 	sectionStudentRepo := sqlxAdapter.NewSectionStudentRepository(db)
 	sectionLogRepo := sqlxAdapter.NewSectionLogRepository(db)
 
+	sectionStudentService := services.NewSectionStudentService(sectionStudentRepo, sectionRepo, userRepo)
+
 	semesterRepo := sqlxAdapter.NewSqlxSemesterRepository(db)
 	semesterService := services.NewSemesterService(semesterRepo, sectionRepo, courseRepo)
 
@@ -303,12 +305,13 @@ func startApiServer(ctx context.Context, logger *zap.SugaredLogger, db *sqlx.DB,
 		SectionService:        sectionService,
 		LabSectionService:     labSectionService,
 		LabService:            labService,
-		SectionStudentService: sectionStudentRepo,
+		SectionStudentService: sectionStudentService,
 		LabMaterialService:    labMaterialService,
 		CourseService:         courseService,
 		SidebarService:        sidebarService,
 		MaterialService:       materialService,
 		SubmissionService:     submissionService,
+		SubmissionRepo:        submissionRepo,
 		PubSub:                rClient,
 	})
 

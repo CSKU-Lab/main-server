@@ -12,15 +12,18 @@ import (
 
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
 	"github.com/CSKU-Lab/main-server/domain/models"
+	"github.com/CSKU-Lab/main-server/domain/repositories"
 	"github.com/CSKU-Lab/main-server/domain/services"
 	"github.com/CSKU-Lab/main-server/internal/adapters/middlewares"
 	"github.com/CSKU-Lab/main-server/internal/requests"
 	"github.com/gofiber/fiber/v3"
 )
 
-func NewCoreSubmissionRoutes(router fiber.Router, service services.SubmissionService, labSectionService services.LabSectionService, labMaterialService services.LabMaterialService) {
+func NewCoreSubmissionRoutes(router fiber.Router, service services.SubmissionService, submissionRepo repositories.SubmissionRepository, labSectionService services.LabSectionService, labMaterialService services.LabMaterialService) {
 	submissionRouter := router.Group("/submissions")
 
+	// POST /api/v1/core/submissions - Create submission (must be enrolled student)
+	// Note: Section enrollment check is done in the service layer
 	submissionRouter.Post("/", middlewares.ValidateMiddleware[requests.Submission](), func(c fiber.Ctx) error {
 		payload := c.Locals("body").(*requests.Submission)
 
@@ -34,65 +37,75 @@ func NewCoreSubmissionRoutes(router fiber.Router, service services.SubmissionSer
 		})
 	})
 
-	submissionRouter.Get("/:id", func(c fiber.Ctx) error {
-		id := c.Params("id")
-		submission, err := service.Get(c.RequestCtx(), id)
-		if err != nil {
-			return err
-		}
+	// GET /api/v1/core/submissions/:id - Get specific submission (must be owner)
+	submissionRouter.Get("/:id",
+		middlewares.PermissionMiddleware(middlewares.IsSubmissionOwner(submissionRepo, "id")),
+		func(c fiber.Ctx) error {
+			id := c.Params("id")
+			submission, err := service.Get(c.RequestCtx(), id)
+			if err != nil {
+				return err
+			}
 
-		return c.JSON(submission)
-	})
+			return c.JSON(submission)
+		},
+	)
+
 	type submission struct {
 		ID     string `json:"id"`
 		Status string `json:"status"`
 	}
 
-	submissionRouter.Get("/:id/listen", func(c fiber.Ctx) error {
-		c.Set("Content-Type", "text/event-stream")
-		c.Set("Cache-Control", "no-cache")
-		c.Set("Connection", "keep-alive")
-		c.Set("Transfer-Encoding", "chunked")
+	// GET /api/v1/core/submissions/:id/listen - Listen to submission updates (must be owner)
+	submissionRouter.Get("/:id/listen",
+		middlewares.PermissionMiddleware(middlewares.IsSubmissionOwner(submissionRepo, "id")),
+		func(c fiber.Ctx) error {
+			c.Set("Content-Type", "text/event-stream")
+			c.Set("Cache-Control", "no-cache")
+			c.Set("Connection", "keep-alive")
+			c.Set("Transfer-Encoding", "chunked")
 
-		id := c.Params("id")
+			id := c.Params("id")
 
-		ctx, cancel := context.WithCancel(context.Background())
+			ctx, cancel := context.WithCancel(context.Background())
 
-		c.Status(fiber.StatusOK).RequestCtx().SetBodyStreamWriter(func(w *bufio.Writer) {
-			fmt.Fprint(w, "event: connected\ndata: connected\n\n")
-			err := w.Flush()
-			if err != nil {
-				cancel()
-				log.Println(err)
-				return
-			}
-
-			submissionChan, err := service.Listen(ctx, id)
-			if err != nil {
-				cancel()
-				log.Println("Error listening submission :", err)
-				return
-			}
-
-			for sub := range submissionChan {
-				data, err := json.Marshal(sub)
-				if err != nil {
-					log.Println(err)
-					return
-				}
-
-				fmt.Fprintf(w, "data: %s\n\n", data)
-				err = w.Flush()
+			c.Status(fiber.StatusOK).RequestCtx().SetBodyStreamWriter(func(w *bufio.Writer) {
+				fmt.Fprint(w, "event: connected\ndata: connected\n\n")
+				err := w.Flush()
 				if err != nil {
 					cancel()
 					log.Println(err)
 					return
 				}
-			}
-		})
-		return nil
-	})
 
+				submissionChan, err := service.Listen(ctx, id)
+				if err != nil {
+					cancel()
+					log.Println("Error listening submission :", err)
+					return
+				}
+
+				for sub := range submissionChan {
+					data, err := json.Marshal(sub)
+					if err != nil {
+						log.Println(err)
+						return
+					}
+
+					fmt.Fprintf(w, "data: %s\n\n", data)
+					err = w.Flush()
+					if err != nil {
+						cancel()
+						log.Println(err)
+						return
+					}
+				}
+			})
+			return nil
+		},
+	)
+
+	// GET /api/v1/core/submissions/ - List user's own submissions
 	submissionRouter.Get("/", func(c fiber.Ctx) error {
 		user := c.Locals("user").(*models.User)
 

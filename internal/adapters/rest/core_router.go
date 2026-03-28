@@ -2,6 +2,7 @@ package rest
 
 import (
 	"github.com/CSKU-Lab/main-server/domain/models"
+	"github.com/CSKU-Lab/main-server/domain/repositories"
 	"github.com/CSKU-Lab/main-server/domain/services"
 	"github.com/CSKU-Lab/main-server/internal/adapters/middlewares"
 	"github.com/CSKU-Lab/main-server/internal/adapters/pubsub"
@@ -20,6 +21,7 @@ type CoreRouter struct {
 	SidebarService        services.SidebarService
 	MaterialService       services.MaterialService
 	SubmissionService     services.SubmissionService
+	SubmissionRepo        repositories.SubmissionRepository
 	PubSub                pubsub.PubSub
 }
 
@@ -55,6 +57,7 @@ func NewCoreRouter(r *CoreRouter) {
 	routes.NewCoreSubmissionRoutes(
 		coreRouter,
 		r.SubmissionService,
+		r.SubmissionRepo,
 		r.LabSectionService,
 		r.LabMaterialService,
 	)
@@ -63,6 +66,7 @@ func NewCoreRouter(r *CoreRouter) {
 		coreRouter,
 		r.MaterialService,
 		r.SubmissionService,
+		r.SubmissionRepo,
 		r.LabSectionService,
 	)
 }

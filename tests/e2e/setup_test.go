@@ -302,6 +302,8 @@ func (s *TestSuite) initTestApp() {
 	sectionStudentRepo := sqlxAdapter.NewSectionStudentRepository(s.DB)
 	sectionLogRepo := sqlxAdapter.NewSectionLogRepository(s.DB)
 
+	sectionStudentService := services.NewSectionStudentService(sectionStudentRepo, sectionRepo, userRepo)
+
 	semesterRepo := sqlxAdapter.NewSqlxSemesterRepository(s.DB)
 	semesterService := services.NewSemesterService(semesterRepo, sectionRepo, courseRepo)
 
@@ -434,12 +436,13 @@ func (s *TestSuite) initTestApp() {
 		SectionService:        sectionService,
 		LabSectionService:     labSectionService,
 		LabService:            labService,
-		SectionStudentService: sectionStudentRepo,
+		SectionStudentService: sectionStudentService,
 		LabMaterialService:    labMaterialService,
 		CourseService:         courseService,
 		SidebarService:        sidebarService,
 		MaterialService:       materialService,
 		SubmissionService:     submissionService,
+		SubmissionRepo:        submissionRepo,
 		PubSub:                nil, // No PubSub in tests
 	})
 
