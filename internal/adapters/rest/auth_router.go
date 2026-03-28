@@ -2,12 +2,14 @@ package rest
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"time"
 
 	"github.com/CSKU-Lab/main-server/configs"
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
 	"github.com/CSKU-Lab/main-server/domain/models"
+	"github.com/CSKU-Lab/main-server/domain/permission"
 	"github.com/CSKU-Lab/main-server/domain/services"
 	"github.com/CSKU-Lab/main-server/infrastructure/auth"
 	"github.com/CSKU-Lab/main-server/internal/adapters/middlewares"
@@ -296,6 +298,79 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 		return c.JSON(fiber.Map{
 			"message": "success",
 		})
+	})
+
+	// Protected routes - require authentication
+	protectedAuthRouter := authRouter.Group("/", middlewares.RequirePermission(permission.IsAuthenticated))
+
+	// POST /api/v1/auth/logout - Logout current user
+	protectedAuthRouter.Post("/logout", func(c fiber.Ctx) error {
+		user := c.Locals("user").(*models.User)
+
+		// Delete refresh token from database
+		err := refreshTokenService.Delete(c.RequestCtx(), user.ID)
+		if err != nil {
+			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Error logging out"})
+		}
+
+		// Clear cookies
+		c.Cookie(&fiber.Cookie{
+			Name:     "access_token",
+			Value:    "",
+			Expires:  time.Now().Add(-time.Hour),
+			HTTPOnly: true,
+			SameSite: fiber.CookieSameSiteLaxMode,
+			Domain:   appConfig.COOKIE_DOMAIN,
+			Secure:   false,
+		})
+
+		c.Cookie(&fiber.Cookie{
+			Name:     "refresh_token",
+			Value:    "",
+			Expires:  time.Now().Add(-time.Hour),
+			HTTPOnly: true,
+			SameSite: fiber.CookieSameSiteLaxMode,
+			Domain:   appConfig.COOKIE_DOMAIN,
+			Secure:   false,
+		})
+
+		return c.JSON(fiber.Map{
+			"message": "success",
+		})
+	})
+
+	// GET /api/v1/auth/me - Get current user info
+	protectedAuthRouter.Get("/me", func(c fiber.Ctx) error {
+		user := c.Locals("user").(*models.User)
+
+		// Fetch full user details from database
+		fullUser, err := userService.GetByID(c.RequestCtx(), user.ID)
+		if err != nil {
+			var e *cserrors.Error
+			if errors.As(err, &e) {
+				return e
+			}
+			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Error getting user"})
+		}
+
+		return c.JSON(fullUser)
+	})
+
+	// PATCH /api/v1/auth/me - Update current user
+	protectedAuthRouter.Patch("/me", middlewares.ValidateMiddleware[requests.UpdateUser](), func(c fiber.Ctx) error {
+		user := c.Locals("user").(*models.User)
+		updateReq := c.Locals("body").(*requests.UpdateUser)
+
+		err := userService.Update(c.RequestCtx(), user.ID, updateReq)
+		if err != nil {
+			var e *cserrors.Error
+			if errors.As(err, &e) {
+				return e
+			}
+			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Error updating user"})
+		}
+
+		return c.SendStatus(fiber.StatusAccepted)
 	})
 
 }

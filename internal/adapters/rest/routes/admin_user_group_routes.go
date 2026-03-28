@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
-	"github.com/CSKU-Lab/main-server/domain/models"
+	"github.com/CSKU-Lab/main-server/domain/permission"
 	"github.com/CSKU-Lab/main-server/domain/services"
 	"github.com/CSKU-Lab/main-server/internal/adapters/middlewares"
 	"github.com/CSKU-Lab/main-server/internal/requests"
@@ -14,9 +14,7 @@ import (
 )
 
 func NewAdminUserGroupRoutes(router fiber.Router, userGroupService services.UserGroupService) {
-	adminUserGroupRoutes := router.Group("/user-groups", middlewares.RBACMiddleware([]models.Role{
-		models.ADMIN,
-	}))
+	adminUserGroupRoutes := router.Group("/user-groups", middlewares.RequirePermission(permission.IsAdmin))
 
 	adminUserGroupRoutes.Post("/", func(c fiber.Ctx) error {
 		var req requests.UserGroup

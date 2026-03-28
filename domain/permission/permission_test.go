@@ -353,3 +353,67 @@ func TestBuilderMethodChaining(t *testing.T) {
 		t.Errorf("expected nil error, got %v", err)
 	}
 }
+
+// TestIsAuthenticated tests the IsAuthenticated condition.
+func TestIsAuthenticated(t *testing.T) {
+	tests := []struct {
+		name     string
+		userID   string
+		expected bool
+	}{
+		{
+			name:     "authenticated user",
+			userID:   "user-123",
+			expected: true, // Always returns true (middleware validates token)
+		},
+		{
+			name:     "another authenticated user",
+			userID:   "user-456",
+			expected: true,
+		},
+		{
+			name:     "empty user id",
+			userID:   "",
+			expected: true, // Still returns true as middleware handles validation
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := IsAuthenticated.IsSatisfied(tt.userID)
+			if result != tt.expected {
+				t.Errorf("expected %v, got %v", tt.expected, result)
+			}
+		})
+	}
+}
+
+// TestIsAuthenticatedWithBuilder tests IsAuthenticated in a permission builder.
+func TestIsAuthenticatedWithBuilder(t *testing.T) {
+	// IsAuthenticated alone should always pass
+	err := User("user-123").
+		Conditions(IsAuthenticated).
+		Check()
+
+	if err != nil {
+		t.Errorf("expected nil error for IsAuthenticated, got %v", err)
+	}
+
+	// IsAuthenticated AND IsAdmin should fail (IsAdmin returns false in mock)
+	err = User("user-123").
+		Conditions(IsAuthenticated, IsAdmin).
+		Check()
+
+	if err != ErrForbidden {
+		t.Errorf("expected ErrForbidden when IsAuthenticated AND IsAdmin, got %v", err)
+	}
+
+	// IsAuthenticated OR IsAdmin should pass
+	err = User("user-123").
+		Conditions(Or(IsAuthenticated, IsAdmin)).
+		Check()
+
+	if err != nil {
+		t.Errorf("expected nil error for IsAuthenticated OR IsAdmin, got %v", err)
+	}
+}

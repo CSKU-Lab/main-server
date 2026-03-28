@@ -48,3 +48,8 @@ func (r *sqlxRefreshTokenRepository) Set(ctx context.Context, userID string, tok
 	}
 	return nil
 }
+
+func (r *sqlxRefreshTokenRepository) Delete(ctx context.Context, userID string) error {
+	_, err := r.db.ExecContext(ctx, "DELETE FROM user_refresh_tokens WHERE user_id = $1", userID)
+	return err
+}

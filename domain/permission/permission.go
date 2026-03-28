@@ -45,6 +45,21 @@ func (sec IsInSection) IsSatisfied(userID string) bool {
 	return true
 }
 
+// isAuthenticatedCondition checks if a user is authenticated (has a valid session).
+// This condition always returns true when used in middleware since the ProtectedRouteMiddleware
+// already validated the token. It's used as a marker for "any authenticated user".
+type isAuthenticatedCondition struct{}
+
+// IsSatisfied checks whether the user is authenticated.
+// Always returns true since middleware already validated the token.
+func (isAuthenticatedCondition) IsSatisfied(userID string) bool {
+	return true
+}
+
+// IsAuthenticated is a condition that allows any authenticated user.
+// Use this for routes that require login but no specific role.
+var IsAuthenticated = isAuthenticatedCondition{}
+
 // isAdminCondition checks if a user has admin privileges.
 // It is unexported, and accessed via the IsAdmin constant.
 type isAdminCondition struct{}
