@@ -1,7 +1,11 @@
 package permission
 
 import (
+	"context"
 	"testing"
+
+	"github.com/CSKU-Lab/main-server/domain/models"
+	"github.com/stretchr/testify/assert"
 )
 
 // TestIsInSection tests the IsInSection condition.
@@ -9,103 +13,111 @@ func TestIsInSection(t *testing.T) {
 	tests := []struct {
 		name     string
 		section  IsInSection
-		userID   string
+		user     *models.User
 		expected bool
 	}{
 		{
 			name:     "user in section",
 			section:  IsInSection("Section-A"),
-			userID:   "user-123",
+			user:     &models.User{ID: "user-123"},
 			expected: true,
 		},
 		{
 			name:     "another section",
 			section:  IsInSection("Section-B"),
-			userID:   "user-456",
+			user:     &models.User{ID: "user-456"},
 			expected: true,
 		},
 		{
-			name:     "empty user id",
+			name:     "nil user",
 			section:  IsInSection("Section-A"),
-			userID:   "",
-			expected: true,
+			user:     nil,
+			expected: false,
 		},
 	}
 
+	ctx := context.Background()
+	params := map[string]string{}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := tt.section.IsSatisfied(tt.userID)
-			if result != tt.expected {
-				t.Errorf("expected %v, got %v", tt.expected, result)
-			}
+			result := tt.section.Evaluate(ctx, tt.user, params)
+			assert.Equal(t, tt.expected, result)
 		})
 	}
 }
 
-// TestIsAdmin tests the IsAdmin condition.
-func TestIsAdmin(t *testing.T) {
+// TestIsAdminCondition tests the isAdminCondition.
+func TestIsAdminCondition(t *testing.T) {
 	tests := []struct {
 		name     string
-		userID   string
+		user     *models.User
 		expected bool
 	}{
 		{
-			name:     "admin check",
-			userID:   "user-123",
-			expected: false, // Mock returns false
+			name:     "user with admin role",
+			user:     &models.User{ID: "user-123", Roles: []models.Role{models.ADMIN}},
+			expected: true,
 		},
 		{
-			name:     "another user",
-			userID:   "user-456",
+			name:     "user without admin role",
+			user:     &models.User{ID: "user-456", Roles: []models.Role{models.STUDENT}},
 			expected: false,
 		},
 		{
-			name:     "empty user id",
-			userID:   "",
+			name:     "nil user",
+			user:     nil,
 			expected: false,
+		},
+		{
+			name:     "user with multiple roles including admin",
+			user:     &models.User{ID: "user-789", Roles: []models.Role{models.STUDENT, models.ADMIN}},
+			expected: true,
 		},
 	}
 
+	ctx := context.Background()
+	params := map[string]string{}
+	adminCond := isAdminCondition{}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := IsAdmin.IsSatisfied(tt.userID)
-			if result != tt.expected {
-				t.Errorf("expected %v, got %v", tt.expected, result)
-			}
+			result := adminCond.Evaluate(ctx, tt.user, params)
+			assert.Equal(t, tt.expected, result)
 		})
 	}
 }
 
-// TestOr tests the OR condition logic.
-func TestOr(t *testing.T) {
+// TestOrCondition tests the OR condition logic.
+func TestOrCondition(t *testing.T) {
 	tests := []struct {
 		name       string
 		conditions []Condition
-		userID     string
+		user       *models.User
 		expected   bool
 	}{
 		{
 			name: "one condition true",
 			conditions: []Condition{
 				IsInSection("Section-A"),
-				IsAdmin,
+				&isAdminCondition{},
 			},
-			userID:   "user-123",
-			expected: true, // IsInSection returns true (mock)
+			user:     &models.User{ID: "user-123"},
+			expected: true,
 		},
 		{
 			name: "both conditions false",
 			conditions: []Condition{
-				IsAdmin,
-				IsAdmin,
+				&isAdminCondition{},
+				&isAdminCondition{},
 			},
-			userID:   "user-123",
-			expected: false, // Both return false
+			user:     &models.User{ID: "user-123", Roles: []models.Role{models.STUDENT}},
+			expected: false,
 		},
 		{
 			name:       "single condition true",
 			conditions: []Condition{IsInSection("Section-A")},
-			userID:     "user-123",
+			user:       &models.User{ID: "user-123"},
 			expected:   true,
 		},
 		{
@@ -114,43 +126,106 @@ func TestOr(t *testing.T) {
 				IsInSection("Section-A"),
 				IsInSection("Section-B"),
 			},
-			userID:   "user-123",
-			expected: true, // First condition is true
+			user:     &models.User{ID: "user-123"},
+			expected: true,
 		},
 	}
 
+	ctx := context.Background()
+	params := map[string]string{}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			orCond := Or(tt.conditions...)
-			result := orCond.IsSatisfied(tt.userID)
-			if result != tt.expected {
-				t.Errorf("expected %v, got %v", tt.expected, result)
-			}
+			orCond := orCondition{conditions: tt.conditions}
+			result := orCond.Evaluate(ctx, tt.user, params)
+			assert.Equal(t, tt.expected, result)
 		})
 	}
 }
 
 // TestOrEmpty tests OR with no conditions.
 func TestOrEmpty(t *testing.T) {
-	orCond := Or()
-	result := orCond.IsSatisfied("user-123")
-	if result {
-		t.Errorf("expected false for empty OR, got %v", result)
+	orCond := orCondition{conditions: []Condition{}}
+	ctx := context.Background()
+	params := map[string]string{}
+	user := &models.User{ID: "user-123"}
+
+	result := orCond.Evaluate(ctx, user, params)
+	assert.False(t, result, "expected false for empty OR")
+}
+
+// TestAndCondition tests the AND condition logic.
+func TestAndCondition(t *testing.T) {
+	tests := []struct {
+		name       string
+		conditions []Condition
+		user       *models.User
+		expected   bool
+	}{
+		{
+			name: "all conditions true",
+			conditions: []Condition{
+				IsInSection("Section-A"),
+				IsInSection("Section-B"),
+			},
+			user:     &models.User{ID: "user-123"},
+			expected: true,
+		},
+		{
+			name: "one condition false",
+			conditions: []Condition{
+				IsInSection("Section-A"),
+				&isAdminCondition{},
+			},
+			user:     &models.User{ID: "user-123", Roles: []models.Role{models.STUDENT}},
+			expected: false,
+		},
+		{
+			name:       "empty conditions",
+			conditions: []Condition{},
+			user:       &models.User{ID: "user-123"},
+			expected:   true, // Empty AND returns true
+		},
 	}
+
+	ctx := context.Background()
+	params := map[string]string{}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			andCond := andCondition{conditions: tt.conditions}
+			result := andCond.Evaluate(ctx, tt.user, params)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+// TestNotCondition tests the NOT condition logic.
+func TestNotCondition(t *testing.T) {
+	ctx := context.Background()
+	params := map[string]string{}
+
+	t.Run("not true is false", func(t *testing.T) {
+		notCond := notCondition{condition: IsInSection("Section-A")}
+		user := &models.User{ID: "user-123"}
+		result := notCond.Evaluate(ctx, user, params)
+		assert.False(t, result)
+	})
+
+	t.Run("not false is true", func(t *testing.T) {
+		notCond := notCondition{condition: &isAdminCondition{}}
+		user := &models.User{ID: "user-123", Roles: []models.Role{models.STUDENT}}
+		result := notCond.Evaluate(ctx, user, params)
+		assert.True(t, result)
+	})
 }
 
 // TestUserBuilder tests the User builder function.
 func TestUserBuilder(t *testing.T) {
 	builder := User("user-123")
-	if builder == nil {
-		t.Error("expected non-nil builder")
-	}
-	if builder.userID != "user-123" {
-		t.Errorf("expected userID 'user-123', got %q", builder.userID)
-	}
-	if len(builder.conditions) != 0 {
-		t.Errorf("expected 0 conditions, got %d", len(builder.conditions))
-	}
+	assert.NotNil(t, builder)
+	assert.Equal(t, "user-123", builder.userID)
+	assert.Empty(t, builder.conditions)
 }
 
 // TestBuilderConditions tests adding conditions to a builder.
@@ -158,37 +233,29 @@ func TestBuilderConditions(t *testing.T) {
 	builder := User("user-123").
 		Conditions(IsInSection("Section-A"))
 
-	if len(builder.conditions) != 1 {
-		t.Errorf("expected 1 condition, got %d", len(builder.conditions))
-	}
+	assert.Len(t, builder.conditions, 1)
 
 	// Test chaining
-	builder.Conditions(IsAdmin, IsInSection("Section-B"))
-	if len(builder.conditions) != 3 {
-		t.Errorf("expected 3 conditions, got %d", len(builder.conditions))
-	}
+	builder.Conditions(&isAdminCondition{})
+	assert.Len(t, builder.conditions, 2)
 }
 
-// TestBuilderCheck tests the Check method with all conditions passing.
+// TestBuilderCheckPass tests the Check method with all conditions passing.
 func TestBuilderCheckPass(t *testing.T) {
 	err := User("user-123").
 		Conditions(IsInSection("Section-A")).
 		Check()
 
-	if err != nil {
-		t.Errorf("expected nil error, got %v", err)
-	}
+	assert.NoError(t, err)
 }
 
 // TestBuilderCheckFail tests the Check method when conditions fail.
 func TestBuilderCheckFail(t *testing.T) {
 	err := User("user-123").
-		Conditions(IsAdmin). // Mock returns false
+		Conditions(&isAdminCondition{}).
 		Check()
 
-	if err != ErrForbidden {
-		t.Errorf("expected ErrForbidden, got %v", err)
-	}
+	assert.Equal(t, ErrForbidden, err)
 }
 
 // TestBuilderCheckMultipleConditions tests AND logic with multiple conditions.
@@ -204,21 +271,21 @@ func TestBuilderCheckMultipleConditions(t *testing.T) {
 				IsInSection("Section-A"),
 				IsInSection("Section-B"),
 			},
-			shouldFail: false, // All return true (mock)
+			shouldFail: false,
 		},
 		{
 			name: "one condition fails",
 			conditions: []Condition{
 				IsInSection("Section-A"),
-				IsAdmin, // Returns false (mock)
+				&isAdminCondition{},
 			},
-			shouldFail: true, // AND logic: one false fails entire check
+			shouldFail: true,
 		},
 		{
 			name: "both conditions fail",
 			conditions: []Condition{
-				IsAdmin,
-				IsAdmin,
+				&isAdminCondition{},
+				&isAdminCondition{},
 			},
 			shouldFail: true,
 		},
@@ -228,11 +295,10 @@ func TestBuilderCheckMultipleConditions(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			err := User("user-123").Conditions(tt.conditions...).Check()
 
-			if tt.shouldFail && err != ErrForbidden {
-				t.Errorf("expected ErrForbidden, got %v", err)
-			}
-			if !tt.shouldFail && err != nil {
-				t.Errorf("expected nil, got %v", err)
+			if tt.shouldFail {
+				assert.Equal(t, ErrForbidden, err)
+			} else {
+				assert.NoError(t, err)
 			}
 		})
 	}
@@ -241,9 +307,7 @@ func TestBuilderCheckMultipleConditions(t *testing.T) {
 // TestBuilderCheckNoConditions tests Check with no conditions.
 func TestBuilderCheckNoConditions(t *testing.T) {
 	err := User("user-123").Check()
-	if err != nil {
-		t.Errorf("expected nil error for no conditions, got %v", err)
-	}
+	assert.NoError(t, err)
 }
 
 // TestBuilderConcurrentSafety tests that separate builders don't interfere.
@@ -252,21 +316,12 @@ func TestBuilderConcurrentSafety(t *testing.T) {
 	builder2 := User("user-2")
 
 	builder1.Conditions(IsInSection("Section-A"))
-	builder2.Conditions(IsAdmin)
+	builder2.Conditions(&isAdminCondition{})
 
-	if builder1.userID != "user-1" {
-		t.Errorf("builder1 userID changed: expected 'user-1', got %q", builder1.userID)
-	}
-	if builder2.userID != "user-2" {
-		t.Errorf("builder2 userID changed: expected 'user-2', got %q", builder2.userID)
-	}
-
-	if len(builder1.conditions) != 1 {
-		t.Errorf("builder1 conditions polluted: expected 1, got %d", len(builder1.conditions))
-	}
-	if len(builder2.conditions) != 1 {
-		t.Errorf("builder2 conditions polluted: expected 1, got %d", len(builder2.conditions))
-	}
+	assert.Equal(t, "user-1", builder1.userID)
+	assert.Equal(t, "user-2", builder2.userID)
+	assert.Len(t, builder1.conditions, 1)
+	assert.Len(t, builder2.conditions, 1)
 }
 
 // TestComplexPermissionCheck tests nested OR conditions with AND.
@@ -280,33 +335,33 @@ func TestComplexPermissionCheck(t *testing.T) {
 			name: "admin OR section-a (passes)",
 			conditions: []Condition{
 				Or(
-					IsAdmin,
+					&isAdminCondition{},
 					IsInSection("Section-A"),
 				),
 			},
-			shouldFail: false, // OR passes because IsInSection is true
+			shouldFail: false,
 		},
 		{
 			name: "admin AND (admin OR section) (fails)",
 			conditions: []Condition{
-				IsAdmin, // Fails
+				&isAdminCondition{},
 				Or(
-					IsAdmin,
+					&isAdminCondition{},
 					IsInSection("Section-A"),
 				),
 			},
-			shouldFail: true, // AND fails because IsAdmin is false
+			shouldFail: true,
 		},
 		{
 			name: "section-a AND (admin OR section-a) (passes)",
 			conditions: []Condition{
 				IsInSection("Section-A"),
 				Or(
-					IsAdmin,
+					&isAdminCondition{},
 					IsInSection("Section-A"),
 				),
 			},
-			shouldFail: false, // Both conditions pass
+			shouldFail: false,
 		},
 	}
 
@@ -314,11 +369,10 @@ func TestComplexPermissionCheck(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			err := User("user-123").Conditions(tt.conditions...).Check()
 
-			if tt.shouldFail && err != ErrForbidden {
-				t.Errorf("expected ErrForbidden, got %v", err)
-			}
-			if !tt.shouldFail && err != nil {
-				t.Errorf("expected nil, got %v", err)
+			if tt.shouldFail {
+				assert.Equal(t, ErrForbidden, err)
+			} else {
+				assert.NoError(t, err)
 			}
 		})
 	}
@@ -326,12 +380,8 @@ func TestComplexPermissionCheck(t *testing.T) {
 
 // TestErrForbiddenValue tests that ErrForbidden is properly defined.
 func TestErrForbiddenValue(t *testing.T) {
-	if ErrForbidden == nil {
-		t.Error("expected ErrForbidden to be non-nil")
-	}
-	if ErrForbidden.Error() != "forbidden" {
-		t.Errorf("expected error message 'forbidden', got %q", ErrForbidden.Error())
-	}
+	assert.NotNil(t, ErrForbidden)
+	assert.Equal(t, "forbidden", ErrForbidden.Error())
 }
 
 // TestBuilderMethodChaining tests that builder methods return the builder for chaining.
@@ -339,9 +389,7 @@ func TestBuilderMethodChaining(t *testing.T) {
 	builder := User("user-123")
 	returned := builder.Conditions(IsInSection("Section-A"))
 
-	if returned != builder {
-		t.Error("expected Conditions to return the same builder for chaining")
-	}
+	assert.Equal(t, builder, returned)
 
 	// Test full chain
 	err := User("user-123").
@@ -349,7 +397,23 @@ func TestBuilderMethodChaining(t *testing.T) {
 		Conditions(IsInSection("Section-B")).
 		Check()
 
-	if err != nil {
-		t.Errorf("expected nil error, got %v", err)
-	}
+	assert.NoError(t, err)
+}
+
+// TestIsAdminVariable tests the IsAdmin variable.
+func TestIsAdminVariable(t *testing.T) {
+	ctx := context.Background()
+	params := map[string]string{}
+
+	t.Run("IsAdmin with admin user", func(t *testing.T) {
+		user := &models.User{ID: "user-123", Roles: []models.Role{models.ADMIN}}
+		result := IsAdmin.Evaluate(ctx, user, params)
+		assert.True(t, result)
+	})
+
+	t.Run("IsAdmin with non-admin user", func(t *testing.T) {
+		user := &models.User{ID: "user-123", Roles: []models.Role{models.STUDENT}}
+		result := IsAdmin.Evaluate(ctx, user, params)
+		assert.False(t, result)
+	})
 }

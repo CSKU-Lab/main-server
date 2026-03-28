@@ -1,39 +1,59 @@
-// Package permission provides a flexible, type-safe permission builder for access control.
+// Package permission provides a flexible, type-safe permission builder and service for access control.
+//
+// This package provides two patterns:
+// 1. Service pattern (recommended): Use NewPermissionService with middleware for route-level guards
+// 2. Builder pattern (legacy): Use User().Conditions().Check() for programmatic checks
 //
 // The permission service uses a fluent builder pattern with composable conditions.
 // It is safe for concurrent use because each request gets a fresh Builder instance.
 //
-// Example usage:
+// Example usage (Service pattern):
+//
+//	permService := permission.NewPermissionService(...)
+//
+//	// In route setup:
+//	router.Get("/courses/:id",
+//	    middleware.RequirePermission(permService.IsCourseCreator("id")),
+//	    handler)
+//
+// Example usage (Builder pattern):
 //
 //	err := perm.User(userID).
-//		Conditions(
-//			perm.Or(
-//				perm.IsInSection("Section-A"),
-//				perm.IsAdmin,
-//			),
-//		).
-//		Check()
+//	    Conditions(
+//	        perm.Or(
+//	            perm.IsInSection("Section-A"),
+//	            perm.IsAdmin,
+//	        ),
+//	    ).
+//	    Check()
 //	if err != nil {
-//		return err // ErrForbidden if conditions fail
+//	    return err // ErrForbidden if conditions fail
 //	}
 package permission
 
-import "errors"
+import (
+	"context"
+	"errors"
+
+	"github.com/CSKU-Lab/main-server/domain/models"
+)
 
 // ErrForbidden is returned when a permission check fails.
 var ErrForbidden = errors.New("forbidden")
 
 // Condition defines the interface for permission checks.
-// Implementations must provide an IsSatisfied method that checks
+// Implementations must provide an Evaluate method that checks
 // if a user meets the specified permission criteria.
 type Condition interface {
-	// IsSatisfied checks whether the given userID satisfies this condition.
+	// Evaluate checks whether the given user satisfies this condition.
 	// Returns true if the condition is met, false otherwise.
-	IsSatisfied(userID string) bool
+	// The params map contains route parameters (e.g., "id" -> "course-123").
+	Evaluate(ctx context.Context, user *models.User, params map[string]string) bool
 }
 
 // IsInSection checks if a user belongs to a specific section.
-// It implements the Condition interface.
+// It implements both Condition and LegacyCondition interfaces for backward compatibility.
+// Deprecated: Use Service.IsSectionStudent() instead.
 type IsInSection string
 
 // IsSatisfied checks whether the user is in the specified section.
@@ -43,6 +63,15 @@ func (sec IsInSection) IsSatisfied(userID string) bool {
 	// TODO: Replace with actual database check
 	// Example: check user_sections table for (userID, sectionID) pair
 	return true
+}
+
+// Evaluate implements the Condition interface for IsInSection.
+func (sec IsInSection) Evaluate(ctx context.Context, user *models.User, params map[string]string) bool {
+	if user == nil {
+		return false
+	}
+	// For backward compatibility, delegate to IsSatisfied
+	return sec.IsSatisfied(user.ID)
 }
 
 // isAdminCondition checks if a user has admin privileges.
@@ -58,8 +87,22 @@ func (isAdminCondition) IsSatisfied(userID string) bool {
 	return false
 }
 
+// Evaluate implements the Condition interface for isAdminCondition.
+func (isAdminCondition) Evaluate(ctx context.Context, user *models.User, params map[string]string) bool {
+	if user == nil {
+		return false
+	}
+	for _, role := range user.Roles {
+		if role == models.ADMIN {
+			return true
+		}
+	}
+	return false
+}
+
 // IsAdmin is a constant-like variable that can be used in permission checks.
 // It checks if a user has admin privileges.
+// It implements both Condition and LegacyCondition interfaces.
 var IsAdmin = isAdminCondition{}
 
 // orCondition implements OR logic as a Condition.
@@ -68,10 +111,17 @@ type orCondition struct {
 	conditions []Condition
 }
 
-// IsSatisfied returns true if ANY of the sub-conditions are satisfied.
+// IsSatisfied returns true if ANY of the sub-conditions are satisfied (legacy method).
 func (or orCondition) IsSatisfied(userID string) bool {
+	// Create a minimal user for evaluation
+	user := &models.User{ID: userID}
+	return or.Evaluate(context.Background(), user, nil)
+}
+
+// Evaluate returns true if ANY of the sub-conditions are satisfied.
+func (or orCondition) Evaluate(ctx context.Context, user *models.User, params map[string]string) bool {
 	for _, c := range or.conditions {
-		if c.IsSatisfied(userID) {
+		if c.Evaluate(ctx, user, params) {
 			return true
 		}
 	}
@@ -80,13 +130,7 @@ func (or orCondition) IsSatisfied(userID string) bool {
 
 // Or combines multiple conditions with OR logic.
 // The resulting condition passes if ANY of the input conditions are satisfied.
-//
-// Example:
-//
-//	perm.Or(
-//		perm.IsInSection("Section-A"),
-//		perm.IsAdmin,
-//	)
+// This function accepts both Condition and LegacyCondition types.
 func Or(conditions ...Condition) Condition {
 	return orCondition{conditions: conditions}
 }
@@ -116,8 +160,8 @@ func User(userID string) *Builder {
 // Example:
 //
 //	perm.User(userID).
-//		Conditions(perm.IsAdmin).
-//		Conditions(perm.IsInSection("Section-A"))
+//	    Conditions(perm.IsAdmin).
+//	    Conditions(perm.IsInSection("Section-A"))
 func (b *Builder) Conditions(conditions ...Condition) *Builder {
 	b.conditions = append(b.conditions, conditions...)
 	return b
@@ -130,15 +174,20 @@ func (b *Builder) Conditions(conditions ...Condition) *Builder {
 // Example:
 //
 //	err := perm.User(userID).
-//		Conditions(perm.IsInSection("Section-A")).
-//		Check()
+//	    Conditions(perm.IsInSection("Section-A")).
+//	    Check()
 //	if err != nil {
-//		return err // Handle permission denied
+//	    return err // Handle permission denied
 //	}
 func (b *Builder) Check() error {
+	// Create a minimal context for evaluation
+	ctx := context.Background()
+	user := &models.User{ID: b.userID}
+	params := map[string]string{}
+
 	// All conditions must be satisfied (AND logic)
 	for _, cond := range b.conditions {
-		if !cond.IsSatisfied(b.userID) {
+		if !cond.Evaluate(ctx, user, params) {
 			return ErrForbidden
 		}
 	}

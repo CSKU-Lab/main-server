@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/CSKU-Lab/main-server/configs"
+	"github.com/CSKU-Lab/main-server/domain/permission"
 	"github.com/CSKU-Lab/main-server/domain/registrables"
 	"github.com/CSKU-Lab/main-server/domain/registries"
 	"github.com/CSKU-Lab/main-server/domain/services"
@@ -140,6 +141,16 @@ func startApiServer(ctx context.Context, logger *zap.SugaredLogger, db *sqlx.DB,
 
 	submissionRepo := sqlxAdapter.NewSubmissionRepository(db)
 	codeSubmissionRepo := sqlxAdapter.NewCodeSubmission(db)
+
+	// Initialize permission service with required repositories
+	// This service is used by route handlers for permission checks via middleware
+	permissionService := permission.NewPermissionService(
+		courseCreatorRepo,
+		sectionInstructorRepo,
+		sectionStudentRepo,
+		submissionRepo,
+	)
+	_ = permissionService // Used by route handlers in sub-tasks
 
 	codeSubmissionRegistrable := registrables.NewCodeSubmission(codeSubmissionRepo, codeMaterialRepo, submissionRepo, taskGrpcClient)
 
