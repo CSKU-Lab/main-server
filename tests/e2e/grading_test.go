@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -40,7 +41,7 @@ func (s *GradingTestSuite) TestGetSubmissionsForGrading_Instructor_Success() {
 
 	s.CreateTestLabSection(labID, sectionID)
 
-	materialID := s.CreateTestMaterial(labID, "code", s.TestUser.Admin.UserID)
+	materialID := s.CreateTestCodeMaterial(labID, uuid.New().String(), s.TestUser.Admin.UserID)
 
 	submissionID := s.CreateTestSubmission(s.TestUser.Student.UserID, materialID, labID, sectionID, courseID)
 
@@ -76,7 +77,7 @@ func (s *GradingTestSuite) TestGetSubmissionsForGrading_Admin_Success() {
 
 	s.CreateTestLabSection(labID, sectionID)
 
-	materialID := s.CreateTestMaterial(labID, "code", s.TestUser.Admin.UserID)
+	materialID := s.CreateTestCodeMaterial(labID, uuid.New().String(), s.TestUser.Admin.UserID)
 
 	submissionID := s.CreateTestSubmission(s.TestUser.Student.UserID, materialID, labID, sectionID, courseID)
 
@@ -106,7 +107,7 @@ func (s *GradingTestSuite) TestGetSubmissionsForGrading_Student_Forbidden() {
 	labID := s.CreateTestLab(courseID, s.TestUser.Admin.UserID)
 	defer s.CleanupTestLab(labID)
 
-	materialID := s.CreateTestMaterial(labID, "code", s.TestUser.Admin.UserID)
+	materialID := s.CreateTestCodeMaterial(labID, uuid.New().String(), s.TestUser.Admin.UserID)
 
 	studentToken := s.GenerateTestJWT(s.TestUser.Student.UserID, s.TestUser.Student.Username, s.TestUser.Student.Roles)
 
@@ -134,7 +135,7 @@ func (s *GradingTestSuite) TestGetStudentSubmissionsByStudentID_Instructor_Succe
 
 	s.CreateTestLabSection(labID, sectionID)
 
-	materialID := s.CreateTestMaterial(labID, "code", s.TestUser.Admin.UserID)
+	materialID := s.CreateTestCodeMaterial(labID, uuid.New().String(), s.TestUser.Admin.UserID)
 
 	submissionID := s.CreateTestSubmission(s.TestUser.Student.UserID, materialID, labID, sectionID, courseID)
 
@@ -261,7 +262,7 @@ func (s *GradingTestSuite) TestSubmitGrade_Instructor_Success() {
 	labID := s.CreateTestLab(courseID, s.TestUser.Admin.UserID)
 	defer s.CleanupTestLab(labID)
 
-	materialID := s.CreateTestMaterial(labID, "code", s.TestUser.Admin.UserID)
+	materialID := s.CreateTestCodeMaterial(labID, uuid.New().String(), s.TestUser.Admin.UserID)
 
 	submissionID := s.CreateTestSubmission(s.TestUser.Student.UserID, materialID, labID, sectionID, courseID)
 
@@ -295,7 +296,7 @@ func (s *GradingTestSuite) TestSubmitGrade_InvalidScore() {
 	labID := s.CreateTestLab(courseID, s.TestUser.Admin.UserID)
 	defer s.CleanupTestLab(labID)
 
-	materialID := s.CreateTestMaterial(labID, "code", s.TestUser.Admin.UserID)
+	materialID := s.CreateTestCodeMaterial(labID, uuid.New().String(), s.TestUser.Admin.UserID)
 
 	submissionID := s.CreateTestSubmission(s.TestUser.Student.UserID, materialID, labID, sectionID, courseID)
 
@@ -331,7 +332,7 @@ func (s *GradingTestSuite) TestSubmitGrade_NonInstructor_Forbidden() {
 	labID := s.CreateTestLab(courseID, s.TestUser.Admin.UserID)
 	defer s.CleanupTestLab(labID)
 
-	materialID := s.CreateTestMaterial(labID, "code", s.TestUser.Admin.UserID)
+	materialID := s.CreateTestCodeMaterial(labID, uuid.New().String(), s.TestUser.Admin.UserID)
 
 	submissionID := s.CreateTestSubmission(s.TestUser.Student.UserID, materialID, labID, sectionID, courseID)
 

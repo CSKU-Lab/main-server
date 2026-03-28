@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -44,7 +45,7 @@ func (s *GradingRoutesTestSuite) TestGetGradebook_AdminCanGet() {
 	_ = labSectionID
 
 	// Create material
-	materialID := s.CreateTestMaterial(labID, "code", adminID)
+	materialID := s.CreateTestCodeMaterial(labID, uuid.New().String(), adminID)
 	_ = materialID
 
 	// Create submission
@@ -95,7 +96,7 @@ func (s *GradingRoutesTestSuite) TestGetGradebook_InstructorCanGet() {
 	_ = labSectionID
 
 	// Create material
-	materialID := s.CreateTestMaterial(labID, "code", instructorID)
+	materialID := s.CreateTestCodeMaterial(labID, uuid.New().String(), instructorID)
 	_ = materialID
 
 	// Create submission
@@ -175,7 +176,7 @@ func (s *GradingRoutesTestSuite) TestExportGradebookCSV_AdminCanExport() {
 	_ = labSectionID
 
 	// Create material
-	materialID := s.CreateTestMaterial(labID, "code", adminID)
+	materialID := s.CreateTestCodeMaterial(labID, uuid.New().String(), adminID)
 	_ = materialID
 
 	// Create submission
@@ -227,7 +228,7 @@ func (s *GradingRoutesTestSuite) TestExportGradebookXLSX_AdminCanExport() {
 	_ = labSectionID
 
 	// Create material
-	materialID := s.CreateTestMaterial(labID, "code", adminID)
+	materialID := s.CreateTestCodeMaterial(labID, uuid.New().String(), adminID)
 	_ = materialID
 
 	// Create submission
@@ -307,7 +308,7 @@ func (s *GradingRoutesTestSuite) TestGetLabStudentStatus_AdminCanGet() {
 	_ = labSectionID
 
 	// Create material
-	materialID := s.CreateTestMaterial(labID, "code", adminID)
+	materialID := s.CreateTestCodeMaterial(labID, uuid.New().String(), adminID)
 	_ = materialID
 
 	// Create submission
@@ -358,7 +359,7 @@ func (s *GradingRoutesTestSuite) TestGetStudentSubmissionsByMaterial_AdminCanGet
 	_ = labSectionID
 
 	// Create material
-	materialID := s.CreateTestMaterial(labID, "code", adminID)
+	materialID := s.CreateTestCodeMaterial(labID, uuid.New().String(), adminID)
 	_ = materialID
 
 	// Create submission

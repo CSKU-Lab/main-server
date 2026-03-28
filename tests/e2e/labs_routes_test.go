@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -327,8 +328,8 @@ func (s *LabsRoutesTestSuite) TestAddMaterialToLab_AdminCanAdd() {
 	labID := s.CreateTestLab(courseID, adminID)
 	defer s.CleanupTestLab(labID)
 
-	// Create a material
-	materialID := s.CreateTestMaterial(labID, "code", adminID)
+	// Create a material (standalone, not associated with lab yet)
+	materialID := s.CreateTestMaterialStandalone("code", adminID)
 	// Cleanup will be handled by lab cleanup
 
 	// Generate admin token
@@ -367,7 +368,7 @@ func (s *LabsRoutesTestSuite) TestListLabMaterials_AdminCanList() {
 	defer s.CleanupTestLab(labID)
 
 	// Create a material
-	materialID := s.CreateTestMaterial(labID, "code", adminID)
+	materialID := s.CreateTestCodeMaterial(labID, uuid.New().String(), adminID)
 	_ = materialID
 
 	// Generate admin token
@@ -405,8 +406,8 @@ func (s *LabsRoutesTestSuite) TestGetAllLabMaterials_AdminCanGet() {
 	defer s.CleanupTestLab(labID)
 
 	// Create materials
-	materialID1 := s.CreateTestMaterial(labID, "code", adminID)
-	materialID2 := s.CreateTestMaterial(labID, "code", adminID)
+	materialID1 := s.CreateTestCodeMaterial(labID, uuid.New().String(), adminID)
+	materialID2 := s.CreateTestCodeMaterial(labID, uuid.New().String(), adminID)
 	_ = materialID1
 	_ = materialID2
 
@@ -496,7 +497,7 @@ func (s *LabsRoutesTestSuite) TestStudentListLabMaterials_StudentCanList() {
 	_ = labSectionID
 
 	// Create materials
-	materialID := s.CreateTestMaterial(labID, "code", adminID)
+	materialID := s.CreateTestCodeMaterial(labID, uuid.New().String(), adminID)
 	_ = materialID
 
 	// Generate student token

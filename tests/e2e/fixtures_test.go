@@ -14,8 +14,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// CreateTestUser creates a test user with the specified role and returns the user ID
-func (s *TestSuite) CreateTestUser(role string, roles []string) string {
+// CreateTestUserWithUsername creates a test user and returns both ID and username
+func (s *TestSuite) CreateTestUserWithUsername(role string, roles []string) (string, string) {
 	userID := uuid.New().String()
 	username := fmt.Sprintf("test_%s_%s", role, uuid.New().String()[:8])
 	email := fmt.Sprintf("%s@e2etest.example.com", username)
@@ -51,6 +51,12 @@ func (s *TestSuite) CreateTestUser(role string, roles []string) string {
 	`, userID, string(passwordHash))
 	s.Require().NoError(err, "Failed to create user password")
 
+	return userID, username
+}
+
+// CreateTestUser creates a test user with the specified role and returns the user ID
+func (s *TestSuite) CreateTestUser(role string, roles []string) string {
+	userID, _ := s.CreateTestUserWithUsername(role, roles)
 	return userID
 }
 
@@ -179,7 +185,20 @@ func (s *TestSuite) CreateTestMaterial(labID string, materialType string, create
 	return materialID
 }
 
-// CreateTestCodeMaterial creates a test code material with task configuration
+// CreateTestMaterialStandalone creates a test material without lab association
+func (s *TestSuite) CreateTestMaterialStandalone(materialType string, createdBy string) string {
+	materialID := uuid.New().String()
+	now := time.Now()
+
+	// Schema requires: id, name, type, visibility, created_by, auto_score, manual_score, created_at, updated_at, is_deleted
+	_, err := s.DB.ExecContext(s.Ctx, `
+		INSERT INTO materials (id, name, type, visibility, created_by, auto_score, manual_score, created_at, updated_at, is_deleted)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, false)
+	`, materialID, fmt.Sprintf("E2E Test Material %s", uuid.New().String()[:8]), materialType, "public", createdBy, 0, 0, now, now)
+	s.Require().NoError(err, "Failed to create test material")
+
+	return materialID
+}
 func (s *TestSuite) CreateTestCodeMaterial(labID string, taskID string, createdBy string) string {
 	materialID := s.CreateTestMaterial(labID, "code", createdBy)
 

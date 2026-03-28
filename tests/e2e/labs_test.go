@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -310,7 +311,7 @@ func (s *LabsTestSuite) TestListLabMaterials_Admin_Success() {
 	defer s.CleanupTestLab(labID)
 
 	// Create a material for the lab
-	materialID := s.CreateTestMaterial(labID, "code", s.TestUser.Admin.UserID)
+	materialID := s.CreateTestCodeMaterial(labID, uuid.New().String(), s.TestUser.Admin.UserID)
 
 	adminToken := s.GenerateTestJWT(s.TestUser.Admin.UserID, s.TestUser.Admin.Username, s.TestUser.Admin.Roles)
 
@@ -334,7 +335,7 @@ func (s *LabsTestSuite) TestGetAllLabMaterials_Admin_Success() {
 	defer s.CleanupTestLab(labID)
 
 	// Create materials for the lab
-	materialID := s.CreateTestMaterial(labID, "code", s.TestUser.Admin.UserID)
+	materialID := s.CreateTestCodeMaterial(labID, uuid.New().String(), s.TestUser.Admin.UserID)
 
 	adminToken := s.GenerateTestJWT(s.TestUser.Admin.UserID, s.TestUser.Admin.Username, s.TestUser.Admin.Roles)
 
@@ -359,8 +360,8 @@ func (s *LabsTestSuite) TestAddMaterialToLab_Admin_Success() {
 	labID := s.CreateTestLab(courseID, s.TestUser.Admin.UserID)
 	defer s.CleanupTestLab(labID)
 
-	// Create a material first
-	materialID := s.CreateTestMaterial(labID, "code", s.TestUser.Admin.UserID)
+	// Create a material first (standalone, not associated with lab yet)
+	materialID := s.CreateTestMaterialStandalone("code", s.TestUser.Admin.UserID)
 
 	adminToken := s.GenerateTestJWT(s.TestUser.Admin.UserID, s.TestUser.Admin.Username, s.TestUser.Admin.Roles)
 
@@ -387,7 +388,7 @@ func (s *LabsTestSuite) TestRemoveMaterialFromLab_Admin_Success() {
 	defer s.CleanupTestLab(labID)
 
 	// Create a material for the lab
-	materialID := s.CreateTestMaterial(labID, "code", s.TestUser.Admin.UserID)
+	materialID := s.CreateTestCodeMaterial(labID, uuid.New().String(), s.TestUser.Admin.UserID)
 
 	adminToken := s.GenerateTestJWT(s.TestUser.Admin.UserID, s.TestUser.Admin.Username, s.TestUser.Admin.Roles)
 

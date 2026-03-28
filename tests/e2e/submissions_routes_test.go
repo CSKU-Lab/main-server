@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -45,7 +46,7 @@ func (s *SubmissionsRoutesTestSuite) TestCreateSubmission_StudentCanCreate() {
 	_ = labSectionID
 
 	// Create material
-	materialID := s.CreateTestMaterial(labID, "code", adminID)
+	materialID := s.CreateTestCodeMaterial(labID, uuid.New().String(), adminID)
 	_ = materialID
 
 	// Generate student token
@@ -138,7 +139,7 @@ func (s *SubmissionsRoutesTestSuite) TestGetSubmission_StudentCanGetOwn() {
 	_ = labSectionID
 
 	// Create material
-	materialID := s.CreateTestMaterial(labID, "code", adminID)
+	materialID := s.CreateTestCodeMaterial(labID, uuid.New().String(), adminID)
 	_ = materialID
 
 	// Create submission
@@ -188,7 +189,7 @@ func (s *SubmissionsRoutesTestSuite) TestListUserSubmissions_StudentCanList() {
 	_ = labSectionID
 
 	// Create material
-	materialID := s.CreateTestMaterial(labID, "code", adminID)
+	materialID := s.CreateTestCodeMaterial(labID, uuid.New().String(), adminID)
 	_ = materialID
 
 	// Create submission
@@ -239,7 +240,7 @@ func (s *SubmissionsRoutesTestSuite) TestGetMaterialSubmissions_StudentCanGet() 
 	_ = labSectionID
 
 	// Create material
-	materialID := s.CreateTestMaterial(labID, "code", adminID)
+	materialID := s.CreateTestCodeMaterial(labID, uuid.New().String(), adminID)
 	_ = materialID
 
 	// Create submission
@@ -290,7 +291,7 @@ func (s *SubmissionsRoutesTestSuite) TestUpdateManualScore_AdminCanUpdate() {
 	_ = labSectionID
 
 	// Create material
-	materialID := s.CreateTestMaterial(labID, "code", adminID)
+	materialID := s.CreateTestCodeMaterial(labID, uuid.New().String(), adminID)
 	_ = materialID
 
 	// Create submission
@@ -341,7 +342,7 @@ func (s *SubmissionsRoutesTestSuite) TestUpdateManualScore_StudentCannotUpdate()
 	_ = labSectionID
 
 	// Create material
-	materialID := s.CreateTestMaterial(labID, "code", adminID)
+	materialID := s.CreateTestCodeMaterial(labID, uuid.New().String(), adminID)
 	_ = materialID
 
 	// Create submission
@@ -392,7 +393,7 @@ func (s *SubmissionsRoutesTestSuite) TestGetSectionLabMaterialSubmissions_AdminC
 	_ = labSectionID
 
 	// Create material
-	materialID := s.CreateTestMaterial(labID, "code", adminID)
+	materialID := s.CreateTestCodeMaterial(labID, uuid.New().String(), adminID)
 	_ = materialID
 
 	// Create submission

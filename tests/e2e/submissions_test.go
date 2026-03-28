@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -41,7 +42,7 @@ func (s *SubmissionsTestSuite) TestCreateSubmission_Student_Success() {
 
 	s.CreateTestLabSection(labID, sectionID)
 
-	materialID := s.CreateTestMaterial(labID, "code", s.TestUser.Admin.UserID)
+	materialID := s.CreateTestCodeMaterial(labID, uuid.New().String(), s.TestUser.Admin.UserID)
 
 	studentToken := s.GenerateTestJWT(s.TestUser.Student.UserID, s.TestUser.Student.Username, s.TestUser.Student.Roles)
 
@@ -127,7 +128,7 @@ func (s *SubmissionsTestSuite) TestGetSubmission_Owner_Success() {
 	labID := s.CreateTestLab(courseID, s.TestUser.Admin.UserID)
 	defer s.CleanupTestLab(labID)
 
-	materialID := s.CreateTestMaterial(labID, "code", s.TestUser.Admin.UserID)
+	materialID := s.CreateTestCodeMaterial(labID, uuid.New().String(), s.TestUser.Admin.UserID)
 
 	submissionID := s.CreateTestSubmission(s.TestUser.Student.UserID, materialID, labID, sectionID, courseID)
 
@@ -161,7 +162,7 @@ func (s *SubmissionsTestSuite) TestGetSubmission_Instructor_Success() {
 	labID := s.CreateTestLab(courseID, s.TestUser.Admin.UserID)
 	defer s.CleanupTestLab(labID)
 
-	materialID := s.CreateTestMaterial(labID, "code", s.TestUser.Admin.UserID)
+	materialID := s.CreateTestCodeMaterial(labID, uuid.New().String(), s.TestUser.Admin.UserID)
 
 	submissionID := s.CreateTestSubmission(s.TestUser.Student.UserID, materialID, labID, sectionID, courseID)
 
@@ -200,7 +201,7 @@ func (s *SubmissionsTestSuite) TestListSubmissions_Student_Success() {
 	labID := s.CreateTestLab(courseID, s.TestUser.Admin.UserID)
 	defer s.CleanupTestLab(labID)
 
-	materialID := s.CreateTestMaterial(labID, "code", s.TestUser.Admin.UserID)
+	materialID := s.CreateTestCodeMaterial(labID, uuid.New().String(), s.TestUser.Admin.UserID)
 
 	submissionID := s.CreateTestSubmission(s.TestUser.Student.UserID, materialID, labID, sectionID, courseID)
 
@@ -231,7 +232,7 @@ func (s *SubmissionsTestSuite) TestListSubmissions_WithFilters() {
 	labID := s.CreateTestLab(courseID, s.TestUser.Admin.UserID)
 	defer s.CleanupTestLab(labID)
 
-	materialID := s.CreateTestMaterial(labID, "code", s.TestUser.Admin.UserID)
+	materialID := s.CreateTestCodeMaterial(labID, uuid.New().String(), s.TestUser.Admin.UserID)
 
 	submissionID := s.CreateTestSubmission(s.TestUser.Student.UserID, materialID, labID, sectionID, courseID)
 
@@ -261,7 +262,7 @@ func (s *SubmissionsTestSuite) TestUpdateManualScore_Instructor_Success() {
 	labID := s.CreateTestLab(courseID, s.TestUser.Admin.UserID)
 	defer s.CleanupTestLab(labID)
 
-	materialID := s.CreateTestMaterial(labID, "code", s.TestUser.Admin.UserID)
+	materialID := s.CreateTestCodeMaterial(labID, uuid.New().String(), s.TestUser.Admin.UserID)
 
 	submissionID := s.CreateTestSubmission(s.TestUser.Student.UserID, materialID, labID, sectionID, courseID)
 
@@ -295,7 +296,7 @@ func (s *SubmissionsTestSuite) TestUpdateManualScore_Admin_Success() {
 	labID := s.CreateTestLab(courseID, s.TestUser.Admin.UserID)
 	defer s.CleanupTestLab(labID)
 
-	materialID := s.CreateTestMaterial(labID, "code", s.TestUser.Admin.UserID)
+	materialID := s.CreateTestCodeMaterial(labID, uuid.New().String(), s.TestUser.Admin.UserID)
 
 	submissionID := s.CreateTestSubmission(s.TestUser.Student.UserID, materialID, labID, sectionID, courseID)
 
@@ -329,7 +330,7 @@ func (s *SubmissionsTestSuite) TestUpdateManualScore_Student_Forbidden() {
 	labID := s.CreateTestLab(courseID, s.TestUser.Admin.UserID)
 	defer s.CleanupTestLab(labID)
 
-	materialID := s.CreateTestMaterial(labID, "code", s.TestUser.Admin.UserID)
+	materialID := s.CreateTestCodeMaterial(labID, uuid.New().String(), s.TestUser.Admin.UserID)
 
 	submissionID := s.CreateTestSubmission(s.TestUser.Student.UserID, materialID, labID, sectionID, courseID)
 
@@ -363,7 +364,7 @@ func (s *SubmissionsTestSuite) TestUpdateManualScore_InvalidScore() {
 	labID := s.CreateTestLab(courseID, s.TestUser.Admin.UserID)
 	defer s.CleanupTestLab(labID)
 
-	materialID := s.CreateTestMaterial(labID, "code", s.TestUser.Admin.UserID)
+	materialID := s.CreateTestCodeMaterial(labID, uuid.New().String(), s.TestUser.Admin.UserID)
 
 	submissionID := s.CreateTestSubmission(s.TestUser.Student.UserID, materialID, labID, sectionID, courseID)
 

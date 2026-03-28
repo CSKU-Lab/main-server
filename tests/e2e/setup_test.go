@@ -315,10 +315,11 @@ func (s *TestSuite) initTestApp() {
 	codeMaterialRepo := sqlxAdapter.NewCodeMaterialRepository(s.DB)
 
 	materialRegistry := registries.NewMaterialRegistry()
-	// Note: codeMaterial requires gRPC clients which may not be available in tests
-	// We'll register a minimal version or skip if not available
-	_ = codeMaterialRepo
-	_ = materialRegistry
+	// Register code material handler - needed for submission tests
+	taskStub := NewTaskServiceStub()
+	configStub := NewConfigServiceStub()
+	codeMaterial := registrables.NewCodeMaterial(codeMaterialRepo, taskStub, configStub)
+	materialRegistry.Register("code", codeMaterial)
 
 	labRepo := sqlxAdapter.NewSqlxLabRepository(s.DB)
 	labService := services.NewLabService(labRepo, courseRepo, uowRepo)
@@ -350,8 +351,12 @@ func (s *TestSuite) initTestApp() {
 	sidebarService := services.NewSidebarService(courseRepo, sectionStudentRepo, labSectionRepo, labMaterialRepo)
 
 	submissionRepo := sqlxAdapter.NewSubmissionRepository(s.DB)
+	codeSubmissionRepo := sqlxAdapter.NewCodeSubmission(s.DB)
 
 	submissionRegistry := registries.NewSubmission()
+	// Register code submission handler - needed for submission tests
+	codeSubmissionRegistrable := registrables.NewCodeSubmission(codeSubmissionRepo, codeMaterialRepo, submissionRepo, taskStub)
+	submissionRegistry.Register("code", codeSubmissionRegistrable)
 
 	// Create submission service without external dependencies (PubSub, Queue, gRPC)
 	submissionService := services.NewSubmissionService(&services.SubmissionServiceArgs{
