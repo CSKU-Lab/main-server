@@ -500,8 +500,8 @@ table "labs" {
   primary_key  {
     columns = [ column.id ]
   }
-  index "unique_display_name" {
-    columns = [ column.display_name ]
+  index "unique_display_name_per_course" {
+    columns = [ column.display_name, column.course_id ]
     where = "is_deleted = false"
     unique = true
   }
