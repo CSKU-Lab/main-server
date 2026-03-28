@@ -24,13 +24,14 @@ type CMSRouter struct {
 	MaterialAssetService    services.MaterialAssetService
 	ConfigGRPCClient        configPB.ConfigServiceClient
 	SubmissionService       services.SubmissionService
+	GradebookExportService  services.GradebookExportService
 	Queue                   queue.Queue
 }
 
 func NewCMSRouter(r *CMSRouter) {
 	cmsRouter := r.Router.Group("/cms")
 
-	routes.NewCmsSectionRoutes(cmsRouter, r.SectionService, r.SemesterService, r.LabSectionService, r.SectionLogService, r.LabService, r.SubmissionService)
+	routes.NewCmsSectionRoutes(cmsRouter, r.SectionService, r.SemesterService, r.LabSectionService, r.SectionLogService, r.LabService, r.SubmissionService, r.GradebookExportService)
 	routes.NewAdminSemesterRoutes(cmsRouter, r.SemesterService, r.SectionService, r.CourseService)
 	routes.NewCMSMaterialRoutes(cmsRouter, r.MaterialService, r.MaterialAssetService, r.SubmissionService)
 	routes.NewCMSAffectedEntitiesRoutes(cmsRouter, r.AffectedEntitiesService)

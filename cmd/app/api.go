@@ -159,6 +159,8 @@ func startApiServer(ctx context.Context, logger *zap.SugaredLogger, db *sqlx.DB,
 		PubSub:                   rClient,
 	})
 
+	gradebookExportService := services.NewGradebookExportService(submissionService)
+
 	materialService := services.NewMaterialService(materialRepo, submissionRepo, readMaterialTagRepo, uowRepo, userRepo, materialRegistry)
 
 	q, err := queue.NewRabbitMQ(config.RBMQ_SERVER_URL)
@@ -292,6 +294,7 @@ func startApiServer(ctx context.Context, logger *zap.SugaredLogger, db *sqlx.DB,
 		MaterialAssetService:    materialAssetService,
 		ConfigGRPCClient:        configGRPCClient,
 		SubmissionService:       submissionService,
+		GradebookExportService:  gradebookExportService,
 		Queue:                   q,
 	})
 

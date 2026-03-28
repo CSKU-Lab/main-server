@@ -16,7 +16,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 )
 
-func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionService, semesterService services.SemesterService, labSectionService services.LabSectionService, sectionLogService services.SectionLogService, labService services.LabService, submissionService services.SubmissionService) {
+func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionService, semesterService services.SemesterService, labSectionService services.LabSectionService, sectionLogService services.SectionLogService, labService services.LabService, submissionService services.SubmissionService, gradebookExportService services.GradebookExportService) {
 	cmsSectionRouter := router.Group("/sections", middlewares.RBACMiddleware([]models.Role{
 		models.ADMIN,
 		models.INSTRUCTOR,
@@ -563,6 +563,42 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 		}
 
 		return c.Status(fiber.StatusOK).JSON(gradebook)
+	})
+
+	cmsSectionRouter.Get("/:id/gradebook/export", func(c fiber.Ctx) error {
+		id := c.Params("id")
+		format := c.Query("format", "csv")
+
+		// Validate format
+		if format != "csv" && format != "xlsx" {
+			return cserrors.New(&cserrors.Option{
+				HttpStatus: http.StatusBadRequest,
+				Message:    "Invalid format. Must be 'csv' or 'xlsx'",
+			})
+		}
+
+		var data []byte
+		var err error
+		var contentType string
+		var filename string
+
+		if format == "csv" {
+			data, err = gradebookExportService.ExportCSV(c.RequestCtx(), id)
+			contentType = "text/csv"
+			filename = "gradebook.csv"
+		} else {
+			data, err = gradebookExportService.ExportXLSX(c.RequestCtx(), id)
+			contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+			filename = "gradebook.xlsx"
+		}
+
+		if err != nil {
+			return err
+		}
+
+		c.Set("Content-Type", contentType)
+		c.Set("Content-Disposition", "attachment; filename="+filename)
+		return c.Status(fiber.StatusOK).Send(data)
 	})
 }
 
