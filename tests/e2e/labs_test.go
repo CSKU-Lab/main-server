@@ -310,7 +310,7 @@ func (s *LabsTestSuite) TestListLabMaterials_Admin_Success() {
 	defer s.CleanupTestLab(labID)
 
 	// Create a material for the lab
-	materialID := s.CreateTestMaterial(labID, "code")
+	materialID := s.CreateTestMaterial(labID, "code", s.TestUser.Admin.UserID)
 
 	adminToken := s.GenerateTestJWT(s.TestUser.Admin.UserID, s.TestUser.Admin.Username, s.TestUser.Admin.Roles)
 
@@ -334,7 +334,7 @@ func (s *LabsTestSuite) TestGetAllLabMaterials_Admin_Success() {
 	defer s.CleanupTestLab(labID)
 
 	// Create materials for the lab
-	materialID := s.CreateTestMaterial(labID, "code")
+	materialID := s.CreateTestMaterial(labID, "code", s.TestUser.Admin.UserID)
 
 	adminToken := s.GenerateTestJWT(s.TestUser.Admin.UserID, s.TestUser.Admin.Username, s.TestUser.Admin.Roles)
 
@@ -360,7 +360,7 @@ func (s *LabsTestSuite) TestAddMaterialToLab_Admin_Success() {
 	defer s.CleanupTestLab(labID)
 
 	// Create a material first
-	materialID := s.CreateTestMaterial(labID, "code")
+	materialID := s.CreateTestMaterial(labID, "code", s.TestUser.Admin.UserID)
 
 	adminToken := s.GenerateTestJWT(s.TestUser.Admin.UserID, s.TestUser.Admin.Username, s.TestUser.Admin.Roles)
 
@@ -387,7 +387,7 @@ func (s *LabsTestSuite) TestRemoveMaterialFromLab_Admin_Success() {
 	defer s.CleanupTestLab(labID)
 
 	// Create a material for the lab
-	materialID := s.CreateTestMaterial(labID, "code")
+	materialID := s.CreateTestMaterial(labID, "code", s.TestUser.Admin.UserID)
 
 	adminToken := s.GenerateTestJWT(s.TestUser.Admin.UserID, s.TestUser.Admin.Username, s.TestUser.Admin.Roles)
 

@@ -65,11 +65,11 @@ func (s *TestSuite) CreateTestCourse(creatorID string) string {
 	`, courseID, fmt.Sprintf("E2E Test Course %s", uuid.New().String()[:8]), "public", now, now)
 	s.Require().NoError(err, "Failed to create test course")
 
-	// Add creator
+	// Add creator - schema uses creator_id and order, not user_id
 	_, err = s.DB.ExecContext(s.Ctx, `
-		INSERT INTO course_creators (id, course_id, user_id, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5)
-	`, uuid.New().String(), courseID, creatorID, now, now)
+		INSERT INTO course_creators (course_id, creator_id, "order")
+		VALUES ($1, $2, $3)
+	`, courseID, creatorID, 1)
 	s.Require().NoError(err, "Failed to add course creator")
 
 	return courseID
@@ -91,21 +91,21 @@ func (s *TestSuite) CreateTestSection(courseID string, semesterID string, instru
 	`, sectionID, fmt.Sprintf("E2E Test Section %s", uuid.New().String()[:8]), courseID, semesterID, now, now)
 	s.Require().NoError(err, "Failed to create test section")
 
-	// Add instructors
+	// Add instructors - schema uses composite PK (section_id, instructor_id), no id or timestamps
 	for _, instructorID := range instructorIDs {
 		_, err = s.DB.ExecContext(s.Ctx, `
-			INSERT INTO section_instructors (id, section_id, instructor_id, created_at, updated_at)
-			VALUES ($1, $2, $3, $4, $5)
-		`, uuid.New().String(), sectionID, instructorID, now, now)
+			INSERT INTO section_instructors (section_id, instructor_id)
+			VALUES ($1, $2)
+		`, sectionID, instructorID)
 		s.Require().NoError(err, "Failed to add section instructor")
 	}
 
-	// Add students
+	// Add students - schema uses composite PK (section_id, student_id) with is_deleted flag
 	for _, studentID := range studentIDs {
 		_, err = s.DB.ExecContext(s.Ctx, `
-			INSERT INTO section_students (id, section_id, student_id, created_at, updated_at)
-			VALUES ($1, $2, $3, $4, $5)
-		`, uuid.New().String(), sectionID, studentID, now, now)
+			INSERT INTO section_students (section_id, student_id, is_deleted)
+			VALUES ($1, $2, false)
+		`, sectionID, studentID)
 		s.Require().NoError(err, "Failed to add section student")
 	}
 
@@ -117,10 +117,12 @@ func (s *TestSuite) CreateTestSemester() string {
 	semesterID := uuid.New().String()
 	now := time.Now()
 
+	// Schema uses: id, name, type, started_date (not start_date), created_at, updated_at, is_deleted, deleted_at
+	// Note: No end_date field in schema
 	_, err := s.DB.ExecContext(s.Ctx, `
-		INSERT INTO semesters (id, name, type, start_date, end_date, created_at, updated_at, is_deleted)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, false)
-	`, semesterID, fmt.Sprintf("E2E Test Semester %s", uuid.New().String()[:8]), "regular", now, now.AddDate(0, 4, 0), now, now)
+		INSERT INTO semesters (id, name, type, started_date, created_at, updated_at, is_deleted)
+		VALUES ($1, $2, $3, $4, $5, $6, false)
+	`, semesterID, fmt.Sprintf("E2E Test Semester %s", uuid.New().String()[:8]), "first", now, now, now)
 	s.Require().NoError(err, "Failed to create test semester")
 
 	return semesterID
@@ -155,57 +157,62 @@ func (s *TestSuite) CreateTestLabSection(labID string, sectionID string) string 
 }
 
 // CreateTestMaterial creates a test material for a lab and returns the material ID
-func (s *TestSuite) CreateTestMaterial(labID string, materialType string) string {
+func (s *TestSuite) CreateTestMaterial(labID string, materialType string, createdBy string) string {
 	materialID := uuid.New().String()
 	now := time.Now()
 
+	// Schema requires: id, name, type, visibility, created_by, auto_score, manual_score, created_at, updated_at, is_deleted
 	_, err := s.DB.ExecContext(s.Ctx, `
-		INSERT INTO materials (id, type, name, created_at, updated_at, is_deleted)
-		VALUES ($1, $2, $3, $4, $5, false)
-	`, materialID, materialType, fmt.Sprintf("E2E Test Material %s", uuid.New().String()[:8]), now, now)
+		INSERT INTO materials (id, name, type, visibility, created_by, auto_score, manual_score, created_at, updated_at, is_deleted)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, false)
+	`, materialID, fmt.Sprintf("E2E Test Material %s", uuid.New().String()[:8]), materialType, "public", createdBy, 0, 0, now, now)
 	s.Require().NoError(err, "Failed to create test material")
 
-	// Create lab material association
+	// Create lab material association - schema doesn't have position column
 	labMaterialID := uuid.New().String()
 	_, err = s.DB.ExecContext(s.Ctx, `
-		INSERT INTO lab_materials (id, lab_id, material_id, position, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6)
-	`, labMaterialID, labID, materialID, 1, now, now)
+		INSERT INTO lab_materials (id, lab_id, material_id, created_at, updated_at, is_deleted)
+		VALUES ($1, $2, $3, $4, $5, false)
+	`, labMaterialID, labID, materialID, now, now)
 	s.Require().NoError(err, "Failed to create test lab material")
 
 	return materialID
 }
 
 // CreateTestCodeMaterial creates a test code material with task configuration
-func (s *TestSuite) CreateTestCodeMaterial(labID string, taskID string) string {
-	materialID := s.CreateTestMaterial(labID, "code")
-	now := time.Now()
+func (s *TestSuite) CreateTestCodeMaterial(labID string, taskID string, createdBy string) string {
+	materialID := s.CreateTestMaterial(labID, "code", createdBy)
 
+	// Schema: material_id, description, task_id, hide_test_cases
+	// No id, time_limit, memory_limit, created_at, updated_at columns
 	_, err := s.DB.ExecContext(s.Ctx, `
-		INSERT INTO code_materials (id, material_id, task_id, time_limit, memory_limit, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
-	`, uuid.New().String(), materialID, taskID, 1000, 256, now, now)
+		INSERT INTO code_materials (material_id, description, task_id, hide_test_cases)
+		VALUES ($1, $2, $3, $4)
+	`, materialID, "Test code material description", taskID, true)
 	s.Require().NoError(err, "Failed to create test code material")
 
 	return materialID
 }
 
 // CreateTestSubmission creates a test submission and returns the submission ID
-func (s *TestSuite) CreateTestSubmission(userID string, materialID string, labID string, sectionID string) string {
+func (s *TestSuite) CreateTestSubmission(userID string, materialID string, labID string, sectionID string, courseID string) string {
 	submissionID := uuid.New().String()
 	now := time.Now()
 
+	// Schema requires: id, user_id, material_id, lab_id, section_id, course_id, created_at, updated_at, status, submission_order, auto_score, manual_score, ip_address
 	_, err := s.DB.ExecContext(s.Ctx, `
-		INSERT INTO submissions (id, user_id, material_id, lab_id, section_id, status, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-	`, submissionID, userID, materialID, labID, sectionID, "pending", now, now)
+		INSERT INTO submissions (id, user_id, material_id, lab_id, section_id, course_id, created_at, updated_at, status, submission_order, auto_score, manual_score, ip_address)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+	`, submissionID, userID, materialID, labID, sectionID, courseID, now, now, "queued", 1, 0, 0, "127.0.0.1")
 	s.Require().NoError(err, "Failed to create test submission")
 
-	// Create code submission
+	// Create code submission - schema uses files (jsonb), status, avg_wall_time, avg_memory, test_case_groups
+	// No id, code, language, created_at, updated_at columns
+	filesJSON := `[{"name": "main.py", "content": "print('Hello World')"}]`
 	_, err = s.DB.ExecContext(s.Ctx, `
-		INSERT INTO code_submissions (id, submission_id, code, language, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6)
-	`, uuid.New().String(), submissionID, "print('Hello World')", "python", now, now)
+		INSERT INTO code_submissions (submission_id, files, status)
+		VALUES ($1, $2::jsonb, $3)
+	`, submissionID, filesJSON, "pending")
 	s.Require().NoError(err, "Failed to create test code submission")
 
 	return submissionID
@@ -245,12 +252,11 @@ func (s *TestSuite) convertRoles(roles []string) []models.Role {
 
 // StoreRefreshToken stores a refresh token in the database
 func (s *TestSuite) StoreRefreshToken(userID string, token string) {
-	now := time.Now()
 	_, err := s.DB.ExecContext(s.Ctx, `
-		INSERT INTO refresh_tokens (id, user_id, token, expires_at, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6)
-		ON CONFLICT (user_id) DO UPDATE SET token = $3, expires_at = $4, updated_at = $6
-	`, uuid.New().String(), userID, token, now.AddDate(0, 0, 5), now, now)
+		INSERT INTO user_refresh_tokens (user_id, token)
+		VALUES ($1, $2)
+		ON CONFLICT (user_id) DO UPDATE SET token = $2
+	`, userID, token)
 	s.Require().NoError(err, "Failed to store refresh token")
 }
 
@@ -258,10 +264,10 @@ func (s *TestSuite) StoreRefreshToken(userID string, token string) {
 func (s *TestSuite) CleanupTestUser(userID string) {
 	// Delete related data first
 	s.DB.Exec("DELETE FROM user_passwords WHERE user_id = $1", userID)
-	s.DB.Exec("DELETE FROM refresh_tokens WHERE user_id = $1", userID)
+	s.DB.Exec("DELETE FROM user_refresh_tokens WHERE user_id = $1", userID)
 	s.DB.Exec("DELETE FROM section_students WHERE student_id = $1", userID)
 	s.DB.Exec("DELETE FROM section_instructors WHERE instructor_id = $1", userID)
-	s.DB.Exec("DELETE FROM course_creators WHERE user_id = $1", userID)
+	s.DB.Exec("DELETE FROM course_creators WHERE creator_id = $1", userID)
 
 	// Delete submissions
 	s.DB.Exec("DELETE FROM code_submissions WHERE submission_id IN (SELECT id FROM submissions WHERE user_id = $1)", userID)

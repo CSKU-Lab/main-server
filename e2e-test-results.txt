@@ -1,0 +1,590 @@
+=== RUN   TestAuthTestSuite
+=== RUN   TestAuthTestSuite/TestCredentialLogin_MissingCredentials
+=== RUN   TestAuthTestSuite/TestCredentialLogin_MissingUsername
+=== RUN   TestAuthTestSuite/TestCredentialLogin_Success
+    auth_test.go:41: 
+        	Error Trace:	/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/auth_test.go:41
+        	            				/usr/lib/go/src/runtime/asm_amd64.s:1771
+        	Error:      	Received unexpected error:
+        	            	pq: column "password_hash" of relation "user_passwords" does not exist
+        	Test:       	TestAuthTestSuite/TestCredentialLogin_Success
+=== RUN   TestAuthTestSuite/TestCredentialLogin_UserNotFound
+2026/03/28 17:41:04 Unauthorized
+=== RUN   TestAuthTestSuite/TestCredentialLogin_WrongPassword
+2026/03/28 17:41:04 Unauthorized
+=== RUN   TestAuthTestSuite/TestProtectedRoute_WithInvalidToken
+2026/03/28 17:41:04 Unauthorized
+=== RUN   TestAuthTestSuite/TestProtectedRoute_WithValidToken
+=== RUN   TestAuthTestSuite/TestProtectedRoute_WithoutAuth
+2026/03/28 17:41:04 Unauthorized
+=== RUN   TestAuthTestSuite/TestRefreshToken_ExpiredAccessToken
+2026/03/28 17:41:04 Unauthorized
+    auth_test.go:170: 
+        	Error Trace:	/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/auth_test.go:170
+        	Error:      	Not equal: 
+        	            	expected: 200
+        	            	actual  : 401
+        	Test:       	TestAuthTestSuite/TestRefreshToken_ExpiredAccessToken
+=== RUN   TestAuthTestSuite/TestRefreshToken_InvalidToken
+2026/03/28 17:41:04 Unauthorized
+=== RUN   TestAuthTestSuite/TestRefreshToken_NoCookies
+2026/03/28 17:41:04 Unauthorized
+=== RUN   TestAuthTestSuite/TestRefreshToken_Success
+--- FAIL: TestAuthTestSuite (0.58s)
+    --- PASS: TestAuthTestSuite/TestCredentialLogin_MissingCredentials (0.00s)
+    --- PASS: TestAuthTestSuite/TestCredentialLogin_MissingUsername (0.00s)
+    --- FAIL: TestAuthTestSuite/TestCredentialLogin_Success (0.07s)
+    --- PASS: TestAuthTestSuite/TestCredentialLogin_UserNotFound (0.00s)
+    --- PASS: TestAuthTestSuite/TestCredentialLogin_WrongPassword (0.07s)
+    --- PASS: TestAuthTestSuite/TestProtectedRoute_WithInvalidToken (0.00s)
+    --- PASS: TestAuthTestSuite/TestProtectedRoute_WithValidToken (0.00s)
+    --- PASS: TestAuthTestSuite/TestProtectedRoute_WithoutAuth (0.00s)
+    --- FAIL: TestAuthTestSuite/TestRefreshToken_ExpiredAccessToken (0.07s)
+    --- PASS: TestAuthTestSuite/TestRefreshToken_InvalidToken (0.00s)
+    --- PASS: TestAuthTestSuite/TestRefreshToken_NoCookies (0.00s)
+    --- PASS: TestAuthTestSuite/TestRefreshToken_Success (0.08s)
+=== RUN   TestCoursesTestSuite
+=== RUN   TestCoursesTestSuite/TestCreateCourse_Admin_Success
+=== RUN   TestCoursesTestSuite/TestCreateCourse_Instructor_Success
+=== RUN   TestCoursesTestSuite/TestCreateCourse_InvalidData
+=== RUN   TestCoursesTestSuite/TestCreateCourse_MissingFields
+=== RUN   TestCoursesTestSuite/TestCreateCourse_Student_Forbidden
+2026/03/28 17:41:05 No Permission
+=== RUN   TestCoursesTestSuite/TestDeleteCourse_Admin_Success
+=== RUN   TestCoursesTestSuite/TestDeleteCourse_Instructor_Forbidden
+    helpers_test.go:116: 
+        	Error Trace:	/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/helpers_test.go:116
+        	            				/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/helpers_test.go:147
+        	            				/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/courses_test.go:265
+        	            				/usr/lib/go/src/runtime/asm_amd64.s:1771
+        	Error:      	Not equal: 
+        	            	expected: 403
+        	            	actual  : 204
+        	Test:       	TestCoursesTestSuite/TestDeleteCourse_Instructor_Forbidden
+        	Messages:   	Expected status code 403 but got 204. Response: 
+=== RUN   TestCoursesTestSuite/TestGetCourse_Admin_Success
+=== RUN   TestCoursesTestSuite/TestGetCourse_NotFound
+2026/03/28 17:41:05 Course not found
+=== RUN   TestCoursesTestSuite/TestListCourseLabs_Admin_Success
+=== RUN   TestCoursesTestSuite/TestListCourseSections_Admin_Success
+=== RUN   TestCoursesTestSuite/TestListCourses_Admin_Success
+=== RUN   TestCoursesTestSuite/TestListCourses_Instructor_Success
+=== RUN   TestCoursesTestSuite/TestListCourses_Student_Forbidden
+2026/03/28 17:41:05 No Permission
+=== RUN   TestCoursesTestSuite/TestListCourses_Unauthorized
+2026/03/28 17:41:05 Unauthorized
+=== RUN   TestCoursesTestSuite/TestListCourses_WithFilters
+=== RUN   TestCoursesTestSuite/TestListDefaultLabs_Admin_Success
+    courses_test.go:337: 
+        	Error Trace:	/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/courses_test.go:337
+        	            				/usr/lib/go/src/runtime/asm_amd64.s:1771
+        	Error:      	Received unexpected error:
+        	            	pq: invalid input syntax for type uuid: "abcdefghijklmnopqrstuvwxyz012345"
+        	Test:       	TestCoursesTestSuite/TestListDefaultLabs_Admin_Success
+=== RUN   TestCoursesTestSuite/TestSetDefaultLab_Admin_Success
+=== RUN   TestCoursesTestSuite/TestUpdateCourse_Admin_Success
+=== RUN   TestCoursesTestSuite/TestUpdateCourse_Instructor_OwnCourse
+=== RUN   TestCoursesTestSuite/TestUpdateCourse_InvalidData
+--- FAIL: TestCoursesTestSuite (0.41s)
+    --- PASS: TestCoursesTestSuite/TestCreateCourse_Admin_Success (0.02s)
+    --- PASS: TestCoursesTestSuite/TestCreateCourse_Instructor_Success (0.01s)
+    --- PASS: TestCoursesTestSuite/TestCreateCourse_InvalidData (0.00s)
+    --- PASS: TestCoursesTestSuite/TestCreateCourse_MissingFields (0.00s)
+    --- PASS: TestCoursesTestSuite/TestCreateCourse_Student_Forbidden (0.00s)
+    --- PASS: TestCoursesTestSuite/TestDeleteCourse_Admin_Success (0.01s)
+    --- FAIL: TestCoursesTestSuite/TestDeleteCourse_Instructor_Forbidden (0.01s)
+    --- PASS: TestCoursesTestSuite/TestGetCourse_Admin_Success (0.00s)
+    --- PASS: TestCoursesTestSuite/TestGetCourse_NotFound (0.00s)
+    --- PASS: TestCoursesTestSuite/TestListCourseLabs_Admin_Success (0.02s)
+    --- PASS: TestCoursesTestSuite/TestListCourseSections_Admin_Success (0.02s)
+    --- PASS: TestCoursesTestSuite/TestListCourses_Admin_Success (0.00s)
+    --- PASS: TestCoursesTestSuite/TestListCourses_Instructor_Success (0.00s)
+    --- PASS: TestCoursesTestSuite/TestListCourses_Student_Forbidden (0.00s)
+    --- PASS: TestCoursesTestSuite/TestListCourses_Unauthorized (0.00s)
+    --- PASS: TestCoursesTestSuite/TestListCourses_WithFilters (0.00s)
+    --- FAIL: TestCoursesTestSuite/TestListDefaultLabs_Admin_Success (0.01s)
+    --- PASS: TestCoursesTestSuite/TestSetDefaultLab_Admin_Success (0.02s)
+    --- PASS: TestCoursesTestSuite/TestUpdateCourse_Admin_Success (0.00s)
+    --- PASS: TestCoursesTestSuite/TestUpdateCourse_Instructor_OwnCourse (0.00s)
+    --- PASS: TestCoursesTestSuite/TestUpdateCourse_InvalidData (0.00s)
+=== RUN   TestGradingTestSuite
+=== RUN   TestGradingTestSuite/TestExportGradebookCSV_Admin_Success
+=== RUN   TestGradingTestSuite/TestExportGradebookXLSX_Admin_Success
+=== RUN   TestGradingTestSuite/TestExportGradebook_InvalidFormat
+2026/03/28 17:41:05 Invalid format. Must be 'csv' or 'xlsx'
+=== RUN   TestGradingTestSuite/TestGetGradebook_Admin_Success
+=== RUN   TestGradingTestSuite/TestGetGradebook_Instructor_Success
+=== RUN   TestGradingTestSuite/TestGetGradebook_Student_Forbidden
+2026/03/28 17:41:05 No Permission
+=== RUN   TestGradingTestSuite/TestGetLabDetailsWithStats_Instructor_Success
+=== RUN   TestGradingTestSuite/TestGetLabStudentStatus_Admin_Success
+=== RUN   TestGradingTestSuite/TestGetLabStudentStatus_Instructor_Success
+    helpers_test.go:178: 
+        	Error Trace:	/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/helpers_test.go:178
+        	            				/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/grading_test.go:177
+        	Error:      	Received unexpected error:
+        	            	json: cannot unmarshal object into Go value of type []interface {}
+        	Test:       	TestGradingTestSuite/TestGetLabStudentStatus_Instructor_Success
+        	Messages:   	Failed to parse JSON response: {"student_rows":[{"id":"57dbdb7a-8acf-494a-8199-c29b010bb07f","username":"test_student_4f207581","display_name":"Test student","profile_image":null,"material_statuses":{}}],"material_cols":[]}
+=== RUN   TestGradingTestSuite/TestGetLabStudentStatus_Student_Forbidden
+2026/03/28 17:41:05 No Permission
+=== RUN   TestGradingTestSuite/TestGetStudentSubmissionsByStudentID_Instructor_Success
+2026/03/28 17:41:05 
+		SELECT id, user_id, lab_id, section_id, course_id, material_id, 
+			   status, submission_order, created_at, updated_at, 
+			   ip_address, manual_score, auto_score
+		FROM submissions
+		WHERE material_id = $1 
+		  AND section_id = $2 
+		  AND lab_id = $3
+		  AND user_id = $4
+		ORDER BY created_at desc
+		OFFSET $5 LIMIT $6
+	
+2026/03/28 17:41:05 handler not found for key: code
+    helpers_test.go:116: 
+        	Error Trace:	/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/helpers_test.go:116
+        	            				/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/helpers_test.go:122
+        	            				/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/grading_test.go:145
+        	            				/usr/lib/go/src/runtime/asm_amd64.s:1771
+        	Error:      	Not equal: 
+        	            	expected: 200
+        	            	actual  : 500
+        	Test:       	TestGradingTestSuite/TestGetStudentSubmissionsByStudentID_Instructor_Success
+        	Messages:   	Expected status code 200 but got 500. Response: {"error":"Internal Server Error"}
+    helpers_test.go:268: 
+        	Error Trace:	/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/helpers_test.go:268
+        	            				/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/grading_test.go:146
+        	Error:      	Expected value not to be nil.
+        	Test:       	TestGradingTestSuite/TestGetStudentSubmissionsByStudentID_Instructor_Success
+        	Messages:   	Response should contain pagination
+=== RUN   TestGradingTestSuite/TestGetSubmissionsForGrading_Admin_Success
+2026/03/28 17:41:05 handler not found for key: code
+    helpers_test.go:116: 
+        	Error Trace:	/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/helpers_test.go:116
+        	            				/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/helpers_test.go:122
+        	            				/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/grading_test.go:87
+        	            				/usr/lib/go/src/runtime/asm_amd64.s:1771
+        	Error:      	Not equal: 
+        	            	expected: 200
+        	            	actual  : 500
+        	Test:       	TestGradingTestSuite/TestGetSubmissionsForGrading_Admin_Success
+        	Messages:   	Expected status code 200 but got 500. Response: {"error":"Internal Server Error"}
+=== RUN   TestGradingTestSuite/TestGetSubmissionsForGrading_Instructor_Success
+2026/03/28 17:41:05 handler not found for key: code
+    helpers_test.go:116: 
+        	Error Trace:	/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/helpers_test.go:116
+        	            				/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/helpers_test.go:122
+        	            				/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/grading_test.go:51
+        	            				/usr/lib/go/src/runtime/asm_amd64.s:1771
+        	Error:      	Not equal: 
+        	            	expected: 200
+        	            	actual  : 500
+        	Test:       	TestGradingTestSuite/TestGetSubmissionsForGrading_Instructor_Success
+        	Messages:   	Expected status code 200 but got 500. Response: {"error":"Internal Server Error"}
+    grading_test.go:55: 
+        	Error Trace:	/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/grading_test.go:55
+        	Error:      	Expected value not to be nil.
+        	Test:       	TestGradingTestSuite/TestGetSubmissionsForGrading_Instructor_Success
+=== RUN   TestGradingTestSuite/TestGetSubmissionsForGrading_Student_Forbidden
+2026/03/28 17:41:05 No Permission
+=== RUN   TestGradingTestSuite/TestSubmitGrade_Instructor_Success
+    helpers_test.go:116: 
+        	Error Trace:	/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/helpers_test.go:116
+        	            				/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/helpers_test.go:132
+        	            				/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/grading_test.go:276
+        	            				/usr/lib/go/src/runtime/asm_amd64.s:1771
+        	Error:      	Not equal: 
+        	            	expected: 204
+        	            	actual  : 400
+        	Test:       	TestGradingTestSuite/TestSubmitGrade_Instructor_Success
+        	Messages:   	Expected status code 204 but got 400. Response: {"error":"Bad Request","message":"Invalid request body"}
+=== RUN   TestGradingTestSuite/TestSubmitGrade_InvalidScore
+=== RUN   TestGradingTestSuite/TestSubmitGrade_NonInstructor_Forbidden
+2026/03/28 17:41:05 No Permission
+--- FAIL: TestGradingTestSuite (0.54s)
+    --- PASS: TestGradingTestSuite/TestExportGradebookCSV_Admin_Success (0.01s)
+    --- PASS: TestGradingTestSuite/TestExportGradebookXLSX_Admin_Success (0.02s)
+    --- PASS: TestGradingTestSuite/TestExportGradebook_InvalidFormat (0.02s)
+    --- PASS: TestGradingTestSuite/TestGetGradebook_Admin_Success (0.01s)
+    --- PASS: TestGradingTestSuite/TestGetGradebook_Instructor_Success (0.01s)
+    --- PASS: TestGradingTestSuite/TestGetGradebook_Student_Forbidden (0.01s)
+    --- PASS: TestGradingTestSuite/TestGetLabDetailsWithStats_Instructor_Success (0.02s)
+    --- PASS: TestGradingTestSuite/TestGetLabStudentStatus_Admin_Success (0.01s)
+    --- FAIL: TestGradingTestSuite/TestGetLabStudentStatus_Instructor_Success (0.01s)
+    --- PASS: TestGradingTestSuite/TestGetLabStudentStatus_Student_Forbidden (0.01s)
+    --- FAIL: TestGradingTestSuite/TestGetStudentSubmissionsByStudentID_Instructor_Success (0.02s)
+    --- FAIL: TestGradingTestSuite/TestGetSubmissionsForGrading_Admin_Success (0.03s)
+    --- FAIL: TestGradingTestSuite/TestGetSubmissionsForGrading_Instructor_Success (0.02s)
+    --- PASS: TestGradingTestSuite/TestGetSubmissionsForGrading_Student_Forbidden (0.01s)
+    --- FAIL: TestGradingTestSuite/TestSubmitGrade_Instructor_Success (0.01s)
+    --- PASS: TestGradingTestSuite/TestSubmitGrade_InvalidScore (0.02s)
+    --- PASS: TestGradingTestSuite/TestSubmitGrade_NonInstructor_Forbidden (0.02s)
+=== RUN   TestLabsTestSuite
+=== RUN   TestLabsTestSuite/TestAddMaterialToLab_Admin_Success
+2026/03/28 17:41:06 Item already exists
+    helpers_test.go:116: 
+        	Error Trace:	/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/helpers_test.go:116
+        	            				/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/helpers_test.go:127
+        	            				/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/labs_test.go:373
+        	            				/usr/lib/go/src/runtime/asm_amd64.s:1771
+        	Error:      	Not equal: 
+        	            	expected: 201
+        	            	actual  : 409
+        	Test:       	TestLabsTestSuite/TestAddMaterialToLab_Admin_Success
+        	Messages:   	Expected status code 201 but got 409. Response: {"code":"","error":"Item already exists"}
+=== RUN   TestLabsTestSuite/TestCreateLab_Admin_Success
+=== RUN   TestLabsTestSuite/TestCreateLab_Instructor_Success
+=== RUN   TestLabsTestSuite/TestCreateLab_InvalidData
+=== RUN   TestLabsTestSuite/TestCreateLab_MissingFields
+=== RUN   TestLabsTestSuite/TestCreateLab_Student_Forbidden
+2026/03/28 17:41:06 No Permission
+=== RUN   TestLabsTestSuite/TestDeleteLab_Admin_Success
+=== RUN   TestLabsTestSuite/TestDeleteLab_Instructor_OwnLab
+2026/03/28 17:41:06 No Permission
+    helpers_test.go:116: 
+        	Error Trace:	/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/helpers_test.go:116
+        	            				/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/helpers_test.go:122
+        	            				/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/labs_test.go:277
+        	            				/usr/lib/go/src/runtime/asm_amd64.s:1771
+        	Error:      	Not equal: 
+        	            	expected: 200
+        	            	actual  : 403
+        	Test:       	TestLabsTestSuite/TestDeleteLab_Instructor_OwnLab
+        	Messages:   	Expected status code 200 but got 403. Response: {"code":"","error":"No Permission"}
+=== RUN   TestLabsTestSuite/TestGetAllLabMaterials_Admin_Success
+=== RUN   TestLabsTestSuite/TestGetLab_Admin_Success
+=== RUN   TestLabsTestSuite/TestGetLab_NotFound
+2026/03/28 17:41:06 pq: invalid input syntax for type uuid: "nonexistent-lab-id"
+=== RUN   TestLabsTestSuite/TestListLabMaterials_Admin_Success
+=== RUN   TestLabsTestSuite/TestListLabSections_Admin_Success
+=== RUN   TestLabsTestSuite/TestListLabs_Admin_Success
+=== RUN   TestLabsTestSuite/TestListLabs_Instructor_Success
+=== RUN   TestLabsTestSuite/TestListLabs_Student_Forbidden
+2026/03/28 17:41:06 No Permission
+=== RUN   TestLabsTestSuite/TestListLabs_WithFilters
+2026/03/28 17:41:06 pq: invalid input syntax for type uuid: "some-course-id"
+    helpers_test.go:116: 
+        	Error Trace:	/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/helpers_test.go:116
+        	            				/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/helpers_test.go:122
+        	            				/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/labs_test.go:68
+        	            				/usr/lib/go/src/runtime/asm_amd64.s:1771
+        	Error:      	Not equal: 
+        	            	expected: 200
+        	            	actual  : 500
+        	Test:       	TestLabsTestSuite/TestListLabs_WithFilters
+        	Messages:   	Expected status code 200 but got 500. Response: {"error":"Internal Server Error"}
+=== RUN   TestLabsTestSuite/TestRemoveMaterialFromLab_Admin_Success
+=== RUN   TestLabsTestSuite/TestUpdateLab_Admin_Success
+=== RUN   TestLabsTestSuite/TestUpdateLab_Instructor_OwnLab
+2026/03/28 17:41:06 No Permission
+    helpers_test.go:116: 
+        	Error Trace:	/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/helpers_test.go:116
+        	            				/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/helpers_test.go:122
+        	            				/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/labs_test.go:221
+        	            				/usr/lib/go/src/runtime/asm_amd64.s:1771
+        	Error:      	Not equal: 
+        	            	expected: 200
+        	            	actual  : 403
+        	Test:       	TestLabsTestSuite/TestUpdateLab_Instructor_OwnLab
+        	Messages:   	Expected status code 200 but got 403. Response: {"code":"","error":"No Permission"}
+=== RUN   TestLabsTestSuite/TestUpdateLab_InvalidData
+--- FAIL: TestLabsTestSuite (0.50s)
+    --- FAIL: TestLabsTestSuite/TestAddMaterialToLab_Admin_Success (0.02s)
+    --- PASS: TestLabsTestSuite/TestCreateLab_Admin_Success (0.01s)
+    --- PASS: TestLabsTestSuite/TestCreateLab_Instructor_Success (0.01s)
+    --- PASS: TestLabsTestSuite/TestCreateLab_InvalidData (0.00s)
+    --- PASS: TestLabsTestSuite/TestCreateLab_MissingFields (0.00s)
+    --- PASS: TestLabsTestSuite/TestCreateLab_Student_Forbidden (0.00s)
+    --- PASS: TestLabsTestSuite/TestDeleteLab_Admin_Success (0.01s)
+    --- FAIL: TestLabsTestSuite/TestDeleteLab_Instructor_OwnLab (0.01s)
+    --- PASS: TestLabsTestSuite/TestGetAllLabMaterials_Admin_Success (0.01s)
+    --- PASS: TestLabsTestSuite/TestGetLab_Admin_Success (0.00s)
+    --- PASS: TestLabsTestSuite/TestGetLab_NotFound (0.00s)
+    --- PASS: TestLabsTestSuite/TestListLabMaterials_Admin_Success (0.01s)
+    --- PASS: TestLabsTestSuite/TestListLabSections_Admin_Success (0.02s)
+    --- PASS: TestLabsTestSuite/TestListLabs_Admin_Success (0.00s)
+    --- PASS: TestLabsTestSuite/TestListLabs_Instructor_Success (0.00s)
+    --- PASS: TestLabsTestSuite/TestListLabs_Student_Forbidden (0.00s)
+    --- FAIL: TestLabsTestSuite/TestListLabs_WithFilters (0.00s)
+    --- PASS: TestLabsTestSuite/TestRemoveMaterialFromLab_Admin_Success (0.01s)
+    --- PASS: TestLabsTestSuite/TestUpdateLab_Admin_Success (0.02s)
+    --- FAIL: TestLabsTestSuite/TestUpdateLab_Instructor_OwnLab (0.01s)
+    --- PASS: TestLabsTestSuite/TestUpdateLab_InvalidData (0.01s)
+=== RUN   TestSectionsTestSuite
+=== RUN   TestSectionsTestSuite/TestAddLabToSection_Admin_Success
+=== RUN   TestSectionsTestSuite/TestAddStudentsToSection_Admin_Success
+2026/03/28 17:41:06 Some students not found
+2026/03/28 17:41:06 Some students not found
+    helpers_test.go:116: 
+        	Error Trace:	/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/helpers_test.go:116
+        	            				/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/helpers_test.go:122
+        	            				/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/sections_test.go:244
+        	            				/usr/lib/go/src/runtime/asm_amd64.s:1771
+        	Error:      	Not equal: 
+        	            	expected: 200
+        	            	actual  : 400
+        	Test:       	TestSectionsTestSuite/TestAddStudentsToSection_Admin_Success
+        	Messages:   	Expected status code 200 but got 400. Response: {"code":"","error":"Some students not found"}
+=== RUN   TestSectionsTestSuite/TestCreateSection_Admin_Success
+    helpers_test.go:116: 
+        	Error Trace:	/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/helpers_test.go:116
+        	            				/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/helpers_test.go:127
+        	            				/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/sections_test.go:89
+        	            				/usr/lib/go/src/runtime/asm_amd64.s:1771
+        	Error:      	Not equal: 
+        	            	expected: 201
+        	            	actual  : 400
+        	Test:       	TestSectionsTestSuite/TestCreateSection_Admin_Success
+        	Messages:   	Expected status code 201 but got 400. Response: {"error":"Bad Request","fields":{"instructors":"cannot be blank"}}
+    helpers_test.go:217: Could not extract ID from response
+=== RUN   TestSectionsTestSuite/TestCreateSection_Instructor_Success
+=== RUN   TestSectionsTestSuite/TestCreateSection_MissingFields
+=== RUN   TestSectionsTestSuite/TestDeleteSection_Admin_Success
+2026/03/28 17:41:06 No Permission
+    sections_test.go:198: 
+        	Error Trace:	/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/sections_test.go:198
+        	Error:      	Not equal: 
+        	            	expected: 204
+        	            	actual  : 403
+        	Test:       	TestSectionsTestSuite/TestDeleteSection_Admin_Success
+=== RUN   TestSectionsTestSuite/TestExportGradebookCSV_Admin_Success
+=== RUN   TestSectionsTestSuite/TestExportGradebookXLSX_Admin_Success
+=== RUN   TestSectionsTestSuite/TestExportGradebook_InvalidFormat
+2026/03/28 17:41:06 Invalid format. Must be 'csv' or 'xlsx'
+=== RUN   TestSectionsTestSuite/TestGetGradebook_Admin_Success
+=== RUN   TestSectionsTestSuite/TestGetSectionLogs_Admin_Success
+=== RUN   TestSectionsTestSuite/TestGetSection_Admin_Success
+=== RUN   TestSectionsTestSuite/TestGetSection_NotFound
+2026/03/28 17:41:06 Section not found
+=== RUN   TestSectionsTestSuite/TestListSectionLabs_Admin_Success
+=== RUN   TestSectionsTestSuite/TestListSectionStudents_Admin_Success
+=== RUN   TestSectionsTestSuite/TestListSections_Admin_Success
+=== RUN   TestSectionsTestSuite/TestListSections_Instructor_Success
+=== RUN   TestSectionsTestSuite/TestListSections_Student_Forbidden
+2026/03/28 17:41:06 No Permission
+=== RUN   TestSectionsTestSuite/TestRemoveStudentsFromSection_Admin_Success
+=== RUN   TestSectionsTestSuite/TestUpdateLabSectionStatus_Admin_Success
+=== RUN   TestSectionsTestSuite/TestUpdateSection_Admin_Success
+2026/03/28 17:41:06 No Permission
+    sections_test.go:182: 
+        	Error Trace:	/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/sections_test.go:182
+        	Error:      	Not equal: 
+        	            	expected: 202
+        	            	actual  : 403
+        	Test:       	TestSectionsTestSuite/TestUpdateSection_Admin_Success
+--- FAIL: TestSectionsTestSuite (0.58s)
+    --- PASS: TestSectionsTestSuite/TestAddLabToSection_Admin_Success (0.03s)
+    --- FAIL: TestSectionsTestSuite/TestAddStudentsToSection_Admin_Success (0.10s)
+    --- FAIL: TestSectionsTestSuite/TestCreateSection_Admin_Success (0.01s)
+    --- PASS: TestSectionsTestSuite/TestCreateSection_Instructor_Success (0.02s)
+    --- PASS: TestSectionsTestSuite/TestCreateSection_MissingFields (0.00s)
+    --- FAIL: TestSectionsTestSuite/TestDeleteSection_Admin_Success (0.01s)
+    --- PASS: TestSectionsTestSuite/TestExportGradebookCSV_Admin_Success (0.01s)
+    --- PASS: TestSectionsTestSuite/TestExportGradebookXLSX_Admin_Success (0.01s)
+    --- PASS: TestSectionsTestSuite/TestExportGradebook_InvalidFormat (0.01s)
+    --- PASS: TestSectionsTestSuite/TestGetGradebook_Admin_Success (0.01s)
+    --- PASS: TestSectionsTestSuite/TestGetSectionLogs_Admin_Success (0.01s)
+    --- PASS: TestSectionsTestSuite/TestGetSection_Admin_Success (0.01s)
+    --- PASS: TestSectionsTestSuite/TestGetSection_NotFound (0.00s)
+    --- PASS: TestSectionsTestSuite/TestListSectionLabs_Admin_Success (0.01s)
+    --- PASS: TestSectionsTestSuite/TestListSectionStudents_Admin_Success (0.01s)
+    --- PASS: TestSectionsTestSuite/TestListSections_Admin_Success (0.00s)
+    --- PASS: TestSectionsTestSuite/TestListSections_Instructor_Success (0.00s)
+    --- PASS: TestSectionsTestSuite/TestListSections_Student_Forbidden (0.00s)
+    --- PASS: TestSectionsTestSuite/TestRemoveStudentsFromSection_Admin_Success (0.01s)
+    --- PASS: TestSectionsTestSuite/TestUpdateLabSectionStatus_Admin_Success (0.02s)
+    --- FAIL: TestSectionsTestSuite/TestUpdateSection_Admin_Success (0.01s)
+=== RUN   TestSubmissionsTestSuite
+=== RUN   TestSubmissionsTestSuite/TestCreateSubmission_InvalidData
+=== RUN   TestSubmissionsTestSuite/TestCreateSubmission_MissingPayload
+=== RUN   TestSubmissionsTestSuite/TestCreateSubmission_Student_Success
+2026/03/28 17:41:07 handler not found for key: code
+    helpers_test.go:116: 
+        	Error Trace:	/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/helpers_test.go:116
+        	            				/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/helpers_test.go:122
+        	            				/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/submissions_test.go:60
+        	            				/usr/lib/go/src/runtime/asm_amd64.s:1771
+        	Error:      	Not equal: 
+        	            	expected: 200
+        	            	actual  : 500
+        	Test:       	TestSubmissionsTestSuite/TestCreateSubmission_Student_Success
+        	Messages:   	Expected status code 200 but got 500. Response: {"error":"Internal Server Error"}
+    helpers_test.go:217: Could not extract ID from response
+=== RUN   TestSubmissionsTestSuite/TestCreateSubmission_Unauthorized
+2026/03/28 17:41:07 Unauthorized
+=== RUN   TestSubmissionsTestSuite/TestGetSubmission_Instructor_Success
+2026/03/28 17:41:07 handler not found for key: code
+    helpers_test.go:116: 
+        	Error Trace:	/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/helpers_test.go:116
+        	            				/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/helpers_test.go:122
+        	            				/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/submissions_test.go:172
+        	            				/usr/lib/go/src/runtime/asm_amd64.s:1771
+        	Error:      	Not equal: 
+        	            	expected: 200
+        	            	actual  : 500
+        	Test:       	TestSubmissionsTestSuite/TestGetSubmission_Instructor_Success
+        	Messages:   	Expected status code 200 but got 500. Response: {"error":"Internal Server Error"}
+=== RUN   TestSubmissionsTestSuite/TestGetSubmission_NotFound
+2026/03/28 17:41:07 pq: invalid input syntax for type uuid: "nonexistent-submission-id"
+=== RUN   TestSubmissionsTestSuite/TestGetSubmission_Owner_Success
+2026/03/28 17:41:07 handler not found for key: code
+    helpers_test.go:116: 
+        	Error Trace:	/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/helpers_test.go:116
+        	            				/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/helpers_test.go:122
+        	            				/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/submissions_test.go:138
+        	            				/usr/lib/go/src/runtime/asm_amd64.s:1771
+        	Error:      	Not equal: 
+        	            	expected: 200
+        	            	actual  : 500
+        	Test:       	TestSubmissionsTestSuite/TestGetSubmission_Owner_Success
+        	Messages:   	Expected status code 200 but got 500. Response: {"error":"Internal Server Error"}
+    submissions_test.go:142: 
+        	Error Trace:	/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/submissions_test.go:142
+        	Error:      	Not equal: 
+        	            	expected: string("86f5672e-ef22-4761-95d3-694808896338")
+        	            	actual  : <nil>(<nil>)
+        	Test:       	TestSubmissionsTestSuite/TestGetSubmission_Owner_Success
+=== RUN   TestSubmissionsTestSuite/TestListSubmissions_Student_Success
+=== RUN   TestSubmissionsTestSuite/TestListSubmissions_WithFilters
+=== RUN   TestSubmissionsTestSuite/TestUpdateManualScore_Admin_Success
+=== RUN   TestSubmissionsTestSuite/TestUpdateManualScore_Instructor_Success
+    helpers_test.go:116: 
+        	Error Trace:	/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/helpers_test.go:116
+        	            				/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/helpers_test.go:132
+        	            				/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/submissions_test.go:276
+        	            				/usr/lib/go/src/runtime/asm_amd64.s:1771
+        	Error:      	Not equal: 
+        	            	expected: 204
+        	            	actual  : 400
+        	Test:       	TestSubmissionsTestSuite/TestUpdateManualScore_Instructor_Success
+        	Messages:   	Expected status code 204 but got 400. Response: {"error":"Bad Request","message":"Invalid request body"}
+=== RUN   TestSubmissionsTestSuite/TestUpdateManualScore_InvalidScore
+=== RUN   TestSubmissionsTestSuite/TestUpdateManualScore_Student_Forbidden
+2026/03/28 17:41:07 No Permission
+--- FAIL: TestSubmissionsTestSuite (0.47s)
+    --- PASS: TestSubmissionsTestSuite/TestCreateSubmission_InvalidData (0.00s)
+    --- PASS: TestSubmissionsTestSuite/TestCreateSubmission_MissingPayload (0.00s)
+    --- FAIL: TestSubmissionsTestSuite/TestCreateSubmission_Student_Success (0.03s)
+    --- PASS: TestSubmissionsTestSuite/TestCreateSubmission_Unauthorized (0.00s)
+    --- FAIL: TestSubmissionsTestSuite/TestGetSubmission_Instructor_Success (0.02s)
+    --- PASS: TestSubmissionsTestSuite/TestGetSubmission_NotFound (0.00s)
+    --- FAIL: TestSubmissionsTestSuite/TestGetSubmission_Owner_Success (0.03s)
+    --- PASS: TestSubmissionsTestSuite/TestListSubmissions_Student_Success (0.02s)
+    --- PASS: TestSubmissionsTestSuite/TestListSubmissions_WithFilters (0.02s)
+    --- PASS: TestSubmissionsTestSuite/TestUpdateManualScore_Admin_Success (0.03s)
+    --- FAIL: TestSubmissionsTestSuite/TestUpdateManualScore_Instructor_Success (0.01s)
+    --- PASS: TestSubmissionsTestSuite/TestUpdateManualScore_InvalidScore (0.01s)
+    --- PASS: TestSubmissionsTestSuite/TestUpdateManualScore_Student_Forbidden (0.02s)
+=== RUN   TestUsersTestSuite
+=== RUN   TestUsersTestSuite/TestCreateUser_Admin_Success
+    helpers_test.go:116: 
+        	Error Trace:	/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/helpers_test.go:116
+        	            				/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/helpers_test.go:127
+        	            				/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/users_test.go:93
+        	            				/usr/lib/go/src/runtime/asm_amd64.s:1771
+        	Error:      	Not equal: 
+        	            	expected: 201
+        	            	actual  : 400
+        	Test:       	TestUsersTestSuite/TestCreateUser_Admin_Success
+        	Messages:   	Expected status code 201 but got 400. Response: {"error":"Bad Request","fields":{"email":"field must be null when user type is credential","group":"cannot be blank","group_id":"cannot be blank"}}
+=== RUN   TestUsersTestSuite/TestCreateUser_InvalidEmail
+=== RUN   TestUsersTestSuite/TestCreateUser_MissingRequiredFields
+=== RUN   TestUsersTestSuite/TestCreateUser_NonAdmin_Forbidden
+2026/03/28 17:41:07 No Permission
+=== RUN   TestUsersTestSuite/TestCreateUser_ShortPassword
+=== RUN   TestUsersTestSuite/TestDeleteManyUsers_Admin_Success
+=== RUN   TestUsersTestSuite/TestDeleteManyUsers_EmptyList
+=== RUN   TestUsersTestSuite/TestDeleteManyUsers_InvalidIDs
+=== RUN   TestUsersTestSuite/TestDeleteUser_Admin_Success
+=== RUN   TestUsersTestSuite/TestDeleteUser_NonAdmin_Forbidden
+2026/03/28 17:41:08 No Permission
+=== RUN   TestUsersTestSuite/TestGetUser_Admin_Success
+2026/03/28 17:41:08 Not Found
+    helpers_test.go:116: 
+        	Error Trace:	/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/helpers_test.go:116
+        	            				/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/helpers_test.go:122
+        	            				/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/users_test.go:173
+        	            				/usr/lib/go/src/runtime/asm_amd64.s:1771
+        	Error:      	Not equal: 
+        	            	expected: 200
+        	            	actual  : 500
+        	Test:       	TestUsersTestSuite/TestGetUser_Admin_Success
+        	Messages:   	Expected status code 200 but got 500. Response: {"error":"Route not found","message":"Not Found"}
+    users_test.go:177: 
+        	Error Trace:	/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/users_test.go:177
+        	Error:      	Not equal: 
+        	            	expected: string("ed8a46c2-a61d-42a3-b271-cb782a9480e4")
+        	            	actual  : <nil>(<nil>)
+        	Test:       	TestUsersTestSuite/TestGetUser_Admin_Success
+=== RUN   TestUsersTestSuite/TestGetUser_NotFound
+2026/03/28 17:41:08 Not Found
+=== RUN   TestUsersTestSuite/TestGetUser_OwnProfile
+2026/03/28 17:41:08 Not Found
+    helpers_test.go:116: 
+        	Error Trace:	/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/helpers_test.go:116
+        	            				/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/helpers_test.go:122
+        	            				/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/users_test.go:186
+        	            				/usr/lib/go/src/runtime/asm_amd64.s:1771
+        	Error:      	Not equal: 
+        	            	expected: 200
+        	            	actual  : 500
+        	Test:       	TestUsersTestSuite/TestGetUser_OwnProfile
+        	Messages:   	Expected status code 200 but got 500. Response: {"error":"Route not found","message":"Not Found"}
+=== RUN   TestUsersTestSuite/TestGetUser_Unauthorized
+2026/03/28 17:41:08 Unauthorized
+=== RUN   TestUsersTestSuite/TestImportUsers_Admin_Success
+    helpers_test.go:116: 
+        	Error Trace:	/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/helpers_test.go:116
+        	            				/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/helpers_test.go:127
+        	            				/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/users_test.go:355
+        	            				/usr/lib/go/src/runtime/asm_amd64.s:1771
+        	Error:      	Not equal: 
+        	            	expected: 201
+        	            	actual  : 400
+        	Test:       	TestUsersTestSuite/TestImportUsers_Admin_Success
+        	Messages:   	Expected status code 201 but got 400. Response: {"error":"Bad Request","fields":{"users":{"0":{"group":"cannot be blank","group_id":"cannot be blank"},"1":{"group":"cannot be blank","group_id":"cannot be blank"}}}}
+=== RUN   TestUsersTestSuite/TestListUsers_Admin_Success
+=== RUN   TestUsersTestSuite/TestListUsers_NonAdmin_Forbidden
+2026/03/28 17:41:08 No Permission
+=== RUN   TestUsersTestSuite/TestListUsers_Unauthorized
+2026/03/28 17:41:08 Unauthorized
+=== RUN   TestUsersTestSuite/TestListUsers_WithPagination
+=== RUN   TestUsersTestSuite/TestListUsers_WithSearch
+=== RUN   TestUsersTestSuite/TestUpdateUser_Admin_Success
+    users_test.go:219: 
+        	Error Trace:	/home/imdev/dev/cs-lab/super-app/main-server/tests/e2e/users_test.go:219
+        	Error:      	Not equal: 
+        	            	expected: 202
+        	            	actual  : 400
+        	Test:       	TestUsersTestSuite/TestUpdateUser_Admin_Success
+=== RUN   TestUsersTestSuite/TestUpdateUser_InvalidData
+=== RUN   TestUsersTestSuite/TestUpdateUser_NonAdmin_Forbidden
+2026/03/28 17:41:08 No Permission
+--- FAIL: TestUsersTestSuite (0.96s)
+    --- FAIL: TestUsersTestSuite/TestCreateUser_Admin_Success (0.00s)
+    --- PASS: TestUsersTestSuite/TestCreateUser_InvalidEmail (0.00s)
+    --- PASS: TestUsersTestSuite/TestCreateUser_MissingRequiredFields (0.00s)
+    --- PASS: TestUsersTestSuite/TestCreateUser_NonAdmin_Forbidden (0.00s)
+    --- PASS: TestUsersTestSuite/TestCreateUser_ShortPassword (0.00s)
+    --- PASS: TestUsersTestSuite/TestDeleteManyUsers_Admin_Success (0.14s)
+    --- PASS: TestUsersTestSuite/TestDeleteManyUsers_EmptyList (0.00s)
+    --- PASS: TestUsersTestSuite/TestDeleteManyUsers_InvalidIDs (0.00s)
+    --- PASS: TestUsersTestSuite/TestDeleteUser_Admin_Success (0.07s)
+    --- PASS: TestUsersTestSuite/TestDeleteUser_NonAdmin_Forbidden (0.08s)
+    --- FAIL: TestUsersTestSuite/TestGetUser_Admin_Success (0.08s)
+    --- PASS: TestUsersTestSuite/TestGetUser_NotFound (0.00s)
+    --- FAIL: TestUsersTestSuite/TestGetUser_OwnProfile (0.00s)
+    --- PASS: TestUsersTestSuite/TestGetUser_Unauthorized (0.00s)
+    --- FAIL: TestUsersTestSuite/TestImportUsers_Admin_Success (0.00s)
+    --- PASS: TestUsersTestSuite/TestListUsers_Admin_Success (0.00s)
+    --- PASS: TestUsersTestSuite/TestListUsers_NonAdmin_Forbidden (0.00s)
+    --- PASS: TestUsersTestSuite/TestListUsers_Unauthorized (0.00s)
+    --- PASS: TestUsersTestSuite/TestListUsers_WithPagination (0.00s)
+    --- PASS: TestUsersTestSuite/TestListUsers_WithSearch (0.00s)
+    --- FAIL: TestUsersTestSuite/TestUpdateUser_Admin_Success (0.08s)
+    --- PASS: TestUsersTestSuite/TestUpdateUser_InvalidData (0.08s)
+    --- PASS: TestUsersTestSuite/TestUpdateUser_NonAdmin_Forbidden (0.08s)
+FAIL
+FAIL	github.com/CSKU-Lab/main-server/tests/e2e	4.043s
+FAIL

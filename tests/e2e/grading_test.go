@@ -40,9 +40,9 @@ func (s *GradingTestSuite) TestGetSubmissionsForGrading_Instructor_Success() {
 
 	s.CreateTestLabSection(labID, sectionID)
 
-	materialID := s.CreateTestMaterial(labID, "code")
+	materialID := s.CreateTestMaterial(labID, "code", s.TestUser.Admin.UserID)
 
-	submissionID := s.CreateTestSubmission(s.TestUser.Student.UserID, materialID, labID, sectionID)
+	submissionID := s.CreateTestSubmission(s.TestUser.Student.UserID, materialID, labID, sectionID, courseID)
 
 	instructorToken := s.GenerateTestJWT(s.TestUser.Instructor.UserID, s.TestUser.Instructor.Username, s.TestUser.Instructor.Roles)
 
@@ -76,9 +76,9 @@ func (s *GradingTestSuite) TestGetSubmissionsForGrading_Admin_Success() {
 
 	s.CreateTestLabSection(labID, sectionID)
 
-	materialID := s.CreateTestMaterial(labID, "code")
+	materialID := s.CreateTestMaterial(labID, "code", s.TestUser.Admin.UserID)
 
-	submissionID := s.CreateTestSubmission(s.TestUser.Student.UserID, materialID, labID, sectionID)
+	submissionID := s.CreateTestSubmission(s.TestUser.Student.UserID, materialID, labID, sectionID, courseID)
 
 	adminToken := s.GenerateTestJWT(s.TestUser.Admin.UserID, s.TestUser.Admin.Username, s.TestUser.Admin.Roles)
 
@@ -106,7 +106,7 @@ func (s *GradingTestSuite) TestGetSubmissionsForGrading_Student_Forbidden() {
 	labID := s.CreateTestLab(courseID, s.TestUser.Admin.UserID)
 	defer s.CleanupTestLab(labID)
 
-	materialID := s.CreateTestMaterial(labID, "code")
+	materialID := s.CreateTestMaterial(labID, "code", s.TestUser.Admin.UserID)
 
 	studentToken := s.GenerateTestJWT(s.TestUser.Student.UserID, s.TestUser.Student.Username, s.TestUser.Student.Roles)
 
@@ -134,9 +134,9 @@ func (s *GradingTestSuite) TestGetStudentSubmissionsByStudentID_Instructor_Succe
 
 	s.CreateTestLabSection(labID, sectionID)
 
-	materialID := s.CreateTestMaterial(labID, "code")
+	materialID := s.CreateTestMaterial(labID, "code", s.TestUser.Admin.UserID)
 
-	submissionID := s.CreateTestSubmission(s.TestUser.Student.UserID, materialID, labID, sectionID)
+	submissionID := s.CreateTestSubmission(s.TestUser.Student.UserID, materialID, labID, sectionID, courseID)
 
 	instructorToken := s.GenerateTestJWT(s.TestUser.Instructor.UserID, s.TestUser.Instructor.Username, s.TestUser.Instructor.Roles)
 
@@ -261,9 +261,9 @@ func (s *GradingTestSuite) TestSubmitGrade_Instructor_Success() {
 	labID := s.CreateTestLab(courseID, s.TestUser.Admin.UserID)
 	defer s.CleanupTestLab(labID)
 
-	materialID := s.CreateTestMaterial(labID, "code")
+	materialID := s.CreateTestMaterial(labID, "code", s.TestUser.Admin.UserID)
 
-	submissionID := s.CreateTestSubmission(s.TestUser.Student.UserID, materialID, labID, sectionID)
+	submissionID := s.CreateTestSubmission(s.TestUser.Student.UserID, materialID, labID, sectionID, courseID)
 
 	instructorToken := s.GenerateTestJWT(s.TestUser.Instructor.UserID, s.TestUser.Instructor.Username, s.TestUser.Instructor.Roles)
 
@@ -295,9 +295,9 @@ func (s *GradingTestSuite) TestSubmitGrade_InvalidScore() {
 	labID := s.CreateTestLab(courseID, s.TestUser.Admin.UserID)
 	defer s.CleanupTestLab(labID)
 
-	materialID := s.CreateTestMaterial(labID, "code")
+	materialID := s.CreateTestMaterial(labID, "code", s.TestUser.Admin.UserID)
 
-	submissionID := s.CreateTestSubmission(s.TestUser.Student.UserID, materialID, labID, sectionID)
+	submissionID := s.CreateTestSubmission(s.TestUser.Student.UserID, materialID, labID, sectionID, courseID)
 
 	instructorToken := s.GenerateTestJWT(s.TestUser.Instructor.UserID, s.TestUser.Instructor.Username, s.TestUser.Instructor.Roles)
 
@@ -331,9 +331,9 @@ func (s *GradingTestSuite) TestSubmitGrade_NonInstructor_Forbidden() {
 	labID := s.CreateTestLab(courseID, s.TestUser.Admin.UserID)
 	defer s.CleanupTestLab(labID)
 
-	materialID := s.CreateTestMaterial(labID, "code")
+	materialID := s.CreateTestMaterial(labID, "code", s.TestUser.Admin.UserID)
 
-	submissionID := s.CreateTestSubmission(s.TestUser.Student.UserID, materialID, labID, sectionID)
+	submissionID := s.CreateTestSubmission(s.TestUser.Student.UserID, materialID, labID, sectionID, courseID)
 
 	// Student2 tries to grade Student's submission
 	student2Token := s.GenerateTestJWT(s.TestUser.Student2.UserID, s.TestUser.Student2.Username, s.TestUser.Student2.Roles)
