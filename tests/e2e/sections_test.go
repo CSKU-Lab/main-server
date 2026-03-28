@@ -79,9 +79,10 @@ func (s *SectionsTestSuite) TestCreateSection_Admin_Success() {
 
 	// Create section using form data
 	fields := map[string]string{
-		"name":        "E2E Test Section " + generateRandomString(6),
-		"semester_id": semesterID,
-		"course_id":   courseID,
+		"name":          "E2E Test Section " + generateRandomString(6),
+		"semester_id":   semesterID,
+		"course_id":     courseID,
+		"instructors[]": s.TestUser.Admin.UserID,
 	}
 
 	resp := s.RequestWithFormData("POST", BuildURL("/cms/sections"), fields, nil, adminToken)

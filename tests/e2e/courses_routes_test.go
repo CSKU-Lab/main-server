@@ -113,9 +113,9 @@ func (s *CoursesRoutesTestSuite) TestCreateCourse_AdminCanCreate() {
 
 	// Prepare create course request
 	createReq := map[string]interface{}{
-		"name":        "E2E Test Course",
-		"description": "A test course created by E2E tests",
-		"visibility":  "public",
+		"name":       "E2E Test Course",
+		"visibility": "public",
+		"creators":   []string{adminID},
 	}
 	reqBody, _ := json.Marshal(createReq)
 
@@ -154,9 +154,9 @@ func (s *CoursesRoutesTestSuite) TestCreateCourse_InstructorCanCreate() {
 
 	// Prepare create course request
 	createReq := map[string]interface{}{
-		"name":        "E2E Test Course by Instructor",
-		"description": "A test course created by instructor",
-		"visibility":  "public",
+		"name":       "E2E Test Course by Instructor",
+		"visibility": "public",
+		"creators":   []string{instructorID},
 	}
 	reqBody, _ := json.Marshal(createReq)
 
@@ -195,9 +195,9 @@ func (s *CoursesRoutesTestSuite) TestCreateCourse_StudentCannotCreate() {
 
 	// Prepare create course request
 	createReq := map[string]interface{}{
-		"name":        "E2E Test Course by Student",
-		"description": "This should not be created",
-		"visibility":  "public",
+		"name":       "E2E Test Course by Student",
+		"visibility": "public",
+		"creators":   []string{studentID},
 	}
 	reqBody, _ := json.Marshal(createReq)
 

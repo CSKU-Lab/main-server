@@ -300,9 +300,9 @@ func (s *SubmissionsRoutesTestSuite) TestUpdateManualScore_AdminCanUpdate() {
 	// Generate admin token
 	adminToken := s.GenerateTestJWT(adminID, "test_admin", []string{"admin"})
 
-	// Prepare update request
+	// Prepare update request - manual_score must be an integer
 	updateReq := map[string]interface{}{
-		"manual_score": 95.5,
+		"manual_score": 95,
 	}
 	reqBody, _ := json.Marshal(updateReq)
 
@@ -351,9 +351,9 @@ func (s *SubmissionsRoutesTestSuite) TestUpdateManualScore_StudentCannotUpdate()
 	// Generate student token
 	studentToken := s.GenerateTestJWT(studentID, "test_student", []string{"student"})
 
-	// Prepare update request
+	// Prepare update request - manual_score must be an integer
 	updateReq := map[string]interface{}{
-		"manual_score": 100.0,
+		"manual_score": 100,
 	}
 	reqBody, _ := json.Marshal(updateReq)
 

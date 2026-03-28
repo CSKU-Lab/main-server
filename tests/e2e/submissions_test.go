@@ -268,7 +268,7 @@ func (s *SubmissionsTestSuite) TestUpdateManualScore_Instructor_Success() {
 	instructorToken := s.GenerateTestJWT(s.TestUser.Instructor.UserID, s.TestUser.Instructor.Username, s.TestUser.Instructor.Roles)
 
 	reqBody := map[string]interface{}{
-		"manual_score": 95.5,
+		"manual_score": 95,
 	}
 
 	resp := s.RequestWithAuth("PATCH", BuildURL("/cms/submissions/"+submissionID+"/manual-score"), reqBody, instructorToken)
@@ -302,7 +302,7 @@ func (s *SubmissionsTestSuite) TestUpdateManualScore_Admin_Success() {
 	adminToken := s.GenerateTestJWT(s.TestUser.Admin.UserID, s.TestUser.Admin.Username, s.TestUser.Admin.Roles)
 
 	reqBody := map[string]interface{}{
-		"manual_score": 88.0,
+		"manual_score": 88,
 	}
 
 	resp := s.RequestWithAuth("PATCH", BuildURL("/cms/submissions/"+submissionID+"/manual-score"), reqBody, adminToken)
@@ -336,7 +336,7 @@ func (s *SubmissionsTestSuite) TestUpdateManualScore_Student_Forbidden() {
 	studentToken := s.GenerateTestJWT(s.TestUser.Student.UserID, s.TestUser.Student.Username, s.TestUser.Student.Roles)
 
 	reqBody := map[string]interface{}{
-		"manual_score": 100.0,
+		"manual_score": 100,
 	}
 
 	resp := s.RequestWithAuth("PATCH", BuildURL("/cms/submissions/"+submissionID+"/manual-score"), reqBody, studentToken)

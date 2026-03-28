@@ -332,6 +332,11 @@ func (s *SectionsRoutesTestSuite) TestAddStudentsToSection_AdminCanAdd() {
 	studentID := s.CreateTestUser("student", []string{"student"})
 	defer s.CleanupTestUser(studentID)
 
+	// Get the student's username from database
+	var studentUsername string
+	err := s.DB.Get(&studentUsername, "SELECT username FROM users WHERE id = $1", studentID)
+	s.Require().NoError(err, "Failed to get student username")
+
 	// Create a test course and section
 	courseID := s.CreateTestCourse(adminID)
 	defer s.CleanupTestCourse(courseID)
@@ -342,9 +347,9 @@ func (s *SectionsRoutesTestSuite) TestAddStudentsToSection_AdminCanAdd() {
 	// Generate admin token
 	adminToken := s.GenerateTestJWT(adminID, "test_admin", []string{"admin"})
 
-	// Prepare request
+	// Prepare request with actual username
 	addReq := map[string]interface{}{
-		"student_usernames": []string{"test_student"},
+		"student_usernames": []string{studentUsername},
 	}
 	reqBody, _ := json.Marshal(addReq)
 
@@ -469,11 +474,9 @@ func (s *SectionsRoutesTestSuite) TestAddLabToSection_AdminCanAdd() {
 	// Generate admin token
 	adminToken := s.GenerateTestJWT(adminID, "test_admin", []string{"admin"})
 
-	// Prepare request
+	// Prepare request - SetLabSection expects lab_ids array
 	addReq := map[string]interface{}{
-		"lab_id":   labID,
-		"position": 1,
-		"status":   "hidden",
+		"lab_ids": []string{labID},
 	}
 	reqBody, _ := json.Marshal(addReq)
 

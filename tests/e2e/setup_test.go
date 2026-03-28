@@ -134,35 +134,43 @@ func (s *TestSuite) TearDownTest() {
 func (s *TestSuite) setupTestUsers() {
 	s.TestUser = &TestUserFixture{}
 
-	// Create admin user
+	// Create admin user and get actual username
 	adminID := s.CreateTestUser("admin", []string{"admin"})
+	var adminUsername string
+	s.DB.Get(&adminUsername, "SELECT username FROM users WHERE id = $1", adminID)
 	s.TestUser.Admin = &UserTokens{
 		UserID:   adminID,
-		Username: "test_admin",
+		Username: adminUsername,
 		Roles:    []string{"admin"},
 	}
 
-	// Create instructor user
+	// Create instructor user and get actual username
 	instructorID := s.CreateTestUser("instructor", []string{"instructor"})
+	var instructorUsername string
+	s.DB.Get(&instructorUsername, "SELECT username FROM users WHERE id = $1", instructorID)
 	s.TestUser.Instructor = &UserTokens{
 		UserID:   instructorID,
-		Username: "test_instructor",
+		Username: instructorUsername,
 		Roles:    []string{"instructor"},
 	}
 
-	// Create student user
+	// Create student user and get actual username
 	studentID := s.CreateTestUser("student", []string{"student"})
+	var studentUsername string
+	s.DB.Get(&studentUsername, "SELECT username FROM users WHERE id = $1", studentID)
 	s.TestUser.Student = &UserTokens{
 		UserID:   studentID,
-		Username: "test_student",
+		Username: studentUsername,
 		Roles:    []string{"student"},
 	}
 
-	// Create second student user
+	// Create second student user and get actual username
 	student2ID := s.CreateTestUser("student2", []string{"student"})
+	var student2Username string
+	s.DB.Get(&student2Username, "SELECT username FROM users WHERE id = $1", student2ID)
 	s.TestUser.Student2 = &UserTokens{
 		UserID:   student2ID,
-		Username: "test_student2",
+		Username: student2Username,
 		Roles:    []string{"student"},
 	}
 }
