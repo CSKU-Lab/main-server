@@ -33,7 +33,7 @@ type CMSRouter struct {
 func NewCMSRouter(r *CMSRouter) {
 	cmsRouter := r.Router.Group("/cms")
 
-	routes.NewCmsSectionRoutes(cmsRouter, r.SectionService, r.SemesterService, r.LabSectionService, r.SectionLogService, r.LabService, r.SubmissionService, r.GradebookExportService)
+	routes.NewCmsSectionRoutes(cmsRouter, r.SectionService, r.SemesterService, r.LabSectionService, r.SectionLogService, r.LabService, r.SubmissionService, r.GradebookExportService, r.PermissionService)
 	routes.NewAdminSemesterRoutes(cmsRouter, r.SemesterService, r.SectionService, r.CourseService)
 	routes.NewCMSMaterialRoutes(cmsRouter, r.MaterialService, r.MaterialAssetService, r.SubmissionService)
 	routes.NewCMSAffectedEntitiesRoutes(cmsRouter, r.AffectedEntitiesService)
@@ -41,6 +41,6 @@ func NewCMSRouter(r *CMSRouter) {
 	routes.NewCMSCourseRoutes(cmsRouter, r.CourseService, r.SectionService, r.SemesterService, r.DefaultLabService, r.LabService)
 	routes.NewCMSLabRoutes(cmsRouter, r.LabService, r.LabSectionService, r.LabMaterialService)
 	routes.NewCMSConfigRoutes(cmsRouter, r.ConfigGRPCClient, r.Queue)
-	routes.NewCMSSubmissionRoutes(cmsRouter, r.SubmissionService)
+	routes.NewCMSSubmissionRoutes(cmsRouter, r.SubmissionService, r.PermissionService)
 	routes.NewCMSUserRoute(cmsRouter, r.UserService)
 }

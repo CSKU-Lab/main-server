@@ -17,6 +17,7 @@ import (
 func NewCMSMaterialRoutes(router fiber.Router, materialService services.MaterialService, materialAssetService services.MaterialAssetService, submissionService services.SubmissionService) {
 	materialRouter := router.Group("/materials")
 
+	// Create material - instructors and admins only
 	materialRouter.Post("/", middlewares.RBACMiddleware([]models.Role{
 		models.ADMIN,
 		models.INSTRUCTOR,
@@ -34,9 +35,11 @@ func NewCMSMaterialRoutes(router fiber.Router, materialService services.Material
 		})
 	})
 
+	// List materials - students, instructors, and admins can view
 	materialRouter.Get("/", middlewares.RBACMiddleware([]models.Role{
 		models.ADMIN,
 		models.INSTRUCTOR,
+		models.STUDENT,
 	}), func(c fiber.Ctx) error {
 		pageQuery := c.Query("page", "1")
 		pageSizeQuery := c.Query("page_size", "10")
@@ -81,9 +84,11 @@ func NewCMSMaterialRoutes(router fiber.Router, materialService services.Material
 		})
 	})
 
+	// Get material by ID - students, instructors, and admins can view
 	materialRouter.Get("/:id", middlewares.RBACMiddleware([]models.Role{
 		models.ADMIN,
 		models.INSTRUCTOR,
+		models.STUDENT,
 	}), func(c fiber.Ctx) error {
 		id := c.Params("id")
 		material, err := materialService.GetByID(c.RequestCtx(), id)
@@ -93,6 +98,7 @@ func NewCMSMaterialRoutes(router fiber.Router, materialService services.Material
 		return c.JSON(material)
 	})
 
+	// Update material - instructors and admins only
 	materialRouter.Patch("/:id", middlewares.RBACMiddleware([]models.Role{
 		models.ADMIN,
 		models.INSTRUCTOR,
@@ -105,6 +111,7 @@ func NewCMSMaterialRoutes(router fiber.Router, materialService services.Material
 		return materialService.UpdateByID(c.RequestCtx(), id, req, rawReq, user.ID)
 	})
 
+	// Delete material - instructors and admins only
 	materialRouter.Delete("/:id", middlewares.RBACMiddleware([]models.Role{
 		models.ADMIN,
 		models.INSTRUCTOR,
@@ -114,6 +121,7 @@ func NewCMSMaterialRoutes(router fiber.Router, materialService services.Material
 		return materialService.DeleteByID(c.RequestCtx(), id, user.ID)
 	})
 
+	// Upload asset - instructors and admins only
 	materialRouter.Post("/:id/assets", middlewares.RBACMiddleware([]models.Role{
 		models.ADMIN,
 		models.INSTRUCTOR,

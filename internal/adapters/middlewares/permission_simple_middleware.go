@@ -29,6 +29,27 @@ func RequireAdmin() fiber.Handler {
 	}
 }
 
+// RequireAdminOrInstructor returns a middleware that requires the user to have
+// either admin or instructor role. It returns 403 Forbidden if the user has
+// neither role.
+func RequireAdminOrInstructor() fiber.Handler {
+	return func(c fiber.Ctx) error {
+		user := c.Locals("user").(*models.User)
+
+		for _, role := range user.Roles {
+			if role == models.ADMIN || role == models.INSTRUCTOR {
+				return c.Next()
+			}
+		}
+
+		return cserrors.New(&cserrors.Option{
+			HttpStatus: http.StatusForbidden,
+			Code:       cserrors.Forbidden,
+			Message:    "Permission denied: admin or instructor access required",
+		})
+	}
+}
+
 // RequireAuthenticated returns a middleware that requires the user to be authenticated.
 // This middleware assumes that the ProtectedRouteMiddleware has already run and
 // set the user in c.Locals("user"). It returns 401 Unauthorized if no user is found.

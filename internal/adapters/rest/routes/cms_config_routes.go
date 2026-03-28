@@ -20,14 +20,18 @@ import (
 )
 
 func NewCMSConfigRoutes(router fiber.Router, configGRPCClient configPB.ConfigServiceClient, q queue.Queue) {
+	// Base config router - requires authentication but no specific role
+	// Individual routes will have their own permission checks
 	configRouter := router.Group("/configs", middlewares.RBACMiddleware([]models.Role{
 		models.ADMIN,
 		models.INSTRUCTOR,
 	}))
 
+	// Runner routes - viewable by admin and instructor, modifiable by admin only
 	runnerRouter := configRouter.Group("/runners")
 
-	runnerRouter.Get("/:id", func(c fiber.Ctx) error {
+	// GET /configs/runners/:id - View (Admin or Instructor)
+	runnerRouter.Get("/:id", middlewares.RequireAdminOrInstructor(), func(c fiber.Ctx) error {
 		id := c.Params("id")
 		runner, err := configGRPCClient.GetRunner(c.RequestCtx(), &configPB.GetRunnerRequest{
 			Id: id,
@@ -47,7 +51,7 @@ func NewCMSConfigRoutes(router fiber.Router, configGRPCClient configPB.ConfigSer
 		})
 	})
 
-	runnerRouter.Post("/", middlewares.ValidateMiddleware[requests.CreateRunnerRequest](), func(c fiber.Ctx) error {
+	runnerRouter.Post("/", middlewares.RequireAdmin(), middlewares.ValidateMiddleware[requests.CreateRunnerRequest](), func(c fiber.Ctx) error {
 		req := c.Locals("body").(*requests.CreateRunnerRequest)
 		runner, err := configGRPCClient.CreateRunner(c.RequestCtx(), &configPB.CreateRunnerRequest{
 			Name:        req.Name,
@@ -59,7 +63,7 @@ func NewCMSConfigRoutes(router fiber.Router, configGRPCClient configPB.ConfigSer
 		return c.JSON(runner)
 	})
 
-	runnerRouter.Patch("/:id", middlewares.ValidateMiddleware[requests.UpdateRunnerRequest](), func(c fiber.Ctx) error {
+	runnerRouter.Patch("/:id", middlewares.RequireAdmin(), middlewares.ValidateMiddleware[requests.UpdateRunnerRequest](), func(c fiber.Ctx) error {
 		req := c.Locals("body").(*requests.UpdateRunnerRequest)
 		id := c.Params("id")
 		payload := &configPB.UpdateRunnerRequest{
@@ -82,7 +86,7 @@ func NewCMSConfigRoutes(router fiber.Router, configGRPCClient configPB.ConfigSer
 		return c.JSON(runner)
 	})
 
-	runnerRouter.Delete("/:id", func(c fiber.Ctx) error {
+	runnerRouter.Delete("/:id", middlewares.RequireAdmin(), func(c fiber.Ctx) error {
 		id := c.Params("id")
 		_, err := configGRPCClient.DeleteRunner(c.RequestCtx(), &configPB.DeleteRunnerRequest{
 			Id: id,
@@ -102,7 +106,7 @@ func NewCMSConfigRoutes(router fiber.Router, configGRPCClient configPB.ConfigSer
 		BuildScript  string              `json:"build_script"`
 	}
 
-	runnerRouter.Post("/:id/test", func(c fiber.Ctx) error {
+	runnerRouter.Post("/:id/test", middlewares.RequireAdminOrInstructor(), func(c fiber.Ctx) error {
 		id := c.Params("id")
 		body := requests.TestRunnerRequest{}
 
@@ -194,7 +198,7 @@ func NewCMSConfigRoutes(router fiber.Router, configGRPCClient configPB.ConfigSer
 		return nil
 	})
 
-	runnerRouter.Get("/", func(c fiber.Ctx) error {
+	runnerRouter.Get("/", middlewares.RequireAdminOrInstructor(), func(c fiber.Ctx) error {
 		includeScriptsQuery := c.Query("include_scripts", "false")
 		pageQuery := c.Query("page", "1")
 		pageSizeQuery := c.Query("page_size", "20")
@@ -266,7 +270,7 @@ func NewCMSConfigRoutes(router fiber.Router, configGRPCClient configPB.ConfigSer
 		})
 	})
 
-	configRouter.Get("/compare-scripts", func(c fiber.Ctx) error {
+	configRouter.Get("/compare-scripts", middlewares.RequireAdminOrInstructor(), func(c fiber.Ctx) error {
 		pageQuery := c.Query("page", "1")
 		pageSizeQuery := c.Query("page_size", "20")
 		sortOrder := c.Query("sort_order", "desc")
@@ -308,7 +312,7 @@ func NewCMSConfigRoutes(router fiber.Router, configGRPCClient configPB.ConfigSer
 		})
 	})
 
-	configRouter.Post("/compare-scripts", middlewares.ValidateMiddleware[requests.CreateCompareRequest](), func(c fiber.Ctx) error {
+	configRouter.Post("/compare-scripts", middlewares.RequireAdmin(), middlewares.ValidateMiddleware[requests.CreateCompareRequest](), func(c fiber.Ctx) error {
 		req := c.Locals("body").(*requests.CreateCompareRequest)
 		compare, err := configGRPCClient.CreateCompare(c.RequestCtx(), &configPB.CreateCompareRequest{
 			Name:        req.Name,
@@ -324,7 +328,7 @@ func NewCMSConfigRoutes(router fiber.Router, configGRPCClient configPB.ConfigSer
 		return c.JSON(compare)
 	})
 
-	configRouter.Patch("/compare-scripts/:id", middlewares.ValidateMiddleware[requests.UpdateCompareRequest](), func(c fiber.Ctx) error {
+	configRouter.Patch("/compare-scripts/:id", middlewares.RequireAdmin(), middlewares.ValidateMiddleware[requests.UpdateCompareRequest](), func(c fiber.Ctx) error {
 		req := c.Locals("body").(*requests.UpdateCompareRequest)
 		id := c.Params("id")
 		compare, err := configGRPCClient.UpdateCompare(c.RequestCtx(), &configPB.UpdateCompareRequest{
@@ -342,7 +346,7 @@ func NewCMSConfigRoutes(router fiber.Router, configGRPCClient configPB.ConfigSer
 		return c.JSON(compare)
 	})
 
-	configRouter.Delete("/compare-scripts/:id", func(c fiber.Ctx) error {
+	configRouter.Delete("/compare-scripts/:id", middlewares.RequireAdmin(), func(c fiber.Ctx) error {
 		id := c.Params("id")
 		_, err := configGRPCClient.DeleteCompare(c.RequestCtx(), &configPB.DeleteCompareRequest{
 			Id: id,
