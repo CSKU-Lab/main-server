@@ -40,6 +40,7 @@ func NewCoreRouter(r *CoreRouter) {
 		r.SectionStudentService,
 		r.LabMaterialService,
 		r.CourseService,
+		r.PermissionService,
 	)
 	routes.NewCoreLabRoute(
 		coreRouter,
@@ -48,6 +49,7 @@ func NewCoreRouter(r *CoreRouter) {
 		r.LabService,
 		r.SectionStudentService,
 		r.LabMaterialService,
+		r.PermissionService,
 	)
 	routes.NewCoreSidebarRoute(
 		coreRouter,
@@ -59,6 +61,7 @@ func NewCoreRouter(r *CoreRouter) {
 		r.SubmissionService,
 		r.LabSectionService,
 		r.LabMaterialService,
+		r.PermissionService,
 	)
 
 	routes.NewCoreMaterialSubmissionRoutes(
@@ -66,5 +69,6 @@ func NewCoreRouter(r *CoreRouter) {
 		r.MaterialService,
 		r.SubmissionService,
 		r.LabSectionService,
+		r.PermissionService,
 	)
 }

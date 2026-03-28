@@ -12,16 +12,17 @@ import (
 
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
 	"github.com/CSKU-Lab/main-server/domain/models"
+	"github.com/CSKU-Lab/main-server/domain/permission"
 	"github.com/CSKU-Lab/main-server/domain/services"
 	"github.com/CSKU-Lab/main-server/internal/adapters/middlewares"
 	"github.com/CSKU-Lab/main-server/internal/requests"
 	"github.com/gofiber/fiber/v3"
 )
 
-func NewCoreSubmissionRoutes(router fiber.Router, service services.SubmissionService, labSectionService services.LabSectionService, labMaterialService services.LabMaterialService) {
+func NewCoreSubmissionRoutes(router fiber.Router, service services.SubmissionService, labSectionService services.LabSectionService, labMaterialService services.LabMaterialService, permService permission.Service) {
 	submissionRouter := router.Group("/submissions")
 
-	submissionRouter.Post("/", middlewares.ValidateMiddleware[requests.Submission](), func(c fiber.Ctx) error {
+	submissionRouter.Post("/", middlewares.ValidateMiddleware[requests.Submission](), middlewares.Permission(permService).ForSection("section_id").CanCreate(), func(c fiber.Ctx) error {
 		payload := c.Locals("body").(*requests.Submission)
 
 		id, err := service.Create(c.Context(), payload, c.Body())
@@ -34,7 +35,7 @@ func NewCoreSubmissionRoutes(router fiber.Router, service services.SubmissionSer
 		})
 	})
 
-	submissionRouter.Get("/:id", func(c fiber.Ctx) error {
+	submissionRouter.Get("/:id", middlewares.Permission(permService).ForSubmission("id").CanView(), func(c fiber.Ctx) error {
 		id := c.Params("id")
 		submission, err := service.Get(c.RequestCtx(), id)
 		if err != nil {
