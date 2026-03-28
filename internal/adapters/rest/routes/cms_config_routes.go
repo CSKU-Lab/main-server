@@ -12,6 +12,7 @@ import (
 
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
 	"github.com/CSKU-Lab/main-server/domain/models"
+	"github.com/CSKU-Lab/main-server/domain/permission"
 	configPB "github.com/CSKU-Lab/main-server/genproto/config/v1"
 	"github.com/CSKU-Lab/main-server/internal/adapters/middlewares"
 	"github.com/CSKU-Lab/main-server/internal/requests"
@@ -20,80 +21,90 @@ import (
 )
 
 func NewCMSConfigRoutes(router fiber.Router, configGRPCClient configPB.ConfigServiceClient, q queue.Queue) {
-	configRouter := router.Group("/configs", middlewares.RBACMiddleware([]models.Role{
-		models.ADMIN,
-		models.INSTRUCTOR,
-	}))
+	// Runner routes
+	runnerRouter := router.Group("/runners")
 
-	runnerRouter := configRouter.Group("/runners")
-
-	runnerRouter.Get("/:id", func(c fiber.Ctx) error {
-		id := c.Params("id")
-		runner, err := configGRPCClient.GetRunner(c.RequestCtx(), &configPB.GetRunnerRequest{
-			Id: id,
+	// GET /api/v1/cms/configs/runners/:id - View runner details (Admin or Instructor)
+	runnerRouter.Get("/:id",
+		middlewares.RequirePermission(permission.Or(permission.IsAdmin, permission.IsInstructor)),
+		func(c fiber.Ctx) error {
+			id := c.Params("id")
+			runner, err := configGRPCClient.GetRunner(c.RequestCtx(), &configPB.GetRunnerRequest{
+				Id: id,
+			})
+			if err != nil {
+				return err
+			}
+			return c.JSON(&models.RunnerConfigDetail{
+				RunnerConfig: &models.RunnerConfig{
+					ID:          runner.GetId(),
+					Name:        runner.GetName(),
+					Description: runner.GetDescription(),
+				},
+				BuildScript:  runner.GetBuildScript(),
+				RunScript:    runner.GetRunScript(),
+				InitialFiles: pbFilesToModelFiles(runner.GetInitialFiles()),
+			})
 		})
-		if err != nil {
-			return err
-		}
-		return c.JSON(&models.RunnerConfigDetail{
-			RunnerConfig: &models.RunnerConfig{
-				ID:          runner.GetId(),
-				Name:        runner.GetName(),
-				Description: runner.GetDescription(),
-			},
-			BuildScript:  runner.GetBuildScript(),
-			RunScript:    runner.GetRunScript(),
-			InitialFiles: pbFilesToModelFiles(runner.GetInitialFiles()),
+
+	// POST /api/v1/cms/configs/runners - Create runner (Admin only)
+	runnerRouter.Post("/",
+		middlewares.RequirePermission(permission.IsAdmin),
+		middlewares.ValidateMiddleware[requests.CreateRunnerRequest](),
+		func(c fiber.Ctx) error {
+			req := c.Locals("body").(*requests.CreateRunnerRequest)
+			runner, err := configGRPCClient.CreateRunner(c.RequestCtx(), &configPB.CreateRunnerRequest{
+				Name:        req.Name,
+				Description: req.Description,
+			})
+			if err != nil {
+				return err
+			}
+			return c.JSON(runner)
 		})
-	})
 
-	runnerRouter.Post("/", middlewares.ValidateMiddleware[requests.CreateRunnerRequest](), func(c fiber.Ctx) error {
-		req := c.Locals("body").(*requests.CreateRunnerRequest)
-		runner, err := configGRPCClient.CreateRunner(c.RequestCtx(), &configPB.CreateRunnerRequest{
-			Name:        req.Name,
-			Description: req.Description,
+	// PATCH /api/v1/cms/configs/runners/:id - Update runner (Admin only)
+	runnerRouter.Patch("/:id",
+		middlewares.RequirePermission(permission.IsAdmin),
+		middlewares.ValidateMiddleware[requests.UpdateRunnerRequest](),
+		func(c fiber.Ctx) error {
+			req := c.Locals("body").(*requests.UpdateRunnerRequest)
+			id := c.Params("id")
+			payload := &configPB.UpdateRunnerRequest{
+				Id:          id,
+				Name:        req.Name,
+				Description: req.Description,
+				BuildScript: req.BuildScript,
+				RunScript:   req.RunScript,
+			}
+
+			if req.InitialFiles != nil {
+				payload.InitialFiles = requests.MapConfigFilesToPB(*req.InitialFiles)
+			}
+
+			runner, err := configGRPCClient.UpdateRunner(c.RequestCtx(), payload)
+			if err != nil {
+				return err
+			}
+
+			return c.JSON(runner)
 		})
-		if err != nil {
-			return err
-		}
-		return c.JSON(runner)
-	})
 
-	runnerRouter.Patch("/:id", middlewares.ValidateMiddleware[requests.UpdateRunnerRequest](), func(c fiber.Ctx) error {
-		req := c.Locals("body").(*requests.UpdateRunnerRequest)
-		id := c.Params("id")
-		payload := &configPB.UpdateRunnerRequest{
-			Id:          id,
-			Name:        req.Name,
-			Description: req.Description,
-			BuildScript: req.BuildScript,
-			RunScript:   req.RunScript,
-		}
-
-		if req.InitialFiles != nil {
-			payload.InitialFiles = requests.MapConfigFilesToPB(*req.InitialFiles)
-		}
-
-		runner, err := configGRPCClient.UpdateRunner(c.RequestCtx(), payload)
-		if err != nil {
-			return err
-		}
-
-		return c.JSON(runner)
-	})
-
-	runnerRouter.Delete("/:id", func(c fiber.Ctx) error {
-		id := c.Params("id")
-		_, err := configGRPCClient.DeleteRunner(c.RequestCtx(), &configPB.DeleteRunnerRequest{
-			Id: id,
+	// DELETE /api/v1/cms/configs/runners/:id - Delete runner (Admin only)
+	runnerRouter.Delete("/:id",
+		middlewares.RequirePermission(permission.IsAdmin),
+		func(c fiber.Ctx) error {
+			id := c.Params("id")
+			_, err := configGRPCClient.DeleteRunner(c.RequestCtx(), &configPB.DeleteRunnerRequest{
+				Id: id,
+			})
+			if err != nil {
+				return err
+			}
+			return c.JSON(fiber.Map{
+				"message": "Runner deleted successfully",
+			})
 		})
-		if err != nil {
-			return err
-		}
-		return c.JSON(fiber.Map{
-			"message": "Runner deleted successfully",
-		})
-	})
 
 	type runnerTestRequest struct {
 		InitialFiles []models.ConfigFile `json:"initial_files"`
@@ -102,258 +113,281 @@ func NewCMSConfigRoutes(router fiber.Router, configGRPCClient configPB.ConfigSer
 		BuildScript  string              `json:"build_script"`
 	}
 
-	runnerRouter.Post("/:id/test", func(c fiber.Ctx) error {
-		id := c.Params("id")
-		body := requests.TestRunnerRequest{}
+	// POST /api/v1/cms/configs/runners/:id/test - Test runner (Admin or Instructor)
+	runnerRouter.Post("/:id/test",
+		middlewares.RequirePermission(permission.Or(permission.IsAdmin, permission.IsInstructor)),
+		func(c fiber.Ctx) error {
+			id := c.Params("id")
+			body := requests.TestRunnerRequest{}
 
-		err := c.Bind().JSON(&body)
-		if err != nil {
-			return err
-		}
-
-		qName, err := q.CreateQueue(c.RequestCtx(), "runner_test:"+id, &queue.QueueOptions{
-			AutoDelete: true,
-			Exclusive:  true,
-		})
-
-		payloadBytes, err := json.Marshal(&runnerTestRequest{
-			InitialFiles: reqInitialFilesToModel(body.InitialFiles),
-			Input:        body.Input,
-			RunScript:    body.RunScript,
-			BuildScript:  body.BuildScript,
-		})
-		if err != nil {
-			return err
-		}
-
-		err = q.Publish(c.RequestCtx(), "", "runner_test", &queue.Derivery{
-			CorrelationID: id,
-			ReplyTo:       qName,
-			Body:          payloadBytes,
-		})
-		if err != nil {
-			return err
-		}
-
-		c.Set("Content-Type", "text/event-stream")
-		c.Set("Cache-Control", "no-cache")
-		c.Set("Connection", "keep-alive")
-		c.Set("Transfer-Encoding", "chunked")
-
-		ctx, cancel := context.WithCancel(context.Background())
-
-		c.Status(fiber.StatusOK).RequestCtx().SetBodyStreamWriter(func(w *bufio.Writer) {
-			fmt.Fprint(w, "event: connected\n\n")
-			err := w.Flush()
+			err := c.Bind().JSON(&body)
 			if err != nil {
-				cancel()
-				log.Println(err)
-				return
+				return err
 			}
 
-			err = q.Consume(ctx, qName, 1, true, func(derivery *queue.Derivery, exit chan struct{}) error {
-				runResult := &models.TestRunnerResult{}
-				err := json.Unmarshal(derivery.Body, &runResult)
+			qName, err := q.CreateQueue(c.RequestCtx(), "runner_test:"+id, &queue.QueueOptions{
+				AutoDelete: true,
+				Exclusive:  true,
+			})
+
+			payloadBytes, err := json.Marshal(&runnerTestRequest{
+				InitialFiles: reqInitialFilesToModel(body.InitialFiles),
+				Input:        body.Input,
+				RunScript:    body.RunScript,
+				BuildScript:  body.BuildScript,
+			})
+			if err != nil {
+				return err
+			}
+
+			err = q.Publish(c.RequestCtx(), "", "runner_test", &queue.Derivery{
+				CorrelationID: id,
+				ReplyTo:       qName,
+				Body:          payloadBytes,
+			})
+			if err != nil {
+				return err
+			}
+
+			c.Set("Content-Type", "text/event-stream")
+			c.Set("Cache-Control", "no-cache")
+			c.Set("Connection", "keep-alive")
+			c.Set("Transfer-Encoding", "chunked")
+
+			ctx, cancel := context.WithCancel(context.Background())
+
+			c.Status(fiber.StatusOK).RequestCtx().SetBodyStreamWriter(func(w *bufio.Writer) {
+				fmt.Fprint(w, "event: connected\n\n")
+				err := w.Flush()
 				if err != nil {
-					return err
+					cancel()
+					log.Println(err)
+					return
 				}
 
-				runResultBytes, err := json.Marshal(runResult)
+				err = q.Consume(ctx, qName, 1, true, func(derivery *queue.Derivery, exit chan struct{}) error {
+					runResult := &models.TestRunnerResult{}
+					err := json.Unmarshal(derivery.Body, &runResult)
+					if err != nil {
+						return err
+					}
+
+					runResultBytes, err := json.Marshal(runResult)
+					if err != nil {
+						return err
+					}
+
+					fmt.Fprintf(w, "data: %s\n\n", runResultBytes)
+					err = w.Flush()
+					if err != nil {
+						cancel()
+						log.Println(err)
+						return err
+
+					}
+
+					if runResult.Status != models.CODE_EXECUTION_QUEUED && runResult.Status != models.CODE_EXECUTION_RUNNING {
+						exit <- struct{}{}
+					}
+
+					return nil
+				})
 				if err != nil {
-					return err
+					log.Println("Error consuming runner test result:", err)
+					return
 				}
 
-				fmt.Fprintf(w, "data: %s\n\n", runResultBytes)
+				fmt.Fprint(w, "event: done\n\n")
 				err = w.Flush()
 				if err != nil {
 					cancel()
 					log.Println(err)
-					return err
-
+					return
 				}
+			})
+			return nil
+		})
 
-				if runResult.Status != models.CODE_EXECUTION_QUEUED && runResult.Status != models.CODE_EXECUTION_RUNNING {
-					exit <- struct{}{}
-				}
+	// GET /api/v1/cms/configs/runners - List runners (Admin or Instructor)
+	runnerRouter.Get("/",
+		middlewares.RequirePermission(permission.Or(permission.IsAdmin, permission.IsInstructor)),
+		func(c fiber.Ctx) error {
+			includeScriptsQuery := c.Query("include_scripts", "false")
+			pageQuery := c.Query("page", "1")
+			pageSizeQuery := c.Query("page_size", "20")
+			sortOrder := c.Query("sort_order", "desc")
+			search := c.Query("search", "")
 
-				return nil
+			page, err := strconv.Atoi(pageQuery)
+			if err != nil {
+				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusBadRequest, Message: "Invalid page"})
+			}
+
+			pageSize, err := strconv.Atoi(pageSizeQuery)
+			if err != nil {
+				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusBadRequest, Message: "Invalid page size"})
+			}
+
+			if sortOrder != "asc" && sortOrder != "desc" {
+				sortOrder = "desc"
+			}
+
+			paginationRes, err := configGRPCClient.GetRunnersPagination(c.RequestCtx(), &configPB.GetRunnersPaginationRequest{
+				Pagination: &configPB.PaginationRequest{
+					PageSize:  int32(pageSize),
+					Page:      int32(page),
+					SortOrder: sortOrder,
+					Search:    search,
+				},
+				IncludeScripts: includeScriptsQuery == "true",
 			})
 			if err != nil {
-				log.Println("Error consuming runner test result:", err)
-				return
+				return err
 			}
 
-			fmt.Fprint(w, "event: done\n\n")
-			err = w.Flush()
-			if err != nil {
-				cancel()
-				log.Println(err)
-				return
-			}
-		})
-		return nil
-	})
-
-	runnerRouter.Get("/", func(c fiber.Ctx) error {
-		includeScriptsQuery := c.Query("include_scripts", "false")
-		pageQuery := c.Query("page", "1")
-		pageSizeQuery := c.Query("page_size", "20")
-		sortOrder := c.Query("sort_order", "desc")
-		search := c.Query("search", "")
-
-		page, err := strconv.Atoi(pageQuery)
-		if err != nil {
-			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusBadRequest, Message: "Invalid page"})
-		}
-
-		pageSize, err := strconv.Atoi(pageSizeQuery)
-		if err != nil {
-			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusBadRequest, Message: "Invalid page size"})
-		}
-
-		if sortOrder != "asc" && sortOrder != "desc" {
-			sortOrder = "desc"
-		}
-
-		paginationRes, err := configGRPCClient.GetRunnersPagination(c.RequestCtx(), &configPB.GetRunnersPaginationRequest{
-			Pagination: &configPB.PaginationRequest{
-				PageSize:  int32(pageSize),
-				Page:      int32(page),
-				SortOrder: sortOrder,
-				Search:    search,
-			},
-			IncludeScripts: includeScriptsQuery == "true",
-		})
-		if err != nil {
-			return err
-		}
-
-		var data any
-		if includeScriptsQuery == "true" {
-			runnerConfigs := make([]models.RunnerConfigDetail, len(paginationRes.Runners))
-			for i, runner := range paginationRes.Runners {
-				runnerConfigs[i] = models.RunnerConfigDetail{
-					RunnerConfig: &models.RunnerConfig{
+			var data any
+			if includeScriptsQuery == "true" {
+				runnerConfigs := make([]models.RunnerConfigDetail, len(paginationRes.Runners))
+				for i, runner := range paginationRes.Runners {
+					runnerConfigs[i] = models.RunnerConfigDetail{
+						RunnerConfig: &models.RunnerConfig{
+							ID:          runner.GetId(),
+							Name:        runner.GetName(),
+							Description: runner.GetDescription(),
+						},
+						BuildScript:  runner.GetBuildScript(),
+						RunScript:    runner.GetRunScript(),
+						InitialFiles: pbFilesToModelFiles(runner.GetInitialFiles()),
+					}
+				}
+				data = runnerConfigs
+			} else {
+				runnerConfigs := make([]models.RunnerConfig, len(paginationRes.Runners))
+				for i, runner := range paginationRes.Runners {
+					runnerConfigs[i] = models.RunnerConfig{
 						ID:          runner.GetId(),
 						Name:        runner.GetName(),
 						Description: runner.GetDescription(),
-					},
-					BuildScript:  runner.GetBuildScript(),
-					RunScript:    runner.GetRunScript(),
-					InitialFiles: pbFilesToModelFiles(runner.GetInitialFiles()),
+					}
 				}
+				data = runnerConfigs
 			}
-			data = runnerConfigs
-		} else {
-			runnerConfigs := make([]models.RunnerConfig, len(paginationRes.Runners))
-			for i, runner := range paginationRes.Runners {
-				runnerConfigs[i] = models.RunnerConfig{
-					ID:          runner.GetId(),
-					Name:        runner.GetName(),
-					Description: runner.GetDescription(),
-				}
+
+			return c.JSON(fiber.Map{
+				"pagination": fiber.Map{
+					"page":       page,
+					"total_page": int(math.Ceil(float64(paginationRes.Count) / float64(pageSize))),
+					"total_rows": paginationRes.Count,
+				},
+				"data": data,
+			})
+		})
+
+	// Compare scripts routes
+	compareRouter := router.Group("/compare-scripts")
+
+	// GET /api/v1/cms/configs/compare-scripts - List compare scripts (Admin or Instructor)
+	compareRouter.Get("/",
+		middlewares.RequirePermission(permission.Or(permission.IsAdmin, permission.IsInstructor)),
+		func(c fiber.Ctx) error {
+			pageQuery := c.Query("page", "1")
+			pageSizeQuery := c.Query("page_size", "20")
+			sortOrder := c.Query("sort_order", "desc")
+			search := c.Query("search", "")
+
+			page, err := strconv.Atoi(pageQuery)
+			if err != nil {
+				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusBadRequest, Message: "Invalid page"})
 			}
-			data = runnerConfigs
-		}
 
-		return c.JSON(fiber.Map{
-			"pagination": fiber.Map{
-				"page":       page,
-				"total_page": int(math.Ceil(float64(paginationRes.Count) / float64(pageSize))),
-				"total_rows": paginationRes.Count,
-			},
-			"data": data,
+			pageSize, err := strconv.Atoi(pageSizeQuery)
+			if err != nil {
+				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusBadRequest, Message: "Invalid page size"})
+			}
+
+			if sortOrder != "asc" && sortOrder != "desc" {
+				sortOrder = "desc"
+			}
+
+			paginationRes, err := configGRPCClient.GetComparesPagination(c.RequestCtx(), &configPB.GetComparesPaginationRequest{
+				Pagination: &configPB.PaginationRequest{
+					PageSize:  int32(pageSize),
+					Page:      int32(page),
+					SortOrder: sortOrder,
+					Search:    search,
+				},
+			})
+			if err != nil {
+				return err
+			}
+
+			return c.JSON(fiber.Map{
+				"pagination": fiber.Map{
+					"page":       page,
+					"total_page": int(math.Ceil(float64(paginationRes.Count) / float64(pageSize))),
+					"total_rows": paginationRes.Count,
+				},
+				"data": paginationRes.Compares,
+			})
 		})
-	})
 
-	configRouter.Get("/compare-scripts", func(c fiber.Ctx) error {
-		pageQuery := c.Query("page", "1")
-		pageSizeQuery := c.Query("page_size", "20")
-		sortOrder := c.Query("sort_order", "desc")
-		search := c.Query("search", "")
-
-		page, err := strconv.Atoi(pageQuery)
-		if err != nil {
-			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusBadRequest, Message: "Invalid page"})
-		}
-
-		pageSize, err := strconv.Atoi(pageSizeQuery)
-		if err != nil {
-			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusBadRequest, Message: "Invalid page size"})
-		}
-
-		if sortOrder != "asc" && sortOrder != "desc" {
-			sortOrder = "desc"
-		}
-
-		paginationRes, err := configGRPCClient.GetComparesPagination(c.RequestCtx(), &configPB.GetComparesPaginationRequest{
-			Pagination: &configPB.PaginationRequest{
-				PageSize:  int32(pageSize),
-				Page:      int32(page),
-				SortOrder: sortOrder,
-				Search:    search,
-			},
+	// POST /api/v1/cms/configs/compare-scripts - Create compare script (Admin only)
+	compareRouter.Post("/",
+		middlewares.RequirePermission(permission.IsAdmin),
+		middlewares.ValidateMiddleware[requests.CreateCompareRequest](),
+		func(c fiber.Ctx) error {
+			req := c.Locals("body").(*requests.CreateCompareRequest)
+			compare, err := configGRPCClient.CreateCompare(c.RequestCtx(), &configPB.CreateCompareRequest{
+				Name:        req.Name,
+				RunScript:   req.RunScript,
+				RunName:     req.RunName,
+				Description: req.Description,
+				BuildScript: req.BuildScript,
+				Files:       requests.MapConfigFilesToPB(req.Files),
+			})
+			if err != nil {
+				return err
+			}
+			return c.JSON(compare)
 		})
-		if err != nil {
-			return err
-		}
 
-		return c.JSON(fiber.Map{
-			"pagination": fiber.Map{
-				"page":       page,
-				"total_page": int(math.Ceil(float64(paginationRes.Count) / float64(pageSize))),
-				"total_rows": paginationRes.Count,
-			},
-			"data": paginationRes.Compares,
+	// PATCH /api/v1/cms/configs/compare-scripts/:id - Update compare script (Admin only)
+	compareRouter.Patch("/:id",
+		middlewares.RequirePermission(permission.IsAdmin),
+		middlewares.ValidateMiddleware[requests.UpdateCompareRequest](),
+		func(c fiber.Ctx) error {
+			req := c.Locals("body").(*requests.UpdateCompareRequest)
+			id := c.Params("id")
+			compare, err := configGRPCClient.UpdateCompare(c.RequestCtx(), &configPB.UpdateCompareRequest{
+				Id:          id,
+				Name:        req.Name,
+				RunScript:   req.RunScript,
+				RunName:     req.RunName,
+				Description: req.Description,
+				BuildScript: req.BuildScript,
+				Files:       requests.MapConfigFilesToPB(req.Files),
+			})
+			if err != nil {
+				return err
+			}
+			return c.JSON(compare)
 		})
-	})
 
-	configRouter.Post("/compare-scripts", middlewares.ValidateMiddleware[requests.CreateCompareRequest](), func(c fiber.Ctx) error {
-		req := c.Locals("body").(*requests.CreateCompareRequest)
-		compare, err := configGRPCClient.CreateCompare(c.RequestCtx(), &configPB.CreateCompareRequest{
-			Name:        req.Name,
-			RunScript:   req.RunScript,
-			RunName:     req.RunName,
-			Description: req.Description,
-			BuildScript: req.BuildScript,
-			Files:       requests.MapConfigFilesToPB(req.Files),
+	// DELETE /api/v1/cms/configs/compare-scripts/:id - Delete compare script (Admin only)
+	compareRouter.Delete("/:id",
+		middlewares.RequirePermission(permission.IsAdmin),
+		func(c fiber.Ctx) error {
+			id := c.Params("id")
+			_, err := configGRPCClient.DeleteCompare(c.RequestCtx(), &configPB.DeleteCompareRequest{
+				Id: id,
+			})
+			if err != nil {
+				return err
+			}
+			return c.JSON(fiber.Map{
+				"message": "Compare deleted successfully",
+			})
 		})
-		if err != nil {
-			return err
-		}
-		return c.JSON(compare)
-	})
-
-	configRouter.Patch("/compare-scripts/:id", middlewares.ValidateMiddleware[requests.UpdateCompareRequest](), func(c fiber.Ctx) error {
-		req := c.Locals("body").(*requests.UpdateCompareRequest)
-		id := c.Params("id")
-		compare, err := configGRPCClient.UpdateCompare(c.RequestCtx(), &configPB.UpdateCompareRequest{
-			Id:          id,
-			Name:        req.Name,
-			RunScript:   req.RunScript,
-			RunName:     req.RunName,
-			Description: req.Description,
-			BuildScript: req.BuildScript,
-			Files:       requests.MapConfigFilesToPB(req.Files),
-		})
-		if err != nil {
-			return err
-		}
-		return c.JSON(compare)
-	})
-
-	configRouter.Delete("/compare-scripts/:id", func(c fiber.Ctx) error {
-		id := c.Params("id")
-		_, err := configGRPCClient.DeleteCompare(c.RequestCtx(), &configPB.DeleteCompareRequest{
-			Id: id,
-		})
-		if err != nil {
-			return err
-		}
-		return c.JSON(fiber.Map{
-			"message": "Compare deleted successfully",
-		})
-	})
 }
 
 // fiber:context-methods migrated

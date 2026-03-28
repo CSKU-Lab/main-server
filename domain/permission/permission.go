@@ -62,6 +62,23 @@ func (isAdminCondition) IsSatisfied(userID string) bool {
 // It checks if a user has admin privileges.
 var IsAdmin = isAdminCondition{}
 
+// isInstructorCondition checks if a user has instructor privileges.
+// It is unexported, and accessed via the IsInstructor constant.
+type isInstructorCondition struct{}
+
+// IsSatisfied checks whether the user is an instructor.
+// Currently returns a mock value (true) for testing purposes.
+// In production, this would query the database to verify instructor status.
+func (isInstructorCondition) IsSatisfied(userID string) bool {
+	// TODO: Replace with actual database check
+	// Example: check users table for instructor flag or section membership
+	return true
+}
+
+// IsInstructor is a constant-like variable that can be used in permission checks.
+// It checks if a user has instructor privileges.
+var IsInstructor = isInstructorCondition{}
+
 // orCondition implements OR logic as a Condition.
 // It passes if ANY of its sub-conditions are satisfied.
 type orCondition struct {
