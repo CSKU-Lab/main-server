@@ -1,3 +1,11 @@
+// DEPRECATED: This file contains mock-based tests that are being replaced by
+// lab_uniqueness_integration_test.go which uses real PostgreSQL integration tests.
+//
+// For new tests, use: lab_uniqueness_integration_test.go with the -tags=integration flag
+//
+// TODO: Remove this file once lab_uniqueness_integration_test.go is fully validated
+// Issue: #13
+
 package integration_test
 
 import (
