@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/CSKU-Lab/main-server/configs"
+	"github.com/CSKU-Lab/main-server/domain/permission"
 	"github.com/CSKU-Lab/main-server/domain/registrables"
 	"github.com/CSKU-Lab/main-server/domain/registries"
 	"github.com/CSKU-Lab/main-server/domain/services"
@@ -141,6 +142,17 @@ func startApiServer(ctx context.Context, logger *zap.SugaredLogger, db *sqlx.DB,
 	submissionRepo := sqlxAdapter.NewSubmissionRepository(db)
 	codeSubmissionRepo := sqlxAdapter.NewCodeSubmission(db)
 
+	// Initialize permission service with required repositories
+	permService := permission.NewService(
+		userRepo,
+		courseRepo,
+		courseCreatorRepo,
+		sectionRepo,
+		sectionInstructorRepo,
+		sectionStudentRepo,
+		submissionRepo,
+	)
+
 	codeSubmissionRegistrable := registrables.NewCodeSubmission(codeSubmissionRepo, codeMaterialRepo, submissionRepo, taskGrpcClient)
 
 	submissionRegistry := registries.NewSubmission()
@@ -272,10 +284,11 @@ func startApiServer(ctx context.Context, logger *zap.SugaredLogger, db *sqlx.DB,
 	protectedApi := api.Group("/", middlewares.ProtectedRouteMiddleware(config.JWTSecret))
 
 	rest.NewAdminRouter(&rest.AdminRouter{
-		Router:           protectedApi,
-		UserService:      userService,
-		CourseService:    courseService,
-		UserGroupService: userGroupService,
+		Router:            protectedApi,
+		UserService:       userService,
+		CourseService:     courseService,
+		UserGroupService:  userGroupService,
+		PermissionService: permService,
 	})
 
 	rest.NewCMSRouter(&rest.CMSRouter{
@@ -296,6 +309,7 @@ func startApiServer(ctx context.Context, logger *zap.SugaredLogger, db *sqlx.DB,
 		SubmissionService:       submissionService,
 		GradebookExportService:  gradebookExportService,
 		Queue:                   q,
+		PermissionService:       permService,
 	})
 
 	rest.NewCoreRouter(&rest.CoreRouter{
@@ -310,6 +324,7 @@ func startApiServer(ctx context.Context, logger *zap.SugaredLogger, db *sqlx.DB,
 		MaterialService:       materialService,
 		SubmissionService:     submissionService,
 		PubSub:                rClient,
+		PermissionService:     permService,
 	})
 
 	port := fmt.Sprintf(":%v", config.Port)

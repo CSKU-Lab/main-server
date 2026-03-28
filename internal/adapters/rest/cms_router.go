@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"github.com/CSKU-Lab/main-server/domain/permission"
 	"github.com/CSKU-Lab/main-server/domain/services"
 	configPB "github.com/CSKU-Lab/main-server/genproto/config/v1"
 	"github.com/CSKU-Lab/main-server/internal/adapters/rest/routes"
@@ -26,6 +27,7 @@ type CMSRouter struct {
 	SubmissionService       services.SubmissionService
 	GradebookExportService  services.GradebookExportService
 	Queue                   queue.Queue
+	PermissionService       permission.Service
 }
 
 func NewCMSRouter(r *CMSRouter) {
