@@ -18,10 +18,21 @@
 //	}
 package permission
 
-import "errors"
+import (
+	"context"
+	"errors"
+)
 
 // ErrForbidden is returned when a permission check fails.
 var ErrForbidden = errors.New("forbidden")
+
+// ContextKey is the type for context keys used in permission checks.
+type ContextKey string
+
+const (
+	// SectionIDKey is the context key for section ID parameter.
+	SectionIDKey ContextKey = "section_id"
+)
 
 // Condition defines the interface for permission checks.
 // Implementations must provide an IsSatisfied method that checks
@@ -29,7 +40,7 @@ var ErrForbidden = errors.New("forbidden")
 type Condition interface {
 	// IsSatisfied checks whether the given userID satisfies this condition.
 	// Returns true if the condition is met, false otherwise.
-	IsSatisfied(userID string) bool
+	IsSatisfied(ctx context.Context, userID string) bool
 }
 
 // IsInSection checks if a user belongs to a specific section.
@@ -39,7 +50,7 @@ type IsInSection string
 // IsSatisfied checks whether the user is in the specified section.
 // Currently returns a mock value (true) for testing purposes.
 // In production, this would query the database to verify section membership.
-func (sec IsInSection) IsSatisfied(userID string) bool {
+func (sec IsInSection) IsSatisfied(ctx context.Context, userID string) bool {
 	// TODO: Replace with actual database check
 	// Example: check user_sections table for (userID, sectionID) pair
 	return true
@@ -52,7 +63,7 @@ type isAdminCondition struct{}
 // IsSatisfied checks whether the user is an admin.
 // Currently returns a mock value (false) for testing purposes.
 // In production, this would query the database to verify admin status.
-func (isAdminCondition) IsSatisfied(userID string) bool {
+func (isAdminCondition) IsSatisfied(ctx context.Context, userID string) bool {
 	// TODO: Replace with actual database check
 	// Example: check users table for admin flag
 	return false
@@ -62,6 +73,48 @@ func (isAdminCondition) IsSatisfied(userID string) bool {
 // It checks if a user has admin privileges.
 var IsAdmin = isAdminCondition{}
 
+// isSectionInstructorCondition checks if a user is an instructor in a specific section.
+type isSectionInstructorCondition struct {
+	sectionIDParam string
+}
+
+// IsSectionInstructor creates a condition that checks if the user is an instructor
+// in the section specified by the URL parameter.
+// The paramName should match the route parameter name (e.g., "id" for /sections/:id).
+func IsSectionInstructor(paramName string) Condition {
+	return isSectionInstructorCondition{sectionIDParam: paramName}
+}
+
+// IsSatisfied checks whether the user is an instructor in the specified section.
+// This is a mock implementation that returns true. In production, this would
+// query the section_instructors table.
+func (s isSectionInstructorCondition) IsSatisfied(ctx context.Context, userID string) bool {
+	// TODO: Replace with actual database check
+	// Example: check section_instructors table for (sectionID, instructorID) pair
+	return true
+}
+
+// isSectionStudentCondition checks if a user is a student in a specific section.
+type isSectionStudentCondition struct {
+	sectionIDParam string
+}
+
+// IsSectionStudent creates a condition that checks if the user is a student
+// in the section specified by the URL parameter.
+// The paramName should match the route parameter name (e.g., "id" for /sections/:id).
+func IsSectionStudent(paramName string) Condition {
+	return isSectionStudentCondition{sectionIDParam: paramName}
+}
+
+// IsSatisfied checks whether the user is a student in the specified section.
+// This is a mock implementation that returns true. In production, this would
+// query the section_students table.
+func (s isSectionStudentCondition) IsSatisfied(ctx context.Context, userID string) bool {
+	// TODO: Replace with actual database check
+	// Example: check section_students table for (sectionID, studentID) pair
+	return true
+}
+
 // orCondition implements OR logic as a Condition.
 // It passes if ANY of its sub-conditions are satisfied.
 type orCondition struct {
@@ -69,9 +122,9 @@ type orCondition struct {
 }
 
 // IsSatisfied returns true if ANY of the sub-conditions are satisfied.
-func (or orCondition) IsSatisfied(userID string) bool {
+func (or orCondition) IsSatisfied(ctx context.Context, userID string) bool {
 	for _, c := range or.conditions {
-		if c.IsSatisfied(userID) {
+		if c.IsSatisfied(ctx, userID) {
 			return true
 		}
 	}
@@ -135,10 +188,10 @@ func (b *Builder) Conditions(conditions ...Condition) *Builder {
 //	if err != nil {
 //		return err // Handle permission denied
 //	}
-func (b *Builder) Check() error {
+func (b *Builder) Check(ctx context.Context) error {
 	// All conditions must be satisfied (AND logic)
 	for _, cond := range b.conditions {
-		if !cond.IsSatisfied(b.userID) {
+		if !cond.IsSatisfied(ctx, b.userID) {
 			return ErrForbidden
 		}
 	}

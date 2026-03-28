@@ -1,6 +1,7 @@
 package permission
 
 import (
+	"context"
 	"testing"
 )
 
@@ -32,9 +33,10 @@ func TestIsInSection(t *testing.T) {
 		},
 	}
 
+	ctx := context.Background()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := tt.section.IsSatisfied(tt.userID)
+			result := tt.section.IsSatisfied(ctx, tt.userID)
 			if result != tt.expected {
 				t.Errorf("expected %v, got %v", tt.expected, result)
 			}
@@ -66,9 +68,78 @@ func TestIsAdmin(t *testing.T) {
 		},
 	}
 
+	ctx := context.Background()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := IsAdmin.IsSatisfied(tt.userID)
+			result := IsAdmin.IsSatisfied(ctx, tt.userID)
+			if result != tt.expected {
+				t.Errorf("expected %v, got %v", tt.expected, result)
+			}
+		})
+	}
+}
+
+// TestIsSectionInstructor tests the IsSectionInstructor condition.
+func TestIsSectionInstructor(t *testing.T) {
+	tests := []struct {
+		name     string
+		param    string
+		userID   string
+		expected bool
+	}{
+		{
+			name:     "instructor in section",
+			param:    "id",
+			userID:   "user-123",
+			expected: true, // Mock returns true
+		},
+		{
+			name:     "another instructor",
+			param:    "sectionID",
+			userID:   "user-456",
+			expected: true, // Mock returns true
+		},
+	}
+
+	ctx := context.Background()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cond := IsSectionInstructor(tt.param)
+			result := cond.IsSatisfied(ctx, tt.userID)
+			if result != tt.expected {
+				t.Errorf("expected %v, got %v", tt.expected, result)
+			}
+		})
+	}
+}
+
+// TestIsSectionStudent tests the IsSectionStudent condition.
+func TestIsSectionStudent(t *testing.T) {
+	tests := []struct {
+		name     string
+		param    string
+		userID   string
+		expected bool
+	}{
+		{
+			name:     "student in section",
+			param:    "id",
+			userID:   "user-123",
+			expected: true, // Mock returns true
+		},
+		{
+			name:     "another student",
+			param:    "sectionID",
+			userID:   "user-456",
+			expected: true, // Mock returns true
+		},
+	}
+
+	ctx := context.Background()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cond := IsSectionStudent(tt.param)
+			result := cond.IsSatisfied(ctx, tt.userID)
 			if result != tt.expected {
 				t.Errorf("expected %v, got %v", tt.expected, result)
 			}
@@ -119,10 +190,11 @@ func TestOr(t *testing.T) {
 		},
 	}
 
+	ctx := context.Background()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			orCond := Or(tt.conditions...)
-			result := orCond.IsSatisfied(tt.userID)
+			result := orCond.IsSatisfied(ctx, tt.userID)
 			if result != tt.expected {
 				t.Errorf("expected %v, got %v", tt.expected, result)
 			}
@@ -132,8 +204,9 @@ func TestOr(t *testing.T) {
 
 // TestOrEmpty tests OR with no conditions.
 func TestOrEmpty(t *testing.T) {
+	ctx := context.Background()
 	orCond := Or()
-	result := orCond.IsSatisfied("user-123")
+	result := orCond.IsSatisfied(ctx, "user-123")
 	if result {
 		t.Errorf("expected false for empty OR, got %v", result)
 	}
@@ -171,9 +244,10 @@ func TestBuilderConditions(t *testing.T) {
 
 // TestBuilderCheck tests the Check method with all conditions passing.
 func TestBuilderCheckPass(t *testing.T) {
+	ctx := context.Background()
 	err := User("user-123").
 		Conditions(IsInSection("Section-A")).
-		Check()
+		Check(ctx)
 
 	if err != nil {
 		t.Errorf("expected nil error, got %v", err)
@@ -182,9 +256,10 @@ func TestBuilderCheckPass(t *testing.T) {
 
 // TestBuilderCheckFail tests the Check method when conditions fail.
 func TestBuilderCheckFail(t *testing.T) {
+	ctx := context.Background()
 	err := User("user-123").
 		Conditions(IsAdmin). // Mock returns false
-		Check()
+		Check(ctx)
 
 	if err != ErrForbidden {
 		t.Errorf("expected ErrForbidden, got %v", err)
@@ -224,9 +299,10 @@ func TestBuilderCheckMultipleConditions(t *testing.T) {
 		},
 	}
 
+	ctx := context.Background()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := User("user-123").Conditions(tt.conditions...).Check()
+			err := User("user-123").Conditions(tt.conditions...).Check(ctx)
 
 			if tt.shouldFail && err != ErrForbidden {
 				t.Errorf("expected ErrForbidden, got %v", err)
@@ -240,7 +316,8 @@ func TestBuilderCheckMultipleConditions(t *testing.T) {
 
 // TestBuilderCheckNoConditions tests Check with no conditions.
 func TestBuilderCheckNoConditions(t *testing.T) {
-	err := User("user-123").Check()
+	ctx := context.Background()
+	err := User("user-123").Check(ctx)
 	if err != nil {
 		t.Errorf("expected nil error for no conditions, got %v", err)
 	}
@@ -310,9 +387,10 @@ func TestComplexPermissionCheck(t *testing.T) {
 		},
 	}
 
+	ctx := context.Background()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := User("user-123").Conditions(tt.conditions...).Check()
+			err := User("user-123").Conditions(tt.conditions...).Check(ctx)
 
 			if tt.shouldFail && err != ErrForbidden {
 				t.Errorf("expected ErrForbidden, got %v", err)
@@ -344,10 +422,11 @@ func TestBuilderMethodChaining(t *testing.T) {
 	}
 
 	// Test full chain
+	ctx := context.Background()
 	err := User("user-123").
 		Conditions(IsInSection("Section-A")).
 		Conditions(IsInSection("Section-B")).
-		Check()
+		Check(ctx)
 
 	if err != nil {
 		t.Errorf("expected nil error, got %v", err)
