@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 )
 
 // UsersRoutesTestSuite tests all user management endpoints
@@ -314,8 +315,8 @@ func (s *UsersRoutesTestSuite) TestListUsers_AdminCanList() {
 	var result map[string]interface{}
 	err = json.NewDecoder(resp.Body).Decode(&result)
 	assert.NoError(s.T(), err)
-	assert.NotNil(t, result["pagination"])
-	assert.NotNil(t, result["data"])
+	assert.NotNil(s.T(), result["pagination"])
+	assert.NotNil(s.T(), result["data"])
 }
 
 // TestListUsers_StudentCannotList tests student trying to list users

@@ -12,36 +12,16 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 )
 
 // SectionsRoutesTestSuite tests all section management endpoints
-func TestSectionsRoutes(t *testing.T) {
-	suite := &SectionsRoutesTestSuite{}
-	suite.SetupSuite()
-	defer suite.TearDownSuite()
-
-	t.Run("ListSections_AdminCanList", suite.TestListSections_AdminCanList)
-	t.Run("CreateSection_AdminCanCreate", suite.TestCreateSection_AdminCanCreate)
-	t.Run("CreateSection_InstructorCanCreate", suite.TestCreateSection_InstructorCanCreate)
-	t.Run("CreateSection_StudentCannotCreate", suite.TestCreateSection_StudentCannotCreate)
-	t.Run("GetSectionByID_Success", suite.TestGetSectionByID_Success)
-	t.Run("UpdateSection_AdminCanUpdate", suite.TestUpdateSection_AdminCanUpdate)
-	t.Run("DeleteSection_AdminCanDelete", suite.TestDeleteSection_AdminCanDelete)
-	t.Run("GetSectionStudents_AdminCanGet", suite.TestGetSectionStudents_AdminCanGet)
-	t.Run("AddStudentsToSection_AdminCanAdd", suite.TestAddStudentsToSection_AdminCanAdd)
-	t.Run("RemoveStudentsFromSection_AdminCanRemove", suite.TestRemoveStudentsFromSection_AdminCanRemove)
-	t.Run("GetSectionLabs_AdminCanGet", suite.TestGetSectionLabs_AdminCanGet)
-	t.Run("AddLabToSection_AdminCanAdd", suite.TestAddLabToSection_AdminCanAdd)
-	t.Run("UpdateLabSectionStatus_AdminCanUpdate", suite.TestUpdateLabSectionStatus_AdminCanUpdate)
-	t.Run("GetLabInSection_AdminCanGet", suite.TestGetLabInSection_AdminCanGet)
-	t.Run("GetSectionLogs_AdminCanGet", suite.TestGetSectionLogs_AdminCanGet)
-	t.Run("StudentListSections_StudentCanListOwn", suite.TestStudentListSections_StudentCanListOwn)
-	t.Run("StudentGetSection_StudentCanGetOwn", suite.TestStudentGetSection_StudentCanGetOwn)
-	t.Run("StudentUnenroll_StudentCanUnenroll", suite.TestStudentUnenroll_StudentCanUnenroll)
-}
-
 type SectionsRoutesTestSuite struct {
 	TestSuite
+}
+
+func TestSectionsRoutes(t *testing.T) {
+	suite.Run(t, new(SectionsRoutesTestSuite))
 }
 
 // TestListSections_AdminCanList tests admin listing sections

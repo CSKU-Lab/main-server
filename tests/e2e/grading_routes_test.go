@@ -10,26 +10,16 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 )
 
 // GradingRoutesTestSuite tests all grading-related endpoints
-func TestGradingRoutes(t *testing.T) {
-	suite := &GradingRoutesTestSuite{}
-	suite.SetupSuite()
-	defer suite.TearDownSuite()
-
-	t.Run("GetGradebook_AdminCanGet", suite.TestGetGradebook_AdminCanGet)
-	t.Run("GetGradebook_InstructorCanGet", suite.TestGetGradebook_InstructorCanGet)
-	t.Run("GetGradebook_StudentCannotGet", suite.TestGetGradebook_StudentCannotGet)
-	t.Run("ExportGradebookCSV_AdminCanExport", suite.TestExportGradebookCSV_AdminCanExport)
-	t.Run("ExportGradebookXLSX_AdminCanExport", suite.TestExportGradebookXLSX_AdminCanExport)
-	t.Run("ExportGradebook_InvalidFormat", suite.TestExportGradebook_InvalidFormat)
-	t.Run("GetLabStudentStatus_AdminCanGet", suite.TestGetLabStudentStatus_AdminCanGet)
-	t.Run("GetStudentSubmissionsByMaterial_AdminCanGet", suite.TestGetStudentSubmissionsByMaterial_AdminCanGet)
-}
-
 type GradingRoutesTestSuite struct {
 	TestSuite
+}
+
+func TestGradingRoutes(t *testing.T) {
+	suite.Run(t, new(GradingRoutesTestSuite))
 }
 
 // TestGetGradebook_AdminCanGet tests admin getting gradebook

@@ -11,31 +11,16 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 )
 
 // LabsRoutesTestSuite tests all lab management endpoints
-func TestLabsRoutes(t *testing.T) {
-	suite := &LabsRoutesTestSuite{}
-	suite.SetupSuite()
-	defer suite.TearDownSuite()
-
-	t.Run("ListLabs_AdminCanList", suite.TestListLabs_AdminCanList)
-	t.Run("CreateLab_AdminCanCreate", suite.TestCreateLab_AdminCanCreate)
-	t.Run("CreateLab_InstructorCanCreate", suite.TestCreateLab_InstructorCanCreate)
-	t.Run("CreateLab_StudentCannotCreate", suite.TestCreateLab_StudentCannotCreate)
-	t.Run("GetLabByID_Success", suite.TestGetLabByID_Success)
-	t.Run("UpdateLab_AdminCanUpdate", suite.TestUpdateLab_AdminCanUpdate)
-	t.Run("DeleteLab_AdminCanDelete", suite.TestDeleteLab_AdminCanDelete)
-	t.Run("GetLabSections_AdminCanGet", suite.TestGetLabSections_AdminCanGet)
-	t.Run("AddMaterialToLab_AdminCanAdd", suite.TestAddMaterialToLab_AdminCanAdd)
-	t.Run("ListLabMaterials_AdminCanList", suite.TestListLabMaterials_AdminCanList)
-	t.Run("GetAllLabMaterials_AdminCanGet", suite.TestGetAllLabMaterials_AdminCanGet)
-	t.Run("StudentGetLab_StudentCanGet", suite.TestStudentGetLab_StudentCanGet)
-	t.Run("StudentListLabMaterials_StudentCanList", suite.TestStudentListLabMaterials_StudentCanList)
-}
-
 type LabsRoutesTestSuite struct {
 	TestSuite
+}
+
+func TestLabsRoutes(t *testing.T) {
+	suite.Run(t, new(LabsRoutesTestSuite))
 }
 
 // TestListLabs_AdminCanList tests admin listing labs

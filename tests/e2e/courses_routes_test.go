@@ -11,34 +11,16 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 )
 
 // CoursesRoutesTestSuite tests all course management endpoints
-func TestCoursesRoutes(t *testing.T) {
-	suite := &CoursesRoutesTestSuite{}
-	suite.SetupSuite()
-	defer suite.TearDownSuite()
-
-	t.Run("ListCourses_AdminCanListAll", suite.TestListCourses_AdminCanListAll)
-	t.Run("ListCourses_StudentCanListOwn", suite.TestListCourses_StudentCanListOwn)
-	t.Run("ListCourses_Unauthorized", suite.TestListCourses_Unauthorized)
-	t.Run("CreateCourse_AdminCanCreate", suite.TestCreateCourse_AdminCanCreate)
-	t.Run("CreateCourse_InstructorCanCreate", suite.TestCreateCourse_InstructorCanCreate)
-	t.Run("CreateCourse_StudentCannotCreate", suite.TestCreateCourse_StudentCannotCreate)
-	t.Run("CreateCourse_InvalidData", suite.TestCreateCourse_InvalidData)
-	t.Run("GetCourseByID_Success", suite.TestGetCourseByID_Success)
-	t.Run("GetCourseByID_NotFound", suite.TestGetCourseByID_NotFound)
-	t.Run("UpdateCourse_AdminCanUpdate", suite.TestUpdateCourse_AdminCanUpdate)
-	t.Run("UpdateCourse_StudentCannotUpdate", suite.TestUpdateCourse_StudentCannotUpdate)
-	t.Run("DeleteCourse_AdminCanDelete", suite.TestDeleteCourse_AdminCanDelete)
-	t.Run("GetCourseSections_AdminCanGet", suite.TestGetCourseSections_AdminCanGet)
-	t.Run("ListCourseLabs_AdminCanList", suite.TestListCourseLabs_AdminCanList)
-	t.Run("SetDefaultLab_AdminCanSet", suite.TestSetDefaultLab_AdminCanSet)
-	t.Run("ListDefaultLabs_AdminCanList", suite.TestListDefaultLabs_AdminCanList)
-}
-
 type CoursesRoutesTestSuite struct {
 	TestSuite
+}
+
+func TestCoursesRoutes(t *testing.T) {
+	suite.Run(t, new(CoursesRoutesTestSuite))
 }
 
 // TestListCourses_AdminCanListAll tests admin listing all courses

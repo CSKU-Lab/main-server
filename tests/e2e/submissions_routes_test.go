@@ -11,26 +11,16 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 )
 
 // SubmissionsRoutesTestSuite tests all submission-related endpoints
-func TestSubmissionsRoutes(t *testing.T) {
-	suite := &SubmissionsRoutesTestSuite{}
-	suite.SetupSuite()
-	defer suite.TearDownSuite()
-
-	t.Run("CreateSubmission_StudentCanCreate", suite.TestCreateSubmission_StudentCanCreate)
-	t.Run("CreateSubmission_Unauthorized", suite.TestCreateSubmission_Unauthorized)
-	t.Run("GetSubmission_StudentCanGetOwn", suite.TestGetSubmission_StudentCanGetOwn)
-	t.Run("ListUserSubmissions_StudentCanList", suite.TestListUserSubmissions_StudentCanList)
-	t.Run("GetMaterialSubmissions_StudentCanGet", suite.TestGetMaterialSubmissions_StudentCanGet)
-	t.Run("UpdateManualScore_AdminCanUpdate", suite.TestUpdateManualScore_AdminCanUpdate)
-	t.Run("UpdateManualScore_StudentCannotUpdate", suite.TestUpdateManualScore_StudentCannotUpdate)
-	t.Run("GetSectionLabMaterialSubmissions_AdminCanGet", suite.TestGetSectionLabMaterialSubmissions_AdminCanGet)
-}
-
 type SubmissionsRoutesTestSuite struct {
 	TestSuite
+}
+
+func TestSubmissionsRoutes(t *testing.T) {
+	suite.Run(t, new(SubmissionsRoutesTestSuite))
 }
 
 // TestCreateSubmission_StudentCanCreate tests student creating a submission
