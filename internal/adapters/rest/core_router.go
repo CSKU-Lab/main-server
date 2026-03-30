@@ -49,6 +49,7 @@ func NewCoreRouter(r *CoreRouter) {
 		r.LabService,
 		r.SectionStudentService,
 		r.LabMaterialService,
+		r.PermissionService,
 	)
 	routes.NewCoreSidebarRoute(
 		coreRouter,
