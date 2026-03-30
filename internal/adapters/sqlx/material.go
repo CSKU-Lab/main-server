@@ -125,18 +125,12 @@ func (m *materialRepository) UpdateByID(ctx context.Context, ID string, req *req
 		return err
 	}
 
-	record := &materialRecord{
-		ID:         ID,
-		Name:       req.Name,
-		Visibility: req.Visibility,
-	}
-
-	// Set scores if provided
-	if req.AutoScore != nil {
-		record.AutoScore = *req.AutoScore
-	}
-	if req.ManualScore != nil {
-		record.ManualScore = *req.ManualScore
+	record := &materialUpdateRecord{
+		ID:          ID,
+		Name:        req.Name,
+		Visibility:  req.Visibility,
+		AutoScore:   req.AutoScore,
+		ManualScore: req.ManualScore,
 	}
 
 	updateFields := getUpdateFields(record)
@@ -156,6 +150,16 @@ func (m *materialRepository) UpdateByID(ctx context.Context, ID string, req *req
 	}
 
 	return nil
+}
+
+// materialUpdateRecord is used exclusively by the UpdateByID method.
+// Score fields are *int so that getUpdateFields includes them even when the value is 0.
+type materialUpdateRecord struct {
+	ID          string `db:"id"`
+	Name        string `db:"name"`
+	Visibility  string `db:"visibility"`
+	AutoScore   *int   `db:"auto_score"`
+	ManualScore *int   `db:"manual_score"`
 }
 
 func (m *materialRepository) DeleteByID(ctx context.Context, ID string) error {

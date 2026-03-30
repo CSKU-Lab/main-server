@@ -282,9 +282,12 @@ func (s *materialService) UpdateByID(ctx context.Context, ID string, req *reques
 		return err
 	}
 
-	// Set the calculated scores on the request
+	// Set the calculated auto_score on the request
 	req.AutoScore = &scores.AutoScore
-	req.ManualScore = &scores.ManualScore
+	// Only set manual_score if it wasn't provided in the request
+	if req.ManualScore == nil {
+		req.ManualScore = &scores.ManualScore
+	}
 
 	// Update the database with the new scores (and other base material fields if provided)
 	if isUpdateBaseMaterial(req) {

@@ -13,3 +13,13 @@ func (r *UpdateSubmissionManualScore) Validate() error {
 		validation.Field(&r.ManualScore, validation.Min(0)),
 	)
 }
+
+// ValidateWithMax validates the manual score against a maximum value
+func (r *UpdateSubmissionManualScore) ValidateWithMax(maxScore int) error {
+	return validation.ValidateStruct(r,
+		validation.Field(&r.ManualScore,
+			validation.Min(0),
+			validation.Max(maxScore),
+		),
+	)
+}

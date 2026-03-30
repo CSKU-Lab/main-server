@@ -500,6 +500,26 @@ func (s *submissionService) CountCompletedStudentsByLabAndSection(ctx context.Co
 }
 
 func (s *submissionService) UpdateManualScore(ctx context.Context, submissionID string, manualScore int) error {
+	// First, get the submission to find the material ID
+	submission, err := s.repo.Get(ctx, submissionID)
+	if err != nil {
+		return err
+	}
+
+	// Get the material to check the maximum manual score
+	material, err := s.materialRepo.GetByID(ctx, submission.MaterialID)
+	if err != nil {
+		return err
+	}
+
+	// Validate that the manual score does not exceed the material's maximum
+	if manualScore > material.ManualScore {
+		return cserrors.New(&cserrors.Option{
+			HttpStatus: http.StatusBadRequest,
+			Message:    fmt.Sprintf("Manual score cannot exceed maximum of %d", material.ManualScore),
+		})
+	}
+
 	return s.repo.Update(ctx, &repositories.UpdateSubmissionRequest{
 		ID:          submissionID,
 		ManualScore: &manualScore,
