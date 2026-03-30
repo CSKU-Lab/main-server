@@ -19,8 +19,17 @@ type RunnerConfigDetail struct {
 }
 
 type CompareConfig struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
+type CompareConfigDetail struct {
+	*CompareConfig
+	BuildScript string       `json:"build_script"`
+	RunScript   string       `json:"run_script"`
+	RunName     string       `json:"run_name"`
+	Files       []ConfigFile `json:"files"`
 }
 
 type TestRunnerResult struct {
