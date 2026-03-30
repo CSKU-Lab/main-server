@@ -270,6 +270,28 @@ func NewCMSConfigRoutes(router fiber.Router, configGRPCClient configPB.ConfigSer
 		})
 	})
 
+	// GET /configs/compare-scripts/:id - View (Admin or Instructor)
+	configRouter.Get("/compare-scripts/:id", middlewares.RequireAdminOrInstructor(), func(c fiber.Ctx) error {
+		id := c.Params("id")
+		compare, err := configGRPCClient.GetCompare(c.RequestCtx(), &configPB.GetCompareRequest{
+			Id: id,
+		})
+		if err != nil {
+			return err
+		}
+		return c.JSON(&models.CompareConfigDetail{
+			CompareConfig: &models.CompareConfig{
+				ID:          compare.GetId(),
+				Name:        compare.GetName(),
+				Description: compare.GetDescription(),
+			},
+			BuildScript: compare.GetBuildScript(),
+			RunScript:   compare.GetRunScript(),
+			RunName:     compare.GetRunName(),
+			Files:       pbFilesToModelFiles(compare.GetFiles()),
+		})
+	})
+
 	configRouter.Get("/compare-scripts", middlewares.RequireAdminOrInstructor(), func(c fiber.Ctx) error {
 		pageQuery := c.Query("page", "1")
 		pageSizeQuery := c.Query("page_size", "20")
