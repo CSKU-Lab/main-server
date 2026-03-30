@@ -48,12 +48,12 @@ func NewCoreLabRoute(router fiber.Router, sectionService services.SectionService
 		secStudent, err := sectionStudentService.GetBySectionAndStudentID(c.RequestCtx(), sectionID, user.ID)
 		if err != nil {
 			// If not a student, check if user is instructor or admin
-			isInstructor, permErr := permService.IsSectionInstructor(c.Context(), user.ID, sectionID)
+			isInstructor, permErr := permService.IsSectionInstructor(c.RequestCtx(), user.ID, sectionID)
 			if permErr != nil {
 				return permErr
 			}
 
-			isAdmin, permErr := permService.IsAdmin(c.Context(), user.ID)
+			isAdmin, permErr := permService.IsAdmin(c.RequestCtx(), user.ID)
 			if permErr != nil {
 				return permErr
 			}
