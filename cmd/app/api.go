@@ -137,8 +137,6 @@ func startApiServer(ctx context.Context, logger *zap.SugaredLogger, db *sqlx.DB,
 
 	errHandlerMiddleware := middlewares.NewErrorHandlerMiddleware(config)
 
-	sidebarService := services.NewSidebarService(courseRepo, sectionStudentRepo, labSectionRepo, labMaterialRepo)
-
 	submissionRepo := sqlxAdapter.NewSubmissionRepository(db)
 	codeSubmissionRepo := sqlxAdapter.NewCodeSubmission(db)
 
@@ -170,6 +168,8 @@ func startApiServer(ctx context.Context, logger *zap.SugaredLogger, db *sqlx.DB,
 		LabMaterialRepository:    labMaterialRepo,
 		PubSub:                   rClient,
 	})
+
+	sidebarService := services.NewSidebarService(courseRepo, sectionStudentRepo, labSectionRepo, labMaterialRepo, submissionService)
 
 	gradebookExportService := services.NewGradebookExportService(submissionService)
 

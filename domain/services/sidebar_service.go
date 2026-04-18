@@ -8,14 +8,15 @@ import (
 )
 
 type SidebarService interface {
-	GetSidebar(ctx context.Context, userID string) ([]*models.Sidebar, error)
+	GetSidebar(ctx context.Context, userID string) ([]*models.SidebarSection, error)
 }
 
 type sidebarService struct {
-	courseRepo      repositories.CourseRepository
-	secStudentRepo  repositories.SectionStudentRepository
-	labSectionRepo  repositories.LabSectionRepository
-	labMaterialRepo repositories.LabMaterialRepository
+	courseRepo        repositories.CourseRepository
+	secStudentRepo    repositories.SectionStudentRepository
+	labSectionRepo    repositories.LabSectionRepository
+	labMaterialRepo   repositories.LabMaterialRepository
+	submissionService SubmissionService
 }
 
 func NewSidebarService(
@@ -23,32 +24,39 @@ func NewSidebarService(
 	secStudentRepo repositories.SectionStudentRepository,
 	labSectionRepo repositories.LabSectionRepository,
 	labMaterialRepo repositories.LabMaterialRepository,
+	submissionService SubmissionService,
 ) SidebarService {
 	return &sidebarService{
-		courseRepo:      courseRepo,
-		secStudentRepo:  secStudentRepo,
-		labSectionRepo:  labSectionRepo,
-		labMaterialRepo: labMaterialRepo,
+		courseRepo:        courseRepo,
+		secStudentRepo:    secStudentRepo,
+		labSectionRepo:    labSectionRepo,
+		labMaterialRepo:   labMaterialRepo,
+		submissionService: submissionService,
 	}
 }
 
 func (sb *sidebarService) GetSidebar(
 	ctx context.Context,
 	userID string,
-) ([]*models.Sidebar, error) {
+) ([]*models.SidebarSection, error) {
 	sections, err := sb.secStudentRepo.GetByStudentID(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	sidebars := make([]*models.Sidebar, 0, len(sections))
+	sidebars := make([]*models.SidebarSection, 0, len(sections))
 
 	for _, section := range sections {
-		sectionItem := &models.Sidebar{
-			ID:       section.ID,
-			Name:     section.Name,
-			Status:   "NONE",
-			SubItems: []*models.Sidebar{},
+		course, err := sb.courseRepo.GetByID(ctx, section.CourseID)
+		if err != nil {
+			return nil, err
+		}
+
+		sectionItem := &models.SidebarSection{
+			ID:         section.ID,
+			Name:       section.Name,
+			CourseName: course.Name,
+			SubItems:   []*models.SidebarLab{},
 		}
 
 		labs, err := sb.labSectionRepo.GetBySectionID(ctx, section.ID)
@@ -57,11 +65,10 @@ func (sb *sidebarService) GetSidebar(
 		}
 
 		for _, lab := range labs {
-			labItem := &models.Sidebar{
+			labItem := &models.SidebarLab{
 				ID:       lab.ID,
 				Name:     lab.DisplayName,
-				Status:   "NONE",
-				SubItems: []*models.Sidebar{},
+				SubItems: []*models.SidebarMaterial{},
 			}
 
 			mats, err := sb.labMaterialRepo.GetByLabID(ctx, lab.ID)
@@ -70,10 +77,10 @@ func (sb *sidebarService) GetSidebar(
 			}
 
 			for _, mat := range mats {
-				labItem.SubItems = append(labItem.SubItems, &models.Sidebar{
+				labItem.SubItems = append(labItem.SubItems, &models.SidebarMaterial{
 					ID:     mat.ID,
 					Name:   mat.Name,
-					Status: "NONE",
+					Status: sb.submissionService.GetMaterialStudentStatus(ctx, userID, mat.ID, lab.ID, section.ID),
 				})
 			}
 

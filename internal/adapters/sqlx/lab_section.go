@@ -120,7 +120,10 @@ func (ls *sqlxLabSectionRepository) GetMaxPosition(ctx context.Context, sectionI
 func (ls *sqlxLabSectionRepository) GetPagination(ctx context.Context, page int, limit int, sortBy string, sortOrder string, filters []sanitize.Filter) ([]models.LabSection, error) {
 	filterWhereClause, filterArgs := buildFilterWhereClause(filters, 1)
 
-	baseQuery := `SELECT id, lab_id, section_id, position, status, opened_at, closed_at, created_at, updated_at FROM lab_sections WHERE is_deleted = false`
+	baseQuery := `SELECT ls.id, ls.lab_id, ls.section_id, ls.position, ls.status, ls.opened_at, ls.closed_at, ls.created_at, ls.updated_at
+		FROM lab_sections ls
+		JOIN labs l ON ls.lab_id = l.id
+		WHERE ls.is_deleted = false`
 	query := fmt.Sprintf(`%s%s
 		ORDER BY %s %s
 		OFFSET $%d
@@ -244,7 +247,7 @@ func (ls *sqlxLabSectionRepository) DeleteByID(ctx context.Context, id string) e
 func (ls *sqlxLabSectionRepository) Count(ctx context.Context, filters []sanitize.Filter) (int, error) {
 	filterWhereClause, filterArgs := buildFilterWhereClause(filters, 1)
 
-	baseQuery := `SELECT COUNT(*) FROM lab_sections WHERE is_deleted = false`
+	baseQuery := `SELECT COUNT(*) FROM lab_sections ls JOIN labs l ON ls.lab_id = l.id WHERE ls.is_deleted = false`
 
 	query := baseQuery + filterWhereClause
 	var count int
@@ -259,7 +262,11 @@ func (ls *sqlxLabSectionRepository) Count(ctx context.Context, filters []sanitiz
 func (ls *sqlxLabSectionRepository) GetBySectionID(ctx context.Context, sectionID string) ([]models.Lab, error) {
 	query := `SELECT l.id, l.display_name, l.course_id FROM lab_sections ls
 		  JOIN labs l ON ls.lab_id = l.id
-		  WHERE ls.section_id = $1`
+		  WHERE ls.section_id = $1
+		    AND ls.is_deleted = false
+		    AND l.is_deleted = false
+		    AND ls.status IN ('open', 'readonly', 'disabled')
+		  ORDER BY ls.position ASC`
 
 	dbLabs := []labSchema{}
 	err := ls.db.SelectContext(ctx, &dbLabs, query, sectionID)

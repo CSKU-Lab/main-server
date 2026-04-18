@@ -171,7 +171,7 @@ func NewCoreSectionRoute(router fiber.Router, sectionService services.SectionSer
 	coreSectionRouter.Get("/:sectionID/labs", middlewares.Permission(permService).ForSection("sectionID").CanView(), func(c fiber.Ctx) error {
 		pageQuery := c.Query("page", "1")
 		pageSizeQuery := c.Query("page_size", "10")
-		// search := c.Query("search", "")
+		search := c.Query("search", "")
 		sortBy := c.Query("sort_by", "position")
 		sortOrder := c.Query("sort_order", "asc")
 
@@ -202,6 +202,9 @@ func NewCoreSectionRoute(router fiber.Router, sectionService services.SectionSer
 
 		filterParams["section_id__is"] = secStudent.SectionID
 		filterParams["status__is_not"] = "hidden"
+		if search != "" {
+			filterParams["l.display_name__contains"] = search
+		}
 
 		labSections, err := labSectionService.GetPagination(c.RequestCtx(), page, pageSize, sortBy, sortOrder, filterParams)
 		if err != nil {

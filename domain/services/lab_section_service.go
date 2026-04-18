@@ -42,9 +42,10 @@ func NewLabSectionService(labSectionRepo repositories.LabSectionRepository, uowR
 		labRepo:            labRepo,
 		sectionRepo:        sectionRepo,
 		allowedFilterFields: map[string]bool{
-			"lab_id":     true,
-			"section_id": true,
-			"status":     true,
+			"lab_id":        true,
+			"section_id":    true,
+			"status":        true,
+			"l.display_name": true,
 		},
 		allowedSortFields: map[string]bool{
 			"position": true,

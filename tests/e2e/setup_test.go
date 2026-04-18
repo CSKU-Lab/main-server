@@ -348,8 +348,6 @@ func (s *TestSuite) initTestApp() {
 
 	affectedEntitiesService := services.NewAffectedEntitiesService(affectedEntitiesFactory)
 
-	sidebarService := services.NewSidebarService(courseRepo, sectionStudentRepo, labSectionRepo, labMaterialRepo)
-
 	submissionRepo := sqlxAdapter.NewSubmissionRepository(s.DB)
 	codeSubmissionRepo := sqlxAdapter.NewCodeSubmission(s.DB)
 
@@ -372,6 +370,8 @@ func (s *TestSuite) initTestApp() {
 		LabMaterialRepository:    labMaterialRepo,
 		PubSub:                   nil, // No PubSub in tests
 	})
+
+	sidebarService := services.NewSidebarService(courseRepo, sectionStudentRepo, labSectionRepo, labMaterialRepo, submissionService)
 
 	gradebookExportService := services.NewGradebookExportService(submissionService)
 
