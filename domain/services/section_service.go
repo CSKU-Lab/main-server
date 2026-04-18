@@ -60,10 +60,15 @@ func NewSectionService(config *configs.Config, repo repositories.SectionReposito
 		semesterRepo:          semesterRepo,
 		sectionLogService:     sectionLogService,
 		allowedFilterFields: map[string]bool{
-			"student_id": true,
+			"student_id":  true,
+			"semester_id": true,
+			"course_id":   true,
+			"name":        true,
+			"is_archived": true,
 		},
 		allowedSortFields: map[string]bool{
 			"created_at": true,
+			"name":       true,
 		},
 	}
 }
@@ -125,9 +130,10 @@ func (s *sectionService) GetSectionsPagination(ctx context.Context, page int, li
 		}
 
 		sections = append(sections, models.Section{
-			ID:     rs.ID,
-			Name:   rs.Name,
-			Banner: banner,
+			ID:       rs.ID,
+			Name:     rs.Name,
+			Banner:   banner,
+			CourseID: rs.CourseID,
 			Semester: models.SectionSemester{
 				ID:   semester.ID,
 				Name: semester.Name,

@@ -20,7 +20,7 @@ func NewCoreSectionRoute(router fiber.Router, sectionService services.SectionSer
 	coreSectionRouter.Get("/", func(c fiber.Ctx) error {
 		pageQuery := c.Query("page", "1")
 		pageSizeQuery := c.Query("page_size", "10")
-		// search := c.Query("search", "")
+		search := c.Query("search", "")
 		sortBy := c.Query("sort_by", "created_at")
 		sortOrder := c.Query("sort_order", "desc")
 		user := c.Locals("user").(*models.User)
@@ -43,6 +43,9 @@ func NewCoreSectionRoute(router fiber.Router, sectionService services.SectionSer
 		}
 
 		filterParams["student_id__is"] = user.ID
+		if search != "" {
+			filterParams["name__contains"] = search
+		}
 
 		sections, err := sectionService.GetSectionsPagination(c.RequestCtx(), page, pageSize, sortBy, sortOrder, filterParams)
 		if err != nil {
@@ -54,13 +57,30 @@ func NewCoreSectionRoute(router fiber.Router, sectionService services.SectionSer
 			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Error getting sections count"})
 		}
 
+		type sectionResponse struct {
+			models.Section
+			CourseName string `json:"course_name"`
+		}
+
+		responseSections := make([]sectionResponse, len(sections))
+		for i, section := range sections {
+			course, err := courseService.GetByID(c.RequestCtx(), section.CourseID)
+			if err != nil {
+				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: err.Error()})
+			}
+			responseSections[i] = sectionResponse{
+				Section:    section,
+				CourseName: course.Name,
+			}
+		}
+
 		return c.JSON(fiber.Map{
 			"pagination": fiber.Map{
 				"page":       page,
 				"total_page": math.Ceil(float64(count) / float64(pageSize)),
 				"total_rows": count,
 			},
-			"data": sections,
+			"data": responseSections,
 		})
 	})
 

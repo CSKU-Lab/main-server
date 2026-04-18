@@ -133,13 +133,37 @@ func (s *sectionStudentRepository) GetBySectionAndStudentID(ctx context.Context,
 	}, nil
 }
 
-func (s *sectionStudentRepository) Count(ctx context.Context, filters []sanitize.Filter) (int, error) {
-	filterWhereClause, filterArgs := buildFilterWhereClause(filters, 1)
+// qualifySectionFilters remaps filter field names to table-qualified SQL column names
+// for queries that join section_students (ss), sections (s), and courses (c).
+func qualifySectionFilters(filters []sanitize.Filter) []sanitize.Filter {
+	qualified := make([]sanitize.Filter, len(filters))
+	copy(qualified, filters)
+	for i, f := range qualified {
+		switch f.Field {
+		case "student_id":
+			qualified[i].Field = "ss.student_id"
+		case "name":
+			qualified[i].Field = "s.name"
+		case "semester_id":
+			qualified[i].Field = "s.semester_id"
+		case "course_id":
+			qualified[i].Field = "s.course_id"
+		case "is_archived":
+			qualified[i].Field = "c.is_archived"
+		}
+	}
+	return qualified
+}
 
-	baseQuery := `SELECT COUNT(*) FROM section_students WHERE is_deleted = false`
+func (s *sectionStudentRepository) Count(ctx context.Context, filters []sanitize.Filter) (int, error) {
+	filterWhereClause, filterArgs := buildFilterWhereClause(qualifySectionFilters(filters), 1)
+
+	baseQuery := `SELECT COUNT(*) FROM section_students ss
+		  JOIN sections s ON ss.section_id = s.id
+		  JOIN courses c ON s.course_id = c.id
+		  WHERE s.is_deleted = false`
 
 	query := baseQuery + filterWhereClause
-	fmt.Println("Count Query:", query)
 	var count int
 	err := s.db.GetContext(ctx, &count, query, filterArgs...)
 	if err != nil {
@@ -150,10 +174,11 @@ func (s *sectionStudentRepository) Count(ctx context.Context, filters []sanitize
 }
 
 func (s *sectionStudentRepository) GetSectionsPagination(ctx context.Context, page int, limit int, sortBy string, sortOrder string, filters []sanitize.Filter) ([]repositories.RawSection, error) {
-	filterWhereClause, filterArgs := buildFilterWhereClause(filters, 1)
+	filterWhereClause, filterArgs := buildFilterWhereClause(qualifySectionFilters(filters), 1)
 
-	baseQuery := `SELECT id, name, banner, course_id, semester_id, created_at FROM section_students ss
+	baseQuery := `SELECT s.id, s.name, s.banner, s.course_id, s.semester_id, s.created_at FROM section_students ss
 		  JOIN sections s ON ss.section_id = s.id
+		  JOIN courses c ON s.course_id = c.id
 		  WHERE s.is_deleted = false`
 	query := fmt.Sprintf(`%s%s
 		ORDER BY %s %s
