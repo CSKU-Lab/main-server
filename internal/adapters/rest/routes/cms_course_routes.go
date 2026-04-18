@@ -67,25 +67,24 @@ func NewCMSCourseRoutes(router fiber.Router, courseService services.CourseServic
 			Sections []models.Section `json:"sections"`
 		}
 
-		sectionsOfSemesters := make([]sectionsOfSemester, len(sems))
-		for i, semester := range sems {
+		sectionsOfSemesters := []sectionsOfSemester{}
+		for _, semester := range sems {
 			sections, err := sectionService.GetByCourseIDAndSemesterID(c.RequestCtx(), courseID, semester.ID)
 			if err != nil {
 				return err
 			}
 
-			responseSections := []models.Section{}
-			if len(sections) > 0 {
-				responseSections = sections
+			if len(sections) == 0 {
+				continue
 			}
 
-			sectionsOfSemesters[i] = sectionsOfSemester{
+			sectionsOfSemesters = append(sectionsOfSemesters, sectionsOfSemester{
 				Semester: semesterFields{
 					Name: semester.Name,
 					Type: semester.Type,
 				},
-				Sections: responseSections,
-			}
+				Sections: sections,
+			})
 		}
 
 		return c.JSON(fiber.Map{
