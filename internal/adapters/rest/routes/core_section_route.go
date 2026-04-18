@@ -142,10 +142,10 @@ func NewCoreSectionRoute(router fiber.Router, sectionService services.SectionSer
 		completedMaterials := 0
 		hasAnySubmission := false
 		for _, mat := range allMaterials {
-			subs, _, err := submissionService.GetUserSubmissions(c.RequestCtx(), user.ID, mat.ID, labSec.LabID, labSec.SectionID, 1, 1, "desc")
-			if err == nil && len(subs) > 0 {
+			status := submissionService.GetMaterialStudentStatus(c.RequestCtx(), user.ID, mat.ID, labSec.LabID, labSec.SectionID)
+			if status != "not_started" {
 				hasAnySubmission = true
-				if subs[0].Status == models.PASSED {
+				if status == "passed" {
 					completedMaterials++
 				}
 			}
@@ -243,10 +243,10 @@ func NewCoreSectionRoute(router fiber.Router, sectionService services.SectionSer
 			completedMaterials := 0
 			hasAnySubmission := false
 			for _, mat := range allMaterials {
-				subs, _, err := submissionService.GetUserSubmissions(c.RequestCtx(), user.ID, mat.ID, section.LabID, section.SectionID, 1, 1, "desc")
-				if err == nil && len(subs) > 0 {
+				status := submissionService.GetMaterialStudentStatus(c.RequestCtx(), user.ID, mat.ID, section.LabID, section.SectionID)
+				if status != "not_started" {
 					hasAnySubmission = true
-					if subs[0].Status == models.PASSED {
+					if status == "passed" {
 						completedMaterials++
 					}
 				}

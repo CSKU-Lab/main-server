@@ -104,20 +104,11 @@ func NewCoreLabRoute(router fiber.Router, sectionService services.SectionService
 
 		responseItems := make([]materialResponse, len(materials))
 		for i, mat := range materials {
-			studentStatus := "not_started"
-			subs, _, err := submissionService.GetUserSubmissions(c.RequestCtx(), user.ID, mat.MaterialID, labSection.LabID, labSection.SectionID, 1, 1, "desc")
-			if err == nil && len(subs) > 0 {
-				if subs[0].Status == models.PASSED {
-					studentStatus = "passed"
-				} else {
-					studentStatus = "not_passed"
-				}
-			}
 			responseItems[i] = materialResponse{
 				ID:            mat.MaterialID,
 				Name:          mat.MaterialData.Name,
 				Type:          mat.MaterialData.Type,
-				StudentStatus: studentStatus,
+				StudentStatus: submissionService.GetMaterialStudentStatus(c.RequestCtx(), user.ID, mat.MaterialID, labSection.LabID, labSection.SectionID),
 			}
 		}
 

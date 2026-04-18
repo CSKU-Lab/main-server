@@ -31,6 +31,7 @@ type SubmissionService interface {
 	GetSectionLabMaterialSubmissions(ctx context.Context, sectionID string, labID string, materialID string) ([]models.CMSSectionStudentSubmission, error)
 	GetStudentSubmissionsByMaterialSectionLab(ctx context.Context, materialID string, sectionID string, labID string, studentID string, page int, pageSize int, sortBy, sortOrder string) ([]models.StudentSubmission, int, error)
 	UpdateManualScore(ctx context.Context, submissionID string, manualScore int) error
+	GetMaterialStudentStatus(ctx context.Context, userID, materialID, labID, sectionID string) string
 }
 
 type UpdateSubmissionPayload struct {
@@ -493,6 +494,17 @@ func (s *submissionService) GetUserSubmissionsWithMaterial(ctx context.Context, 
 	}
 
 	return result, count, nil
+}
+
+func (s *submissionService) GetMaterialStudentStatus(ctx context.Context, userID, materialID, labID, sectionID string) string {
+	subs, _, err := s.GetUserSubmissions(ctx, userID, materialID, labID, sectionID, 1, 1, "desc")
+	if err != nil || len(subs) == 0 {
+		return "not_started"
+	}
+	if subs[0].Status == models.PASSED {
+		return "passed"
+	}
+	return "not_passed"
 }
 
 func (s *submissionService) CountCompletedStudentsByLabAndSection(ctx context.Context, labID string, sectionID string) (int, error) {
