@@ -122,7 +122,7 @@ func (s *sectionStudentRepository) GetBySectionAndStudentID(ctx context.Context,
 	err := s.db.GetContext(ctx, sectionStudentSchema, query, userID, sectionID)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "SectionStudent not found"})
+			return nil, cserrors.New(&cserrors.Option{HttpStatus: http.StatusNotFound, Message: "SectionStudent not found"})
 		}
 		return nil, err
 	}

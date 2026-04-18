@@ -18,7 +18,11 @@ import (
 func NewCoreLabRoute(router fiber.Router, sectionService services.SectionService, labSectionService services.LabSectionService, labService services.LabService, sectionStudentService services.SectionStudentService, labMaterialService services.LabMaterialService, permService permission.Service) {
 	coreLabRoute := router.Group("/labs")
 
-	coreLabRoute.Post("/:labID", middlewares.ValidateMiddleware[requests.GetSection](), middlewares.Permission(permService).ForSection("section_id").CanView(), func(c fiber.Ctx) error {
+	coreLabRoute.Post("/:labID", middlewares.ValidateMiddleware[requests.GetSection](), func(c fiber.Ctx) error {
+		req := c.Locals("body").(*requests.GetSection)
+		c.Locals("section_id", req.SectionID)
+		return c.Next()
+	}, middlewares.Permission(permService).ForSection("section_id").FromLocals().CanView(), func(c fiber.Ctx) error {
 		req := c.Locals("body").(*requests.GetSection)
 		labID := c.Params("labID")
 		user := c.Locals("user").(*models.User)
@@ -39,7 +43,7 @@ func NewCoreLabRoute(router fiber.Router, sectionService services.SectionService
 		return c.Status(fiber.StatusOK).JSON(lab)
 	})
 
-	coreLabRoute.Get("/:labID/materials", middlewares.Permission(permService).ForSection("section_id").CanView(), func(c fiber.Ctx) error {
+	coreLabRoute.Get("/:labID/materials", middlewares.Permission(permService).ForSection("section_id").FromQuery().CanView(), func(c fiber.Ctx) error {
 		labID := c.Params("labID")
 		sectionID := c.Query("section_id", "")
 		user := c.Locals("user").(*models.User)

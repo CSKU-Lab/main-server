@@ -164,6 +164,10 @@ func (s *service) IsSectionStudent(ctx context.Context, userID string, sectionID
 		if errors.Is(err, sql.ErrNoRows) {
 			return false, nil
 		}
+		var csErr *cserrors.Error
+		if errors.As(err, &csErr) && csErr.HttpStatus == http.StatusNotFound {
+			return false, nil
+		}
 		return false, err
 	}
 	return true, nil
@@ -171,22 +175,16 @@ func (s *service) IsSectionStudent(ctx context.Context, userID string, sectionID
 
 // GetSection retrieves a section by ID.
 func (s *service) GetSection(ctx context.Context, sectionID string) (*models.Section, error) {
-	sections, err := s.sectionRepo.GetByCourseID(ctx, "")
+	raw, err := s.sectionRepo.GetByID(ctx, sectionID)
 	if err != nil {
 		return nil, err
 	}
 
-	// Find the section with matching ID
-	for _, section := range sections {
-		if section.ID == sectionID {
-			return &section, nil
-		}
-	}
-
-	return nil, cserrors.New(&cserrors.Option{
-		HttpStatus: http.StatusNotFound,
-		Message:    "Section not found",
-	})
+	return &models.Section{
+		ID:       raw.ID,
+		Name:     raw.Name,
+		CourseID: raw.CourseID,
+	}, nil
 }
 
 // IsSubmissionOwner checks if the user owns the specified submission.

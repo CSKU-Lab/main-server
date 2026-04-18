@@ -107,7 +107,7 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 		return c.SendStatus(fiber.StatusCreated)
 	})
 
-	router.Get("/users/:userID", func(c fiber.Ctx) error {
+	adminUserRouter.Get("/:userID", func(c fiber.Ctx) error {
 		userID := c.Params("userID")
 
 		user, err := userService.GetByID(c.RequestCtx(), userID)

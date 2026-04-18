@@ -798,12 +798,9 @@ func TestGetSection_Success(t *testing.T) {
 	svc, _, _, _, sectionRepo, _, _, _ := setupTestService()
 	ctx := context.Background()
 
-	sections := []models.Section{
-		{ID: "section-123", Name: "Test Section", CourseID: "course-123"},
-		{ID: "section-456", Name: "Another Section", CourseID: "course-456"},
-	}
+	raw := &repositories.RawSection{ID: "section-123", Name: "Test Section", CourseID: "course-123"}
 
-	sectionRepo.On("GetByCourseID", ctx, "").Return(sections, nil)
+	sectionRepo.On("GetByID", ctx, "section-123").Return(raw, nil)
 
 	section, err := svc.GetSection(ctx, "section-123")
 
@@ -811,6 +808,7 @@ func TestGetSection_Success(t *testing.T) {
 	assert.NotNil(t, section)
 	assert.Equal(t, "section-123", section.ID)
 	assert.Equal(t, "Test Section", section.Name)
+	assert.Equal(t, "course-123", section.CourseID)
 	sectionRepo.AssertExpectations(t)
 }
 
@@ -818,11 +816,7 @@ func TestGetSection_NotFound(t *testing.T) {
 	svc, _, _, _, sectionRepo, _, _, _ := setupTestService()
 	ctx := context.Background()
 
-	sections := []models.Section{
-		{ID: "section-456", Name: "Another Section", CourseID: "course-456"},
-	}
-
-	sectionRepo.On("GetByCourseID", ctx, "").Return(sections, nil)
+	sectionRepo.On("GetByID", ctx, "section-123").Return(nil, cserrors.New(&cserrors.Option{HttpStatus: http.StatusNotFound, Message: "Section not found"}))
 
 	section, err := svc.GetSection(ctx, "section-123")
 
@@ -839,7 +833,7 @@ func TestGetSection_RepositoryError(t *testing.T) {
 	svc, _, _, _, sectionRepo, _, _, _ := setupTestService()
 	ctx := context.Background()
 
-	sectionRepo.On("GetByCourseID", ctx, "").Return(nil, errors.New("db error"))
+	sectionRepo.On("GetByID", ctx, "section-123").Return(nil, errors.New("db error"))
 
 	section, err := svc.GetSection(ctx, "section-123")
 

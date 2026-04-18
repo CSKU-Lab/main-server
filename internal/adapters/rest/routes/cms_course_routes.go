@@ -9,13 +9,14 @@ import (
 
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
 	"github.com/CSKU-Lab/main-server/domain/models"
+	"github.com/CSKU-Lab/main-server/domain/permission"
 	"github.com/CSKU-Lab/main-server/domain/services"
 	"github.com/CSKU-Lab/main-server/internal/adapters/middlewares"
 	"github.com/CSKU-Lab/main-server/internal/requests"
 	"github.com/gofiber/fiber/v3"
 )
 
-func NewCMSCourseRoutes(router fiber.Router, courseService services.CourseService, sectionService services.SectionService, semesterService services.SemesterService, defaultLabService services.DefaultLabService, labService services.LabService) {
+func NewCMSCourseRoutes(router fiber.Router, courseService services.CourseService, sectionService services.SectionService, semesterService services.SemesterService, defaultLabService services.DefaultLabService, labService services.LabService, permService permission.Service) {
 	courseRouter := router.Group("/courses", middlewares.RBACMiddleware([]models.Role{
 		models.ADMIN,
 		models.INSTRUCTOR,
@@ -176,7 +177,7 @@ func NewCMSCourseRoutes(router fiber.Router, courseService services.CourseServic
 		return c.JSON(course)
 	})
 
-	courseRouter.Patch("/:courseID", middlewares.ValidateMiddleware[requests.UpdateCourse](), func(c fiber.Ctx) error {
+	courseRouter.Patch("/:courseID", middlewares.Permission(permService).ForCourse("courseID").CanModify(), middlewares.ValidateMiddleware[requests.UpdateCourse](), func(c fiber.Ctx) error {
 		courseID := c.Params("courseID")
 		course := c.Locals("body").(*requests.UpdateCourse)
 
@@ -195,7 +196,7 @@ func NewCMSCourseRoutes(router fiber.Router, courseService services.CourseServic
 		return c.SendStatus(fiber.StatusNoContent)
 	})
 
-	courseRouter.Delete("/:courseID", func(c fiber.Ctx) error {
+	courseRouter.Delete("/:courseID", middlewares.Permission(permService).ForCourse("courseID").CanDelete(), func(c fiber.Ctx) error {
 		courseID := c.Params("courseID")
 
 		err := courseService.DeleteByID(c.RequestCtx(), courseID)
@@ -214,7 +215,7 @@ func NewCMSCourseRoutes(router fiber.Router, courseService services.CourseServic
 		return c.SendStatus(fiber.StatusNoContent)
 	})
 
-	courseRouter.Post("/:courseID/default-labs", middlewares.ValidateMiddleware[requests.SetDefaultLab](), func(c fiber.Ctx) error {
+	courseRouter.Post("/:courseID/default-labs", middlewares.Permission(permService).ForCourse("courseID").CanModify(), middlewares.ValidateMiddleware[requests.SetDefaultLab](), func(c fiber.Ctx) error {
 		user := c.Locals("user").(*models.User)
 		courseID := c.Params("courseID")
 		req := c.Locals("body").(*requests.SetDefaultLab)
@@ -273,14 +274,14 @@ func NewCMSCourseRoutes(router fiber.Router, courseService services.CourseServic
 		})
 	})
 
-	courseRouter.Post("/:courseID/default-labs/delete", middlewares.ValidateMiddleware[requests.DeleteDefaultLab](), func(c fiber.Ctx) error {
+	courseRouter.Post("/:courseID/default-labs/delete", middlewares.Permission(permService).ForCourse("courseID").CanModify(), middlewares.ValidateMiddleware[requests.DeleteDefaultLab](), func(c fiber.Ctx) error {
 		user := c.Locals("user").(*models.User)
 		courseID := c.Params("courseID")
 		req := c.Locals("body").(*requests.DeleteDefaultLab)
 		return defaultLabService.Delete(c.RequestCtx(), req, user.ID, courseID)
 	})
 
-	courseRouter.Patch("/:courseID/default-labs", middlewares.ValidateMiddleware[requests.UpdateDefaultLab](), func(c fiber.Ctx) error {
+	courseRouter.Patch("/:courseID/default-labs", middlewares.Permission(permService).ForCourse("courseID").CanModify(), middlewares.ValidateMiddleware[requests.UpdateDefaultLab](), func(c fiber.Ctx) error {
 		user := c.Locals("user").(*models.User)
 		courseID := c.Params("courseID")
 		req := c.Locals("body").(*requests.UpdateDefaultLab)

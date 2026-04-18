@@ -102,7 +102,7 @@ func (s *sqlxSectionRepository) GetByID(ctx context.Context, ID string) (*reposi
 	query := "SELECT id, name, banner, semester_id, course_id FROM sections WHERE id = $1 AND is_deleted = false"
 	err := s.db.GetContext(ctx, &section, query, ID)
 	if err != nil {
-		return nil, cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Section not found"})
+		return nil, cserrors.New(&cserrors.Option{HttpStatus: http.StatusNotFound, Message: "Section not found"})
 	}
 
 	return &repositories.RawSection{

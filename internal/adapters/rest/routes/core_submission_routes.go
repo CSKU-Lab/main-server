@@ -22,7 +22,13 @@ import (
 func NewCoreSubmissionRoutes(router fiber.Router, service services.SubmissionService, labSectionService services.LabSectionService, labMaterialService services.LabMaterialService, permService permission.Service) {
 	submissionRouter := router.Group("/submissions")
 
-	submissionRouter.Post("/", middlewares.ValidateMiddleware[requests.Submission](), middlewares.Permission(permService).ForSection("section_id").CanCreate(), func(c fiber.Ctx) error {
+	submissionRouter.Post("/", middlewares.ValidateMiddleware[requests.Submission](), func(c fiber.Ctx) error {
+		payload := c.Locals("body").(*requests.Submission)
+		if payload.SectionID != nil {
+			c.Locals("section_id", *payload.SectionID)
+		}
+		return c.Next()
+	}, middlewares.Permission(permService).ForSection("section_id").FromLocals().CanCreate(), func(c fiber.Ctx) error {
 		payload := c.Locals("body").(*requests.Submission)
 
 		id, err := service.Create(c.Context(), payload, c.Body())
@@ -49,7 +55,7 @@ func NewCoreSubmissionRoutes(router fiber.Router, service services.SubmissionSer
 		Status string `json:"status"`
 	}
 
-	submissionRouter.Get("/:id/listen", func(c fiber.Ctx) error {
+	submissionRouter.Get("/:id/listen", middlewares.Permission(permService).ForSubmission("id").CanView(), func(c fiber.Ctx) error {
 		c.Set("Content-Type", "text/event-stream")
 		c.Set("Cache-Control", "no-cache")
 		c.Set("Connection", "keep-alive")

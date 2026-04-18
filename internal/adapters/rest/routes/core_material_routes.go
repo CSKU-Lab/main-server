@@ -22,7 +22,7 @@ func NewCoreMaterialSubmissionRoutes(
 ) {
 	materialRouter := router.Group("/materials")
 
-	materialRouter.Get("/:materialID", middlewares.Permission(permService).ForSection("section_id").CanView(), func(c fiber.Ctx) error {
+	materialRouter.Get("/:materialID", middlewares.Permission(permService).ForSection("section_id").FromQuery().CanView(), func(c fiber.Ctx) error {
 		materialID := c.Params("materialID")
 		user := c.Locals("user").(*models.User)
 		sectionID := c.Query("section_id", "")
@@ -41,7 +41,7 @@ func NewCoreMaterialSubmissionRoutes(
 		return c.JSON(result)
 	})
 
-	materialRouter.Get("/:materialID/submissions", middlewares.Permission(permService).ForSection("section_id").CanView(), func(c fiber.Ctx) error {
+	materialRouter.Get("/:materialID/submissions", middlewares.Permission(permService).ForSection("section_id").FromQuery().CanView(), func(c fiber.Ctx) error {
 		materialID := c.Params("materialID")
 		user := c.Locals("user").(*models.User)
 

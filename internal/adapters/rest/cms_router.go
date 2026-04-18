@@ -38,7 +38,7 @@ func NewCMSRouter(r *CMSRouter) {
 	routes.NewCMSMaterialRoutes(cmsRouter, r.MaterialService, r.MaterialAssetService, r.SubmissionService)
 	routes.NewCMSAffectedEntitiesRoutes(cmsRouter, r.AffectedEntitiesService)
 	routes.NewCMSUserExistancesRoutes(cmsRouter, r.UserService)
-	routes.NewCMSCourseRoutes(cmsRouter, r.CourseService, r.SectionService, r.SemesterService, r.DefaultLabService, r.LabService)
+	routes.NewCMSCourseRoutes(cmsRouter, r.CourseService, r.SectionService, r.SemesterService, r.DefaultLabService, r.LabService, r.PermissionService)
 	routes.NewCMSLabRoutes(cmsRouter, r.LabService, r.LabSectionService, r.LabMaterialService)
 	routes.NewCMSConfigRoutes(cmsRouter, r.ConfigGRPCClient, r.Queue)
 	routes.NewCMSSubmissionRoutes(cmsRouter, r.SubmissionService, r.PermissionService)

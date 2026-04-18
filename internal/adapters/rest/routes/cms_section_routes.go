@@ -306,7 +306,7 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 			})
 		})
 
-	cmsSectionRouter.Get("/:sectionID/labs", func(c fiber.Ctx) error {
+	cmsSectionRouter.Get("/:sectionID/labs", middlewares.Permission(permService).ForSection("sectionID").CanView(), func(c fiber.Ctx) error {
 		sectionID := c.Params("sectionID")
 
 		pageQuery := c.Query("page", "1")
@@ -379,7 +379,7 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 		})
 	})
 
-	cmsSectionRouter.Get("/:sectionID/labs/:labID", func(c fiber.Ctx) error {
+	cmsSectionRouter.Get("/:sectionID/labs/:labID", middlewares.Permission(permService).ForSection("sectionID").CanView(), func(c fiber.Ctx) error {
 		sectionID := c.Params("sectionID")
 		labID := c.Params("labID")
 
@@ -427,7 +427,7 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 		})
 	})
 
-	cmsSectionRouter.Get("/:sectionID/labs/:labID/materials/:materialID/submissions", func(c fiber.Ctx) error {
+	cmsSectionRouter.Get("/:sectionID/labs/:labID/materials/:materialID/submissions", middlewares.Permission(permService).ForSection("sectionID").CanView(), func(c fiber.Ctx) error {
 		sectionID := c.Params("sectionID")
 		labID := c.Params("labID")
 		materialID := c.Params("materialID")
@@ -474,7 +474,7 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 		})
 	})
 
-	cmsSectionRouter.Patch("/:sectionID/labs/:labID", middlewares.ValidateMiddleware[requests.UpdateLabSectionStatus](), func(c fiber.Ctx) error {
+	cmsSectionRouter.Patch("/:sectionID/labs/:labID", middlewares.Permission(permService).ForSection("sectionID").CanModify(), middlewares.ValidateMiddleware[requests.UpdateLabSectionStatus](), func(c fiber.Ctx) error {
 		user := c.Locals("user").(*models.User)
 		sectionID := c.Params("sectionID")
 		labID := c.Params("labID")
@@ -488,7 +488,7 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 		return c.SendStatus(fiber.StatusAccepted)
 	})
 
-	cmsSectionRouter.Get("/:sectionID/labs/:labID/student-status", func(c fiber.Ctx) error {
+	cmsSectionRouter.Get("/:sectionID/labs/:labID/student-status", middlewares.Permission(permService).ForSection("sectionID").CanView(), func(c fiber.Ctx) error {
 		sectionID := c.Params("sectionID")
 		labID := c.Params("labID")
 
@@ -500,7 +500,7 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 		return c.Status(fiber.StatusOK).JSON(status)
 	})
 
-	cmsSectionRouter.Post("/:sectionID/labs", middlewares.ValidateMiddleware[requests.SetLabSection](), func(c fiber.Ctx) error {
+	cmsSectionRouter.Post("/:sectionID/labs", middlewares.Permission(permService).ForSection("sectionID").CanModify(), middlewares.ValidateMiddleware[requests.SetLabSection](), func(c fiber.Ctx) error {
 		user := c.Locals("user").(*models.User)
 		sectionID := c.Params("sectionID")
 		req := c.Locals("body").(*requests.SetLabSection)
@@ -514,7 +514,7 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 		return c.SendStatus(fiber.StatusCreated)
 	})
 
-	cmsSectionRouter.Patch("/:sectionID/labs", middlewares.ValidateMiddleware[requests.UpdateLabSection](), func(c fiber.Ctx) error {
+	cmsSectionRouter.Patch("/:sectionID/labs", middlewares.Permission(permService).ForSection("sectionID").CanModify(), middlewares.ValidateMiddleware[requests.UpdateLabSection](), func(c fiber.Ctx) error {
 		user := c.Locals("user").(*models.User)
 		sectionID := c.Params("sectionID")
 		req := c.Locals("body").(*requests.UpdateLabSection)
@@ -523,7 +523,7 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 		return labSectionService.Update(ctx, user.ID, sectionID, req)
 	})
 
-	cmsSectionRouter.Post("/:sectionID/labs/delete", middlewares.ValidateMiddleware[requests.DeleteLabSection](), func(c fiber.Ctx) error {
+	cmsSectionRouter.Post("/:sectionID/labs/delete", middlewares.Permission(permService).ForSection("sectionID").CanModify(), middlewares.ValidateMiddleware[requests.DeleteLabSection](), func(c fiber.Ctx) error {
 		user := c.Locals("user").(*models.User)
 		sectionID := c.Params("sectionID")
 		req := c.Locals("body").(*requests.DeleteLabSection)
@@ -532,7 +532,7 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 		return labSectionService.Delete(ctx, sectionID, user.ID, req)
 	})
 
-	cmsSectionRouter.Get("/:sectionID/logs", func(c fiber.Ctx) error {
+	cmsSectionRouter.Get("/:sectionID/logs", middlewares.Permission(permService).ForSection("sectionID").CanView(), func(c fiber.Ctx) error {
 		sectionID := c.Params("sectionID")
 
 		pageQuery := c.Query("page", "1")
@@ -578,7 +578,7 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 		})
 	})
 
-	cmsSectionRouter.Get("/:id/gradebook", func(c fiber.Ctx) error {
+	cmsSectionRouter.Get("/:id/gradebook", middlewares.Permission(permService).ForSection("id").CanManageStudents(), func(c fiber.Ctx) error {
 		id := c.Params("id")
 		gradebook, err := submissionService.GetGradebookBySectionID(c.RequestCtx(), id)
 		if err != nil {
@@ -588,7 +588,7 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 		return c.Status(fiber.StatusOK).JSON(gradebook)
 	})
 
-	cmsSectionRouter.Get("/:id/gradebook/export", func(c fiber.Ctx) error {
+	cmsSectionRouter.Get("/:id/gradebook/export", middlewares.Permission(permService).ForSection("id").CanManageStudents(), func(c fiber.Ctx) error {
 		id := c.Params("id")
 		format := c.Query("format", "csv")
 

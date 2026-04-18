@@ -17,6 +17,34 @@ type PermissionBuilder struct {
 	resourceType string
 	paramKey     string
 	action       string
+	fromQuery    bool
+	fromLocals   bool
+}
+
+// FromQuery makes the builder read the resource ID from a query parameter instead of a URL param.
+func (pb *PermissionBuilder) FromQuery() *PermissionBuilder {
+	pb.fromQuery = true
+	return pb
+}
+
+// FromLocals makes the builder read the resource ID from c.Locals instead of a URL param.
+func (pb *PermissionBuilder) FromLocals() *PermissionBuilder {
+	pb.fromLocals = true
+	return pb
+}
+
+// getResourceID reads the resource ID from the appropriate source.
+func (pb *PermissionBuilder) getResourceID(c fiber.Ctx) string {
+	if pb.fromLocals {
+		if id, ok := c.Locals(pb.paramKey).(string); ok {
+			return id
+		}
+		return ""
+	}
+	if pb.fromQuery {
+		return c.Query(pb.paramKey)
+	}
+	return c.Params(pb.paramKey)
 }
 
 // Permission creates a new PermissionBuilder with the given permission service.
@@ -67,7 +95,7 @@ func (pb *PermissionBuilder) ForSubmission(paramKey string) *PermissionBuilder {
 func (pb *PermissionBuilder) CanCreate() fiber.Handler {
 	return func(c fiber.Ctx) error {
 		user := c.Locals("user").(*models.User)
-		resourceID := c.Params(pb.paramKey)
+		resourceID := pb.getResourceID(c)
 
 		// Admin can always create
 		isAdmin, err := pb.permService.IsAdmin(c.Context(), user.ID)
@@ -130,7 +158,7 @@ func (pb *PermissionBuilder) CanCreate() fiber.Handler {
 func (pb *PermissionBuilder) CanView() fiber.Handler {
 	return func(c fiber.Ctx) error {
 		user := c.Locals("user").(*models.User)
-		resourceID := c.Params(pb.paramKey)
+		resourceID := pb.getResourceID(c)
 
 		// Admin can always view
 		isAdmin, err := pb.permService.IsAdmin(c.Context(), user.ID)
@@ -248,7 +276,7 @@ func (pb *PermissionBuilder) CanView() fiber.Handler {
 func (pb *PermissionBuilder) CanModify() fiber.Handler {
 	return func(c fiber.Ctx) error {
 		user := c.Locals("user").(*models.User)
-		resourceID := c.Params(pb.paramKey)
+		resourceID := pb.getResourceID(c)
 
 		// Admin can always modify
 		isAdmin, err := pb.permService.IsAdmin(c.Context(), user.ID)
@@ -346,7 +374,7 @@ func (pb *PermissionBuilder) CanModify() fiber.Handler {
 func (pb *PermissionBuilder) CanDelete() fiber.Handler {
 	return func(c fiber.Ctx) error {
 		user := c.Locals("user").(*models.User)
-		resourceID := c.Params(pb.paramKey)
+		resourceID := pb.getResourceID(c)
 
 		// Admin can always delete
 		isAdmin, err := pb.permService.IsAdmin(c.Context(), user.ID)
@@ -413,7 +441,7 @@ func (pb *PermissionBuilder) CanDelete() fiber.Handler {
 func (pb *PermissionBuilder) CanGrade() fiber.Handler {
 	return func(c fiber.Ctx) error {
 		user := c.Locals("user").(*models.User)
-		resourceID := c.Params(pb.paramKey)
+		resourceID := pb.getResourceID(c)
 
 		// Admin can always grade
 		isAdmin, err := pb.permService.IsAdmin(c.Context(), user.ID)
