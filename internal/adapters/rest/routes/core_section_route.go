@@ -124,7 +124,48 @@ func NewCoreSectionRoute(router fiber.Router, sectionService services.SectionSer
 			return err
 		}
 
-		return c.JSON(labSec)
+		lab, err := labService.GetByID(c.RequestCtx(), labSec.LabID)
+		if err != nil {
+			return err
+		}
+
+		totalMaterials, err := labMaterialService.Count(c.RequestCtx(), map[string]string{"lab_id__is": labSec.LabID})
+		if err != nil {
+			return err
+		}
+
+		allMaterials, err := labMaterialService.GetByLabID(c.RequestCtx(), labSec.LabID)
+		if err != nil {
+			return err
+		}
+
+		completedMaterials := 0
+		hasAnySubmission := false
+		for _, mat := range allMaterials {
+			subs, _, err := submissionService.GetUserSubmissions(c.RequestCtx(), user.ID, mat.ID, labSec.LabID, labSec.SectionID, 1, 1, "desc")
+			if err == nil && len(subs) > 0 {
+				hasAnySubmission = true
+				if subs[0].Status == models.PASSED {
+					completedMaterials++
+				}
+			}
+		}
+
+		studentStatus := "not_started"
+		if totalMaterials > 0 && completedMaterials == totalMaterials {
+			studentStatus = "passed"
+		} else if completedMaterials > 0 {
+			studentStatus = "in_progress"
+		} else if hasAnySubmission {
+			studentStatus = "not_passed"
+		}
+
+		return c.JSON(models.CoreLabResponse{
+			Name:          lab.DisplayName,
+			Status:        labSec.Status,
+			ClosedAt:      labSec.ClosedAt,
+			StudentStatus: studentStatus,
+		})
 	})
 
 	coreSectionRouter.Get("/:sectionID/labs", middlewares.Permission(permService).ForSection("sectionID").CanView(), func(c fiber.Ctx) error {

@@ -13,3 +13,10 @@ type Lab struct {
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }
+
+type CoreLabResponse struct {
+	Name          string     `json:"name"`
+	Status        string     `json:"status"`
+	ClosedAt      *time.Time `json:"closed_at"`
+	StudentStatus string     `json:"student_status"`
+}

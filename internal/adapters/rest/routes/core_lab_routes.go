@@ -15,7 +15,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 )
 
-func NewCoreLabRoute(router fiber.Router, sectionService services.SectionService, labSectionService services.LabSectionService, labService services.LabService, sectionStudentService services.SectionStudentService, labMaterialService services.LabMaterialService, permService permission.Service) {
+func NewCoreLabRoute(router fiber.Router, sectionService services.SectionService, labSectionService services.LabSectionService, labService services.LabService, sectionStudentService services.SectionStudentService, labMaterialService services.LabMaterialService, submissionService services.SubmissionService, permService permission.Service) {
 	coreLabRoute := router.Group("/labs")
 
 	coreLabRoute.Post("/:labID", middlewares.ValidateMiddleware[requests.GetSection](), func(c fiber.Ctx) error {
@@ -40,7 +40,11 @@ func NewCoreLabRoute(router fiber.Router, sectionService services.SectionService
 			return err
 		}
 
-		return c.Status(fiber.StatusOK).JSON(lab)
+		return c.Status(fiber.StatusOK).JSON(models.CoreLabResponse{
+			Name:     lab.DisplayName,
+			Status:   labSection.Status,
+			ClosedAt: labSection.ClosedAt,
+		})
 	})
 
 	coreLabRoute.Get("/:labID/materials", middlewares.Permission(permService).ForSection("section_id").FromQuery().CanView(), func(c fiber.Ctx) error {
@@ -91,13 +95,39 @@ func NewCoreLabRoute(router fiber.Router, sectionService services.SectionService
 			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Error getting labs count"})
 		}
 
+		type materialResponse struct {
+			ID            string `json:"id"`
+			Name          string `json:"name"`
+			Type          string `json:"type"`
+			StudentStatus string `json:"student_status"`
+		}
+
+		responseItems := make([]materialResponse, len(materials))
+		for i, mat := range materials {
+			studentStatus := "not_started"
+			subs, _, err := submissionService.GetUserSubmissions(c.RequestCtx(), user.ID, mat.MaterialID, labSection.LabID, labSection.SectionID, 1, 1, "desc")
+			if err == nil && len(subs) > 0 {
+				if subs[0].Status == models.PASSED {
+					studentStatus = "passed"
+				} else {
+					studentStatus = "not_passed"
+				}
+			}
+			responseItems[i] = materialResponse{
+				ID:            mat.MaterialID,
+				Name:          mat.MaterialData.Name,
+				Type:          mat.MaterialData.Type,
+				StudentStatus: studentStatus,
+			}
+		}
+
 		return c.JSON(fiber.Map{
 			"pagination": fiber.Map{
 				"page":       page,
 				"total_page": math.Ceil(float64(count/pageSize) + 1),
 				"total_rows": count,
 			},
-			"data": materials,
+			"data": responseItems,
 		})
 	})
 }
