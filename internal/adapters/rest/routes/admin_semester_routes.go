@@ -69,7 +69,7 @@ func NewAdminSemesterRoutes(router fiber.Router, service services.SemesterServic
 		return c.JSON(fiber.Map{
 			"pagination": fiber.Map{
 				"page":       page,
-				"total_page": math.Ceil(float64(count/pageSize) + 1),
+				"total_page": math.Ceil(float64(count) / float64(pageSize)),
 				"total_rows": count,
 			},
 			"data": sems,

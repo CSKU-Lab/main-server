@@ -81,7 +81,7 @@ func NewCMSLabRoutes(router fiber.Router, labService services.LabService, labSec
 		return c.JSON(fiber.Map{
 			"pagination": fiber.Map{
 				"page":       page,
-				"total_page": math.Ceil(float64(count/pageSize) + 1),
+				"total_page": math.Ceil(float64(count) / float64(pageSize)),
 				"total_rows": count,
 			},
 			"data": labs,
@@ -142,7 +142,7 @@ func NewCMSLabRoutes(router fiber.Router, labService services.LabService, labSec
 		return c.JSON(fiber.Map{
 			"pagination": fiber.Map{
 				"page":       page,
-				"total_page": math.Ceil(float64(count/pageSize) + 1),
+				"total_page": math.Ceil(float64(count) / float64(pageSize)),
 				"total_rows": count,
 			},
 			"data": sections,
@@ -210,7 +210,7 @@ func NewCMSLabRoutes(router fiber.Router, labService services.LabService, labSec
 		return c.JSON(fiber.Map{
 			"pagination": fiber.Map{
 				"page":       page,
-				"total_page": math.Ceil(float64(count/pageSize) + 1),
+				"total_page": math.Ceil(float64(count) / float64(pageSize)),
 				"total_rows": count,
 			},
 			"data": materials,

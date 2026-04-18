@@ -216,16 +216,15 @@ func (dl *defaultLabService) Update(ctx context.Context, req *requests.UpdateDef
 
 	reqPos := req.Position
 	currPos := defaultLab.Position
-	err = dl.rearrangeUpdatedIndex(ctx, courseID, req.LabID, currPos, reqPos)
-	if err != nil {
-		return err
-	}
 
-	err = dl.defaultLabRepo.Update(ctx, req, defaultLab.ID)
-	if err != nil {
-		return err
-	}
-	return nil
+	return dl.uowRepo.Execute(ctx, func(u repositories.UoWInstance) error {
+		err := u.DefaultLab().ShiftInsertedPositions(ctx, courseID, currPos, reqPos)
+		if err != nil {
+			return err
+		}
+
+		return u.DefaultLab().Update(ctx, req, defaultLab.ID)
+	})
 }
 
 func (dl *defaultLabService) rearrangeDeletedIndex(ctx context.Context, courseID string, labID string, position int) error {

@@ -152,7 +152,7 @@ func NewCMSCourseRoutes(router fiber.Router, courseService services.CourseServic
 		return c.JSON(fiber.Map{
 			"pagination": fiber.Map{
 				"page":       page,
-				"total_page": math.Ceil(float64(count/pageSize) + 1),
+				"total_page": math.Ceil(float64(count) / float64(pageSize)),
 				"total_rows": count,
 			},
 			"data": courses,
@@ -263,10 +263,15 @@ func NewCMSCourseRoutes(router fiber.Router, courseService services.CourseServic
 			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Error getting labs count"})
 		}
 
+		totalPage := 1
+		if pageSize > 0 {
+			totalPage = int(math.Ceil(float64(count) / float64(pageSize)))
+		}
+
 		return c.JSON(fiber.Map{
 			"pagination": fiber.Map{
 				"page":       page,
-				"total_page": math.Ceil(float64(count/pageSize) + 1),
+				"total_page": totalPage,
 				"total_rows": count,
 			},
 			"data": defaultLabs,
@@ -328,7 +333,7 @@ func NewCMSCourseRoutes(router fiber.Router, courseService services.CourseServic
 		return c.JSON(fiber.Map{
 			"pagination": fiber.Map{
 				"page":       page,
-				"total_page": math.Ceil(float64(count/pageSize) + 1),
+				"total_page": math.Ceil(float64(count) / float64(pageSize)),
 				"total_rows": count,
 			},
 			"data": labs,
