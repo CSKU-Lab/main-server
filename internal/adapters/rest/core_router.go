@@ -40,6 +40,7 @@ func NewCoreRouter(r *CoreRouter) {
 		r.SectionStudentService,
 		r.LabMaterialService,
 		r.CourseService,
+		r.SubmissionService,
 		r.PermissionService,
 	)
 	routes.NewCoreLabRoute(

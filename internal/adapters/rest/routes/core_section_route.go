@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
 	"github.com/CSKU-Lab/main-server/domain/models"
@@ -14,7 +15,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 )
 
-func NewCoreSectionRoute(router fiber.Router, sectionService services.SectionService, labSectionService services.LabSectionService, labService services.LabService, sectionStudentService services.SectionStudentService, labMaterialService services.LabMaterialService, courseService services.CourseService, permService permission.Service) {
+func NewCoreSectionRoute(router fiber.Router, sectionService services.SectionService, labSectionService services.LabSectionService, labService services.LabService, sectionStudentService services.SectionStudentService, labMaterialService services.LabMaterialService, courseService services.CourseService, submissionService services.SubmissionService, permService permission.Service) {
 	coreSectionRouter := router.Group("/sections")
 
 	coreSectionRouter.Get("/", func(c fiber.Ctx) error {
@@ -159,6 +160,7 @@ func NewCoreSectionRoute(router fiber.Router, sectionService services.SectionSer
 		}
 
 		filterParams["section_id__is"] = secStudent.SectionID
+		filterParams["status__is_not"] = "hidden"
 
 		labSections, err := labSectionService.GetPagination(c.RequestCtx(), page, pageSize, sortBy, sortOrder, filterParams)
 		if err != nil {
@@ -171,11 +173,13 @@ func NewCoreSectionRoute(router fiber.Router, sectionService services.SectionSer
 		}
 
 		type labSectionResponse struct {
-			ID        string `json:"id"`
-			LabID     string `json:"lab_id"`
-			SectionID string `json:"section_id"`
-			Position  int    `json:"position"`
-			LabName   string `json:"lab_name"`
+			ID                 string     `json:"id"`
+			Name               string     `json:"name"`
+			ClosedAt           *time.Time `json:"closed_at,omitempty"`
+			Status             string     `json:"status,omitempty"`
+			TotalMaterials     int        `json:"total_materials"`
+			CompletedMaterials int        `json:"completed_materials"`
+			StudentStatus      string     `json:"student_status"`
 		}
 
 		responseSections := make([]labSectionResponse, len(labSections))
@@ -185,12 +189,45 @@ func NewCoreSectionRoute(router fiber.Router, sectionService services.SectionSer
 				return err
 			}
 
+			totalMaterials, err := labMaterialService.Count(c.RequestCtx(), map[string]string{"lab_id__is": section.LabID})
+			if err != nil {
+				return err
+			}
+
+			allMaterials, err := labMaterialService.GetByLabID(c.RequestCtx(), section.LabID)
+			if err != nil {
+				return err
+			}
+
+			completedMaterials := 0
+			hasAnySubmission := false
+			for _, mat := range allMaterials {
+				subs, _, err := submissionService.GetUserSubmissions(c.RequestCtx(), user.ID, mat.ID, section.LabID, section.SectionID, 1, 1, "desc")
+				if err == nil && len(subs) > 0 {
+					hasAnySubmission = true
+					if subs[0].Status == models.PASSED {
+						completedMaterials++
+					}
+				}
+			}
+
+			studentStatus := "not_started"
+			if totalMaterials > 0 && completedMaterials == totalMaterials {
+				studentStatus = "passed"
+			} else if completedMaterials > 0 {
+				studentStatus = "in_progress"
+			} else if hasAnySubmission {
+				studentStatus = "not_passed"
+			}
+
 			responseSections[i] = labSectionResponse{
-				ID:        section.ID,
-				LabID:     section.LabID,
-				SectionID: section.SectionID,
-				Position:  section.Position,
-				LabName:   lab.DisplayName,
+				ID:                 section.LabID,
+				Name:               lab.DisplayName,
+				ClosedAt:           section.ClosedAt,
+				Status:             section.Status,
+				TotalMaterials:     totalMaterials,
+				CompletedMaterials: completedMaterials,
+				StudentStatus:      studentStatus,
 			}
 		}
 
