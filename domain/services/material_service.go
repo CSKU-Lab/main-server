@@ -17,8 +17,8 @@ import (
 
 type MaterialService interface {
 	Create(ctx context.Context, createdByUserID string, req *requests.CreateMaterial) (string, error)
-	GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string, filterParams map[string]string) ([]models.Material, error)
-	Count(ctx context.Context, search string, filters map[string]string) (int, error)
+	GetPagination(ctx context.Context, viewerID string, viewerRoles []models.Role, page int, limit int, search string, sortBy string, sortOrder string, filterParams map[string]string) ([]models.Material, error)
+	Count(ctx context.Context, viewerID string, viewerRoles []models.Role, search string, filters map[string]string) (int, error)
 	GetByID(ctx context.Context, ID string) (*models.MaterialDetail, error)
 	GetMaterialWithLatestSubmissionStatus(ctx context.Context, userID string, materialID string, labID string, sectionID string) (*models.MaterialWithSubmissionStatus, error)
 	UpdateByID(ctx context.Context, ID string, req *requests.BaseUpdateMaterial, rawReq []byte, userID string) error
@@ -94,7 +94,21 @@ func (s *materialService) Create(ctx context.Context, createdByUserID string, re
 	return matID, nil
 }
 
-func (s *materialService) GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string, filterParams map[string]string) ([]models.Material, error) {
+func visibilityFilter(viewerID string, roles []models.Role) *repositories.VisibilityFilter {
+	for _, r := range roles {
+		if r == models.ADMIN {
+			return nil
+		}
+	}
+	for _, r := range roles {
+		if r == models.INSTRUCTOR {
+			return &repositories.VisibilityFilter{ViewerID: viewerID}
+		}
+	}
+	return &repositories.VisibilityFilter{OnlyPublic: true}
+}
+
+func (s *materialService) GetPagination(ctx context.Context, viewerID string, viewerRoles []models.Role, page int, limit int, search string, sortBy string, sortOrder string, filterParams map[string]string) ([]models.Material, error) {
 	allowedSortFields := map[string]bool{
 		"name":         true,
 		"type":         true,
@@ -136,7 +150,7 @@ func (s *materialService) GetPagination(ctx context.Context, page int, limit int
 		return nil, err
 	}
 
-	materials, err := s.repo.GetPagination(ctx, page, limit, search, sanitizedSortBy, sanitizedSortOrder, filters)
+	materials, err := s.repo.GetPagination(ctx, page, limit, search, sanitizedSortBy, sanitizedSortOrder, filters, visibilityFilter(viewerID, viewerRoles))
 	if err != nil {
 		return nil, err
 	}
@@ -179,13 +193,13 @@ func (s *materialService) GetPagination(ctx context.Context, page int, limit int
 	return matModels, nil
 }
 
-func (s *materialService) Count(ctx context.Context, search string, filterParams map[string]string) (int, error) {
+func (s *materialService) Count(ctx context.Context, viewerID string, viewerRoles []models.Role, search string, filterParams map[string]string) (int, error) {
 	filters, err := sanitize.Filters(filterParams, s.allowedFilterFields)
 	if err != nil {
 		return 0, err
 	}
 
-	return s.repo.Count(ctx, search, filters)
+	return s.repo.Count(ctx, search, filters, visibilityFilter(viewerID, viewerRoles))
 }
 
 func (s *materialService) GetByID(ctx context.Context, ID string) (*models.MaterialDetail, error) {

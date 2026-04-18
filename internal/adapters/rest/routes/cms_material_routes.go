@@ -64,12 +64,14 @@ func NewCMSMaterialRoutes(router fiber.Router, materialService services.Material
 			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusBadRequest, Message: "Invalid page size"})
 		}
 
-		mats, err := materialService.GetPagination(c.RequestCtx(), page, pageSize, search, sortBy, sortOrder, filterParams)
+		user := c.Locals("user").(*models.User)
+
+		mats, err := materialService.GetPagination(c.RequestCtx(), user.ID, user.Roles, page, pageSize, search, sortBy, sortOrder, filterParams)
 		if err != nil {
 			return err
 		}
 
-		count, err := materialService.Count(c.RequestCtx(), search, filterParams)
+		count, err := materialService.Count(c.RequestCtx(), user.ID, user.Roles, search, filterParams)
 		if err != nil {
 			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Error getting semesters count"})
 		}

@@ -55,19 +55,31 @@ func (m *materialRepository) Create(ctx context.Context, ID string, createdByUse
 	return nil
 }
 
-func (m *materialRepository) GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string, filters []sanitize.Filter) ([]repositories.Material, error) {
+func buildVisibilityClause(visibility *repositories.VisibilityFilter, nextArgIndex int) (string, []any) {
+	if visibility == nil {
+		return "", nil
+	}
+	if visibility.OnlyPublic {
+		return fmt.Sprintf(" AND visibility = $%d", nextArgIndex), []any{"public"}
+	}
+	return fmt.Sprintf(" AND (visibility = $%d OR created_by = $%d)", nextArgIndex, nextArgIndex+1), []any{"public", visibility.ViewerID}
+}
+
+func (m *materialRepository) GetPagination(ctx context.Context, page int, limit int, search string, sortBy string, sortOrder string, filters []sanitize.Filter, visibility *repositories.VisibilityFilter) ([]repositories.Material, error) {
 	filterWhereClause, filterArgs := buildFilterWhereClause(filters, 2)
+	visibilityClause, visibilityArgs := buildVisibilityClause(visibility, len(filterArgs)+2)
 
 	baseQuery := `SELECT id, name, type, visibility, created_at, created_by, auto_score, manual_score FROM materials
 	WHERE (name ILIKE $1)`
 
-	query := fmt.Sprintf(`%s%s
+	query := fmt.Sprintf(`%s%s%s
 		ORDER BY %s %s
 		OFFSET $%d
-		LIMIT $%d`, baseQuery, filterWhereClause, sortBy, sortOrder, len(filterArgs)+2, len(filterArgs)+3)
+		LIMIT $%d`, baseQuery, filterWhereClause, visibilityClause, sortBy, sortOrder, len(filterArgs)+len(visibilityArgs)+2, len(filterArgs)+len(visibilityArgs)+3)
 
 	args := []any{"%" + search + "%"}
 	args = append(args, filterArgs...)
+	args = append(args, visibilityArgs...)
 	args = append(args, (page-1)*limit, limit)
 
 	records := []materialRecord{}
@@ -84,16 +96,18 @@ func (m *materialRepository) GetPagination(ctx context.Context, page int, limit 
 	return materials, nil
 }
 
-func (m *materialRepository) Count(ctx context.Context, search string, filters []sanitize.Filter) (int, error) {
+func (m *materialRepository) Count(ctx context.Context, search string, filters []sanitize.Filter, visibility *repositories.VisibilityFilter) (int, error) {
 	filterWhereClause, filterArgs := buildFilterWhereClause(filters, 2)
+	visibilityClause, visibilityArgs := buildVisibilityClause(visibility, len(filterArgs)+2)
 
 	baseQuery := `SELECT COUNT(*) FROM materials
 		WHERE (name ILIKE $1)`
 
-	query := fmt.Sprintf(`%s%s`, baseQuery, filterWhereClause)
+	query := fmt.Sprintf(`%s%s%s`, baseQuery, filterWhereClause, visibilityClause)
 
 	args := []any{"%" + search + "%"}
 	args = append(args, filterArgs...)
+	args = append(args, visibilityArgs...)
 
 	var count int
 	err := m.db.GetContext(ctx, &count, query, args...)
