@@ -104,9 +104,14 @@ func startApiServer(ctx context.Context, logger *zap.SugaredLogger, db *sqlx.DB,
 	readMaterialTagRepo := sqlxAdapter.NewReadMaterialTagRepository(db)
 	codeMaterialRepo := sqlxAdapter.NewCodeMaterialRepository(db)
 
+	typingMaterialRepo := sqlxAdapter.NewTypingMaterialRepository(db)
+	typingSubmissionRepo := sqlxAdapter.NewTypingSubmissionRepository(db)
+
 	materialRegistry := registries.NewMaterialRegistry()
 	codeMaterial := registrables.NewCodeMaterial(codeMaterialRepo, taskGrpcClient, configGRPCClient)
 	materialRegistry.Register("code", codeMaterial)
+	typingMat := registrables.NewTypingMaterial(typingMaterialRepo)
+	materialRegistry.Register("typing", typingMat)
 
 	materialAssetService := services.NewMaterialAssetService(config, minio)
 
@@ -154,9 +159,11 @@ func startApiServer(ctx context.Context, logger *zap.SugaredLogger, db *sqlx.DB,
 	)
 
 	codeSubmissionRegistrable := registrables.NewCodeSubmission(codeSubmissionRepo, codeMaterialRepo, submissionRepo, taskGrpcClient)
+	typingSubmissionRegistrable := registrables.NewTypingSubmission(typingSubmissionRepo, typingMaterialRepo, config.JWTSecret)
 
 	submissionRegistry := registries.NewSubmission()
 	submissionRegistry.Register("code", codeSubmissionRegistrable)
+	submissionRegistry.Register("typing", typingSubmissionRegistrable)
 	submissionService := services.NewSubmissionService(&services.SubmissionServiceArgs{
 		SubmissionRepository:     submissionRepo,
 		MaterialRepository:       materialRepo,
@@ -329,6 +336,7 @@ func startApiServer(ctx context.Context, logger *zap.SugaredLogger, db *sqlx.DB,
 		SubmissionService:       submissionService,
 		PubSub:                  rClient,
 		PermissionService:       permService,
+		Secret:                  config.JWTSecret,
 	})
 
 	port := fmt.Sprintf(":%v", config.Port)

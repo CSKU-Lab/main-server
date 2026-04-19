@@ -27,6 +27,7 @@ type MaterialDetail struct {
 
 type MaterialWithSubmissionStatus struct {
 	Name    string `json:"name"`
+	Type    string `json:"type"`
 	Status  string `json:"status"`
 	Payload any    `json:"payload"`
 }

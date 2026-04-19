@@ -28,6 +28,8 @@ type UoWInstance interface {
 	Submission() SubmissionRepository
 	CodeSubmission() CodeSubmissionRepository
 	CodeSubmissionOutbox() CodeSubmissionOutboxRepository
+
+	TypingSubmission() TypingSubmissionRepository
 }
 
 type UoWRepository interface {

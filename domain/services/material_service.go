@@ -377,6 +377,7 @@ func (s *materialService) GetMaterialWithLatestSubmissionStatus(ctx context.Cont
 
 	return &models.MaterialWithSubmissionStatus{
 		Name:    material.Name,
+		Type:    material.Type,
 		Status:  status,
 		Payload: filteredPayload,
 	}, nil

@@ -25,6 +25,7 @@ type CoreRouter struct {
 	SubmissionService        services.SubmissionService
 	PubSub                   pubsub.PubSub
 	PermissionService        permission.Service
+	Secret                   string
 }
 
 func NewCoreRouter(r *CoreRouter) {
@@ -83,5 +84,13 @@ func NewCoreRouter(r *CoreRouter) {
 		r.DefaultLabService,
 		r.LabMaterialService,
 		r.SectionService,
+	)
+
+	routes.NewCoreTypingRoute(
+		coreRouter,
+		r.MaterialService,
+		r.CourseEnrollmentService,
+		r.LabSectionService,
+		r.Secret,
 	)
 }

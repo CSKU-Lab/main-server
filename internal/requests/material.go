@@ -15,7 +15,7 @@ func (c *CreateMaterial) Validate() error {
 	return validation.ValidateStruct(c,
 		validation.Field(&c.Name, validation.Required),
 		validation.Field(&c.Tags),
-		validation.Field(&c.Type, validation.Required, validation.In("document", "code", "type")),
+		validation.Field(&c.Type, validation.Required, validation.In("document", "code", "typing")),
 		validation.Field(&c.Visibility, validation.Required, validation.In("public", "private")),
 	)
 }

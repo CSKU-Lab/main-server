@@ -668,7 +668,7 @@ table "lab_sections" {
 
 enum "material_type" {
   schema = schema.public
-  values = [ "document" , "code" , "type" ]
+  values = [ "document" , "code" , "type" , "typing" ]
 }
 
 enum "visibility" {
@@ -953,6 +953,51 @@ table "code_submissions_outbox" {
     columns = [ column.id ]
   }
   foreign_key "fk_aggregate_id" {
+    columns = [ column.submission_id ]
+    ref_columns = [ table.submissions.column.id ]
+    on_delete = CASCADE
+  }
+}
+
+table "typing_materials" {
+  schema = schema.public
+  column "material_id" {
+    type = uuid
+  }
+  column "content" {
+    type = text
+  }
+  primary_key {
+    columns = [ column.material_id ]
+  }
+  foreign_key "fk_material_id" {
+    columns = [ column.material_id ]
+    ref_columns = [ table.materials.column.id ]
+    on_delete = CASCADE
+  }
+}
+
+table "typing_submissions" {
+  schema = schema.public
+  column "submission_id" {
+    type = uuid
+  }
+  column "raw_wpm" {
+    type = float
+  }
+  column "adjusted_wpm" {
+    type = float
+  }
+  column "error_rate" {
+    type = float
+  }
+  column "duration" {
+    type = float
+  }
+  primary_key {
+    columns = [ column.submission_id ]
+  }
+  foreign_key "fk_submission_id" {
     columns = [ column.submission_id ]
     ref_columns = [ table.submissions.column.id ]
     on_delete = CASCADE
