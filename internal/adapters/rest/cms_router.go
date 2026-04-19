@@ -28,6 +28,7 @@ type CMSRouter struct {
 	GradebookExportService  services.GradebookExportService
 	Queue                   queue.Queue
 	PermissionService       permission.Service
+	TagService              services.TagService
 }
 
 func NewCMSRouter(r *CMSRouter) {
@@ -43,4 +44,5 @@ func NewCMSRouter(r *CMSRouter) {
 	routes.NewCMSConfigRoutes(cmsRouter, r.ConfigGRPCClient, r.Queue)
 	routes.NewCMSSubmissionRoutes(cmsRouter, r.SubmissionService, r.PermissionService)
 	routes.NewCMSUserRoute(cmsRouter, r.UserService)
+	routes.NewCMSTagRoutes(cmsRouter, r.TagService)
 }

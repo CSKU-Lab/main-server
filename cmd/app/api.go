@@ -102,6 +102,8 @@ func startApiServer(ctx context.Context, logger *zap.SugaredLogger, db *sqlx.DB,
 
 	materialRepo := sqlxAdapter.NewMaterialRepository(db)
 	readMaterialTagRepo := sqlxAdapter.NewReadMaterialTagRepository(db)
+	tagRepo := sqlxAdapter.NewTagRepository(db)
+	tagService := services.NewTagService(tagRepo)
 	codeMaterialRepo := sqlxAdapter.NewCodeMaterialRepository(db)
 
 	typingMaterialRepo := sqlxAdapter.NewTypingMaterialRepository(db)
@@ -319,6 +321,7 @@ func startApiServer(ctx context.Context, logger *zap.SugaredLogger, db *sqlx.DB,
 		GradebookExportService:  gradebookExportService,
 		Queue:                   q,
 		PermissionService:       permService,
+		TagService:              tagService,
 	})
 
 	rest.NewCoreRouter(&rest.CoreRouter{
