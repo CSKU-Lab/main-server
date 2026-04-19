@@ -8,9 +8,11 @@ import (
 )
 
 type CreateCourse struct {
-	Name       string   `json:"name"`
-	Visibility *string  `json:"visibility"`
-	Creators   []string `json:"creators"`
+	Name        string   `json:"name"`
+	Description *string  `json:"description"`
+	Banner      *string  `json:"banner"`
+	Visibility  *string  `json:"visibility"`
+	Creators    []string `json:"creators"`
 }
 
 func (c *CreateCourse) Validate() error {
@@ -22,9 +24,11 @@ func (c *CreateCourse) Validate() error {
 }
 
 type UpdateCourse struct {
-	Name       *string   `json:"name"`
-	Creators   *[]string `json:"creators"`
-	Visibility *string   `json:"visibility"`
+	Name        *string   `json:"name"`
+	Description *string   `json:"description"`
+	Banner      *string   `json:"banner"`
+	Creators    *[]string `json:"creators"`
+	Visibility  *string   `json:"visibility"`
 }
 
 func (c *UpdateCourse) Validate() error {

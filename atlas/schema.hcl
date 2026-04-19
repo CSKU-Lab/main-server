@@ -142,6 +142,14 @@ table "courses" {
   column "name" {
     type = text
   }
+  column "description" {
+    type = text
+    null = true
+  }
+  column "banner" {
+    type = text
+    null = true
+  }
   column "visibility" {
     type = enum.course_visibility
   }
@@ -196,6 +204,33 @@ table "course_creators" {
   }
   foreign_key "fk_creator_id" {
     columns = [ column.creator_id ]
+    ref_columns = [ table.users.column.id ]
+    on_delete = CASCADE
+  }
+}
+
+table "course_enrollments" {
+  schema = schema.public
+  column "course_id" {
+    type = uuid
+  }
+  column "student_id" {
+    type = uuid
+  }
+  column "created_at" {
+    type = timestamp
+    default = sql("CURRENT_TIMESTAMP")
+  }
+  primary_key {
+    columns = [ column.course_id, column.student_id ]
+  }
+  foreign_key "fk_course_id" {
+    columns = [ column.course_id ]
+    ref_columns = [ table.courses.column.id ]
+    on_delete = CASCADE
+  }
+  foreign_key "fk_student_id" {
+    columns = [ column.student_id ]
     ref_columns = [ table.users.column.id ]
     on_delete = CASCADE
   }
@@ -566,7 +601,7 @@ table "lab_materials" {
 
 enum "lab_section_status" {
   schema = schema.public
-  values = [ "hidden" , "open", "readonly", "disabled" ]
+  values = [ "hidden" , "open", "closed", "readonly", "disabled" ]
 }
 
 table "lab_sections" {

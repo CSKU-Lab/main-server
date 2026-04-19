@@ -85,7 +85,9 @@ func startApiServer(ctx context.Context, logger *zap.SugaredLogger, db *sqlx.DB,
 
 	courseRepo := sqlxAdapter.NewCourseRepository(db)
 	courseCreatorRepo := sqlxAdapter.NewCourseCreatorRepository(db)
+	courseEnrollmentRepo := sqlxAdapter.NewCourseEnrollmentRepository(db)
 	courseService := services.NewCourseService(courseRepo, courseCreatorRepo, uowRepo)
+	courseEnrollmentService := services.NewCourseEnrollmentService(courseEnrollmentRepo, courseRepo)
 
 	sectionRepo := sqlxAdapter.NewSectionRepository(db)
 	sectionInstructorRepo := sqlxAdapter.NewSectionInstructorRepository(db)
@@ -313,18 +315,20 @@ func startApiServer(ctx context.Context, logger *zap.SugaredLogger, db *sqlx.DB,
 	})
 
 	rest.NewCoreRouter(&rest.CoreRouter{
-		Router:                protectedApi,
-		SectionService:        sectionService,
-		LabSectionService:     labSectionService,
-		LabService:            labService,
-		SectionStudentService: sectionStudentRepo,
-		LabMaterialService:    labMaterialService,
-		CourseService:         courseService,
-		SidebarService:        sidebarService,
-		MaterialService:       materialService,
-		SubmissionService:     submissionService,
-		PubSub:                rClient,
-		PermissionService:     permService,
+		Router:                  protectedApi,
+		SectionService:          sectionService,
+		LabSectionService:       labSectionService,
+		LabService:              labService,
+		SectionStudentService:   sectionStudentRepo,
+		LabMaterialService:      labMaterialService,
+		CourseService:           courseService,
+		CourseEnrollmentService: courseEnrollmentService,
+		DefaultLabService:       defaultLabService,
+		SidebarService:          sidebarService,
+		MaterialService:         materialService,
+		SubmissionService:       submissionService,
+		PubSub:                  rClient,
+		PermissionService:       permService,
 	})
 
 	port := fmt.Sprintf(":%v", config.Port)

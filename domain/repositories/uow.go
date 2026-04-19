@@ -14,6 +14,7 @@ type UoWInstance interface {
 
 	Course() CourseRepository
 	CourseCreator() CourseCreatorRepository
+	CourseEnrollment() CourseEnrollmentRepository
 
 	Material() MaterialRepository
 	MaterialTag() WriteMaterialTagRepository

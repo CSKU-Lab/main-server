@@ -139,12 +139,12 @@ func NewCMSCourseRoutes(router fiber.Router, courseService services.CourseServic
 			})
 		}
 
-		courses, err := courseService.GetPagination(c.RequestCtx(), page, pageSize, search, sortBy, sortOrder, show)
+		courses, err := courseService.GetPagination(c.RequestCtx(), page, pageSize, search, sortBy, sortOrder, show, "")
 		if err != nil {
 			return err
 		}
 
-		count, err := courseService.Count(c.RequestCtx(), search, show)
+		count, err := courseService.Count(c.RequestCtx(), search, show, "")
 		if err != nil {
 			return err
 		}

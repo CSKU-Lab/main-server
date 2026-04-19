@@ -1,10 +1,13 @@
 package models
 
 type Course struct {
-	ID         string          `json:"id"`
-	Name       string          `json:"name"`
-	Visibility string          `json:"visibility"`
-	Creators   []CourseCreator `json:"creators"`
+	ID            string          `json:"id"`
+	Name          string          `json:"name"`
+	Description   *string         `json:"description"`
+	Banner        *string         `json:"banner"`
+	Visibility    string          `json:"visibility"`
+	TotalStudents int             `json:"total_students"`
+	Creators      []CourseCreator `json:"creators"`
 }
 
 type CourseCreator struct {

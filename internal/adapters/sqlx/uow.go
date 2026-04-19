@@ -62,6 +62,10 @@ func (u *uowInstance) CourseCreator() repositories.CourseCreatorRepository {
 	return NewCourseCreatorRepository(u.tx)
 }
 
+func (u *uowInstance) CourseEnrollment() repositories.CourseEnrollmentRepository {
+	return NewCourseEnrollmentRepository(u.tx)
+}
+
 func (u *uowInstance) Material() repositories.MaterialRepository {
 	return NewMaterialRepository(u.tx)
 }
