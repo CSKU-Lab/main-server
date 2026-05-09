@@ -9,11 +9,15 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -o /out/app ./cmd/app && \
     CGO_ENABLED=0 GOOS=linux go build -o /out/seed ./cmd/seed
 
+FROM arigaio/atlas:latest AS atlas
+
 FROM debian:bookworm-slim
 
 WORKDIR /app
 COPY --from=builder /out/app ./app
 COPY --from=builder /out/seed ./seed
+COPY --from=atlas /atlas /usr/local/bin/atlas
+COPY atlas/schema.hcl ./atlas/schema.hcl
 
 USER nobody
 
