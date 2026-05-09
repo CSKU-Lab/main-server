@@ -197,7 +197,7 @@ func startApiServer(ctx context.Context, logger *zap.SugaredLogger, db *sqlx.DB,
 	})
 
 	app.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000"},
+		AllowOrigins:     []string{config.FRONTEND_URL},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept"},
 		AllowCredentials: true,
 	}))
