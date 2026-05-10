@@ -1,0 +1,18 @@
+services:
+  db:
+    container_name: main-server-test-db
+    image: postgres:18
+    environment:
+      POSTGRES_USER: cs_pg_user
+      POSTGRES_PASSWORD: cs_pg_password
+      POSTGRES_DB: main-server
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cs_pg_user -d main-server"]
+      interval: 5s
+      retries: 10
+      start_period: 10s
+      timeout: 5s
+    tmpfs:
+      - /var/lib/postgresql

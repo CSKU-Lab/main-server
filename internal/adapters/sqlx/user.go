@@ -303,7 +303,7 @@ func (r *userRepository) Create(ctx context.Context, req repositories.CreateMult
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) {
 			if pqErr.Code == "23505" {
-				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "User already exists"})
+				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusConflict, Message: "User already exists"})
 			}
 		}
 		return err
