@@ -10,7 +10,8 @@ import (
 )
 
 type postgresPubSub struct {
-	conn *pgx.Conn
+	conn   *pgx.Conn
+	logger *zap.SugaredLogger
 }
 
 func NewPostgres(ctx context.Context, logger *zap.SugaredLogger, dataBaseURL string) (PubSub, func() error, error) {
@@ -29,7 +30,8 @@ func NewPostgres(ctx context.Context, logger *zap.SugaredLogger, dataBaseURL str
 	}
 
 	return &postgresPubSub{
-		conn: conn,
+		conn:   conn,
+		logger: logger,
 	}, close, nil
 }
 
@@ -52,7 +54,7 @@ func (p *postgresPubSub) Subscribe(ctx context.Context, channel string) (<-chan 
 
 			noti, err := p.conn.WaitForNotification(ctx)
 			if err != nil {
-				fmt.Println("Error in Postgres PubSub Subscribe:", err)
+				p.logger.Errorw("postgres pubsub subscribe error", "error", err)
 				return
 			}
 

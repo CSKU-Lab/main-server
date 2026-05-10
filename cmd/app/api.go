@@ -3,17 +3,17 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/CSKU-Lab/main-server/configs"
 	"github.com/jmoiron/sqlx"
+	"go.uber.org/zap"
 )
 
-func startApiServer(ctx context.Context, db *sqlx.DB, config *configs.Config) {
-	app, cleanup, err := initializeApp(ctx, config, db)
+func startApiServer(ctx context.Context, db *sqlx.DB, config *configs.Config, logger *zap.SugaredLogger) {
+	app, cleanup, err := initializeApp(ctx, config, db, logger)
 	if err != nil {
-		log.Fatal("Failed to initialize app: ", err)
+		logger.Fatalw("failed to initialize app", "error", err)
 	}
 	defer cleanup()
 
@@ -22,20 +22,20 @@ func startApiServer(ctx context.Context, db *sqlx.DB, config *configs.Config) {
 	go func() {
 		<-ctx.Done()
 
-		log.Println("Received shutdown signal, shutting down server...")
+		logger.Infow("received shutdown signal, shutting down server")
 
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
 		if err := app.ShutdownWithContext(shutdownCtx); err != nil {
-			log.Printf("Error during server shutdown: %v", err)
+			logger.Errorw("error during server shutdown", "error", err)
 		}
 	}()
 
 	err = app.Listen(port)
 	if err != nil {
-		log.Fatal("Error starting server on Port ", port, ": ", err)
+		logger.Fatalw("error starting server", "port", port, "error", err)
 	}
 
-	log.Println("Server stopped")
+	logger.Infow("server stopped")
 }

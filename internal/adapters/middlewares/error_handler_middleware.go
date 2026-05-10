@@ -3,25 +3,32 @@ package middlewares
 import (
 	"errors"
 	"fmt"
-	"log"
 
 	"github.com/CSKU-Lab/main-server/configs"
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
+	"github.com/CSKU-Lab/main-server/internal/logging"
 	"github.com/gofiber/fiber/v3"
+	"go.uber.org/zap"
 )
 
 type ErrorHandlerMiddleware struct {
 	appConfig *configs.Config
+	logger    *zap.SugaredLogger
 }
 
-func NewErrorHandlerMiddleware(appConfig *configs.Config) *ErrorHandlerMiddleware {
+func NewErrorHandlerMiddleware(appConfig *configs.Config, logger *zap.SugaredLogger) *ErrorHandlerMiddleware {
 	return &ErrorHandlerMiddleware{
 		appConfig: appConfig,
+		logger:    logger,
 	}
 }
 
 func (e *ErrorHandlerMiddleware) ErrorHandler(c fiber.Ctx, err error) error {
-	log.Println(err)
+	logging.FromContext(c.Context()).Errorw("request error",
+		"error", err,
+		"method", c.Method(),
+		"path", c.Path(),
+	)
 	var csErr *cserrors.Error
 	if errors.As(err, &csErr) {
 		var errString string

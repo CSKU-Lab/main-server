@@ -11,9 +11,10 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/wire"
 	"github.com/jmoiron/sqlx"
+	"go.uber.org/zap"
 )
 
-func initializeApp(ctx context.Context, cfg *configs.Config, db *sqlx.DB) (*fiber.App, func(), error) {
+func initializeApp(ctx context.Context, cfg *configs.Config, db *sqlx.DB, logger *zap.SugaredLogger) (*fiber.App, func(), error) {
 	wire.Build(
 		providers.RepositorySet,
 		providers.ServiceSet,

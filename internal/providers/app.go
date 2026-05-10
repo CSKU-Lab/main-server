@@ -11,10 +11,12 @@ import (
 	"github.com/CSKU-Lab/queue"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/cors"
+	"go.uber.org/zap"
 )
 
 func NewFiberApp(
 	cfg *configs.Config,
+	logger *zap.SugaredLogger,
 	errMiddleware *middlewares.ErrorHandlerMiddleware,
 	userService services.UserService,
 	refreshTokenService services.RefreshTokenService,
@@ -46,6 +48,8 @@ func NewFiberApp(
 		ErrorHandler: errMiddleware.ErrorHandler,
 		BodyLimit:    10 * 1024 * 1024, // 10 MB
 	})
+
+	app.Use(middlewares.RequestLoggerMiddleware(logger))
 
 	app.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{cfg.FRONTEND_URL},

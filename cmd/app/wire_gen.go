@@ -17,12 +17,13 @@ import (
 	"github.com/CSKU-Lab/main-server/internal/providers"
 	"github.com/gofiber/fiber/v3"
 	"github.com/jmoiron/sqlx"
+	"go.uber.org/zap"
 )
 
 // Injectors from wire.go:
 
-func initializeApp(ctx context.Context, cfg *configs.Config, db *sqlx.DB) (*fiber.App, func(), error) {
-	errorHandlerMiddleware := middlewares.NewErrorHandlerMiddleware(cfg)
+func initializeApp(ctx context.Context, cfg *configs.Config, db *sqlx.DB, logger *zap.SugaredLogger) (*fiber.App, func(), error) {
+	errorHandlerMiddleware := middlewares.NewErrorHandlerMiddleware(cfg, logger)
 	user := providers.NewUserRepository(db)
 	userPassword := providers.NewUserPasswordRepository(db)
 	userGroup := providers.NewUserGroupRepository(db)
@@ -111,7 +112,7 @@ func initializeApp(ctx context.Context, cfg *configs.Config, db *sqlx.DB) (*fibe
 		return nil, nil, err
 	}
 	playgroundHandler := providers.NewPlaygroundHandler(graderServiceClient)
-	app := providers.NewFiberApp(cfg, errorHandlerMiddleware, userService, refreshTokenService, userGroupService, courseService, courseEnrollmentService, semesterService, sectionLogService, sectionService, sectionStudentService, tagService, materialAssetService, labService, labSectionService, labMaterialService, defaultLabService, affectedEntitiesService, submissionService, sidebarService, gradebookExportService, materialService, service, configServiceClient, queue, pubSub, playgroundHandler)
+	app := providers.NewFiberApp(cfg, logger, errorHandlerMiddleware, userService, refreshTokenService, userGroupService, courseService, courseEnrollmentService, semesterService, sectionLogService, sectionService, sectionStudentService, tagService, materialAssetService, labService, labSectionService, labMaterialService, defaultLabService, affectedEntitiesService, submissionService, sidebarService, gradebookExportService, materialService, service, configServiceClient, queue, pubSub, playgroundHandler)
 	return app, func() {
 		cleanup3()
 		cleanup2()
