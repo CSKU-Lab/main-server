@@ -45,6 +45,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	fmt.Println("✅ Seed completed")
+	fmt.Println("==========================================")
+	fmt.Println("  Username:", "admin")
+	fmt.Println("  Password:", password)
+	fmt.Println("==========================================")
+
 	err = userService.Create(context.Background(), &requests.CreateMultiTypeUser{
 		Username:    "admin",
 		DisplayName: "Administrator",
@@ -57,10 +63,4 @@ func main() {
 		fmt.Println("❌ Error creating user:", err)
 		os.Exit(1)
 	}
-
-	fmt.Println("✅ Seed completed")
-	fmt.Println("==========================================")
-	fmt.Println("  Username:", "admin")
-	fmt.Println("  Password:", password)
-	fmt.Println("==========================================")
 }
