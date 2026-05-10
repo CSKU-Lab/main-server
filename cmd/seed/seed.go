@@ -72,6 +72,11 @@ func main() {
 		Password:    &password,
 	})
 	if err != nil {
+		csErr, ok := err.(*cserrors.Error)
+		if ok && csErr.HttpStatus == http.StatusConflict {
+			fmt.Println("ℹ️ User already exists, skipping")
+			return
+		}
 		fmt.Println("❌ Error creating user:", err)
 		os.Exit(1)
 	}
