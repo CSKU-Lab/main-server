@@ -2,9 +2,10 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/CSKU-Lab/main-server/configs"
 	"github.com/CSKU-Lab/main-server/domain/models"
@@ -13,11 +14,12 @@ import (
 	"github.com/CSKU-Lab/main-server/internal/requests"
 )
 
-func getEnv(key, fallback string) string {
-	if v := os.Getenv(key); v != "" {
-		return v
+func generatePassword(length int) (string, error) {
+	b := make([]byte, length)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
 	}
-	return fallback
+	return base64.RawURLEncoding.EncodeToString(b)[:length], nil
 }
 
 func main() {
@@ -31,54 +33,34 @@ func main() {
 	userService := services.NewUserService(userRepo, userPasswordRepo, userGroupRepo, uowRepo)
 	userGroupService := services.NewUserGroupService(userGroupRepo)
 
-	username := getEnv("SEED_USERNAME", "seed_admin")
-	displayName := getEnv("SEED_DISPLAY_NAME", "Seed Admin")
-	rolesRaw := getEnv("SEED_ROLES", "admin")
-	roles := strings.Split(rolesRaw, ",")
-	userType := models.UserType(getEnv("SEED_TYPE", "credential"))
-
-	req := &requests.CreateMultiTypeUser{
-		Username:    username,
-		DisplayName: displayName,
-		Roles:       roles,
-		Type:        userType,
-	}
-
-	switch userType {
-	case models.UserTypeCredential:
-		groupName := getEnv("SEED_GROUP", "Seed Users")
-		password := os.Getenv("SEED_PASSWORD")
-		if password == "" {
-			fmt.Println("❌ SEED_PASSWORD is required for credential user")
-			os.Exit(1)
-		}
-
-		id, err := userGroupService.Create(context.Background(), groupName)
-		if err != nil {
-			fmt.Println("❌ Error creating user group:", err)
-			os.Exit(1)
-		}
-		req.GroupID = &id
-		req.Password = &password
-
-	case models.UserTypeOauth:
-		email := os.Getenv("SEED_EMAIL")
-		if email == "" {
-			fmt.Println("❌ SEED_EMAIL is required for oauth user")
-			os.Exit(1)
-		}
-		req.Email = &email
-
-	default:
-		fmt.Printf("❌ Unknown SEED_TYPE: %q (must be 'credential' or 'oauth')\n", userType)
+	password, err := generatePassword(20)
+	if err != nil {
+		fmt.Println("❌ Error generating password:", err)
 		os.Exit(1)
 	}
 
-	err := userService.Create(context.Background(), req)
+	groupID, err := userGroupService.Create(context.Background(), "Administrators")
+	if err != nil {
+		fmt.Println("❌ Error creating user group:", err)
+		os.Exit(1)
+	}
+
+	err = userService.Create(context.Background(), &requests.CreateMultiTypeUser{
+		Username:    "admin",
+		DisplayName: "Administrator",
+		Roles:       []string{"admin"},
+		GroupID:     &groupID,
+		Type:        models.UserTypeCredential,
+		Password:    &password,
+	})
 	if err != nil {
 		fmt.Println("❌ Error creating user:", err)
 		os.Exit(1)
 	}
 
-	fmt.Println("✅ User created successfully")
+	fmt.Println("✅ Seed completed")
+	fmt.Println("==========================================")
+	fmt.Println("  Username:", "admin")
+	fmt.Println("  Password:", password)
+	fmt.Println("==========================================")
 }
