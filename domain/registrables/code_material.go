@@ -10,7 +10,7 @@ import (
 	"github.com/CSKU-Lab/main-server/internal/requests"
 )
 
-type codeMaterial struct {
+type CodeMaterial struct {
 	repo             repositories.CodeMaterialRepository
 	taskGRPCClient   taskPB.TaskServiceClient
 	configGRPCCLient configPB.ConfigServiceClient
@@ -110,15 +110,15 @@ type CodeMaterialResponse struct {
 	HideTestCases  bool                    `json:"hide_test_cases"`
 }
 
-func NewCodeMaterial(repo repositories.CodeMaterialRepository, taskGRPCClient taskPB.TaskServiceClient, configGRPCClient configPB.ConfigServiceClient) registries.MaterialRegisterable {
-	return &codeMaterial{
+func NewCodeMaterial(repo repositories.CodeMaterialRepository, taskGRPCClient taskPB.TaskServiceClient, configGRPCClient configPB.ConfigServiceClient) *CodeMaterial {
+	return &CodeMaterial{
 		repo:             repo,
 		taskGRPCClient:   taskGRPCClient,
 		configGRPCCLient: configGRPCClient,
 	}
 }
 
-func (c *codeMaterial) CalculateScores(rawReq []byte) (*registries.MaterialScores, error) {
+func (c *CodeMaterial) CalculateScores(rawReq []byte) (*registries.MaterialScores, error) {
 	payload, err := parsePayload[CodeMaterialPayload](rawReq)
 	if err != nil {
 		return nil, err
@@ -143,7 +143,7 @@ func (c *codeMaterial) CalculateScores(rawReq []byte) (*registries.MaterialScore
 	}, nil
 }
 
-func (c *codeMaterial) GetByID(ctx context.Context, ID string) (any, error) {
+func (c *CodeMaterial) GetByID(ctx context.Context, ID string) (any, error) {
 	codeMat, err := c.repo.GetByID(ctx, ID)
 	if err != nil {
 		return nil, err
@@ -281,7 +281,7 @@ func (c *codeMaterial) GetByID(ctx context.Context, ID string) (any, error) {
 	return res, nil
 }
 
-func (c *codeMaterial) Create(ctx context.Context, matID string, req *requests.CreateMaterial, rawReq []byte) error {
+func (c *CodeMaterial) Create(ctx context.Context, matID string, req *requests.CreateMaterial, rawReq []byte) error {
 	res, err := c.taskGRPCClient.CreateTask(ctx, nil)
 	if err != nil {
 		return err
@@ -297,7 +297,7 @@ func (c *codeMaterial) Create(ctx context.Context, matID string, req *requests.C
 	return nil
 }
 
-func (c *codeMaterial) UpdateByID(ctx context.Context, ID string, req *requests.BaseUpdateMaterial, rawReq []byte) error {
+func (c *CodeMaterial) UpdateByID(ctx context.Context, ID string, req *requests.BaseUpdateMaterial, rawReq []byte) error {
 	payload, err := parsePayload[CodeMaterialPayload](rawReq)
 	if err != nil {
 		return err
@@ -419,6 +419,6 @@ func (c *codeMaterial) UpdateByID(ctx context.Context, ID string, req *requests.
 	return nil
 }
 
-func (c *codeMaterial) DeleteByID(ctx context.Context, ID string) error {
+func (c *CodeMaterial) DeleteByID(ctx context.Context, ID string) error {
 	return nil
 }

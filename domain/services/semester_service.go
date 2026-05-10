@@ -40,7 +40,7 @@ type semesterService struct {
 	allowedFilterFields map[string]bool
 }
 
-func NewSemesterService(repo repositories.SemesterRepository, sectionRepo repositories.SectionRepository, courseRepo repositories.CourseRepository) *semesterService {
+func NewSemesterService(repo repositories.SemesterRepository, sectionRepo repositories.SectionRepository, courseRepo repositories.CourseRepository) SemesterService {
 	return &semesterService{
 		repo:        repo,
 		sectionRepo: sectionRepo,

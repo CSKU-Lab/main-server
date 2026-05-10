@@ -4,24 +4,23 @@ import (
 	"context"
 
 	"github.com/CSKU-Lab/main-server/domain/models"
-	"github.com/CSKU-Lab/main-server/domain/registries"
 	"github.com/CSKU-Lab/main-server/domain/repositories"
 	"github.com/CSKU-Lab/main-server/internal/requests"
 )
 
-type deletedCourseAffected struct {
+type DeletedCourseAffected struct {
 	courseRepo  repositories.CourseRepository
 	sectionRepo repositories.SectionRepository
 }
 
-func NewDeletedCourseAffected(courseRepo repositories.CourseRepository, sectionRepo repositories.SectionRepository) registries.AffectedEntities {
-	return &deletedCourseAffected{
+func NewDeletedCourseAffected(courseRepo repositories.CourseRepository, sectionRepo repositories.SectionRepository) *DeletedCourseAffected {
+	return &DeletedCourseAffected{
 		courseRepo:  courseRepo,
 		sectionRepo: sectionRepo,
 	}
 }
 
-func (d *deletedCourseAffected) GetByTypeAndID(
+func (d *DeletedCourseAffected) GetByTypeAndID(
 	ctx context.Context,
 	req *requests.GetAffectedEntities,
 ) ([]models.AffectedEntity, error) {

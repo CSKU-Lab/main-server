@@ -9,7 +9,6 @@ import (
 	contextkeys "github.com/CSKU-Lab/main-server/context_keys"
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
 	"github.com/CSKU-Lab/main-server/domain/models"
-	"github.com/CSKU-Lab/main-server/domain/registries"
 	"github.com/CSKU-Lab/main-server/domain/repositories"
 	typingsession "github.com/CSKU-Lab/main-server/internal/typing_session"
 )
@@ -19,14 +18,14 @@ const (
 	minDuration = 3.0
 )
 
-type typingSubmission struct {
+type TypingSubmission struct {
 	repo          repositories.TypingSubmissionRepository
 	typingMatRepo repositories.TypingMaterialRepository
 	secret        string
 }
 
-func NewTypingSubmission(repo repositories.TypingSubmissionRepository, typingMatRepo repositories.TypingMaterialRepository, secret string) registries.SubmissionRegistrable {
-	return &typingSubmission{
+func NewTypingSubmission(repo repositories.TypingSubmissionRepository, typingMatRepo repositories.TypingMaterialRepository, secret string) *TypingSubmission {
+	return &TypingSubmission{
 		repo:          repo,
 		typingMatRepo: typingMatRepo,
 		secret:        secret,
@@ -38,7 +37,7 @@ type createTypingSubmissionPayload struct {
 	TypedText string `json:"typed_text"`
 }
 
-func (t *typingSubmission) Create(ctx context.Context, uow repositories.UoWInstance, submissionID string, matID string, payload []byte) error {
+func (t *TypingSubmission) Create(ctx context.Context, uow repositories.UoWInstance, submissionID string, matID string, payload []byte) error {
 	parsed, err := parsePayload[createTypingSubmissionPayload](payload)
 	if err != nil {
 		return err
@@ -103,15 +102,15 @@ func (t *typingSubmission) Create(ctx context.Context, uow repositories.UoWInsta
 	})
 }
 
-func (t *typingSubmission) Update(_ context.Context, _ repositories.UoWInstance, _ string, _ []byte) error {
+func (t *TypingSubmission) Update(_ context.Context, _ repositories.UoWInstance, _ string, _ []byte) error {
 	return nil
 }
 
-func (t *typingSubmission) Get(ctx context.Context, submissionID string, _ string) (any, error) {
+func (t *TypingSubmission) Get(ctx context.Context, submissionID string, _ string) (any, error) {
 	return t.repo.Get(ctx, submissionID)
 }
 
-func (t *typingSubmission) GetByIDs(ctx context.Context, submissionIDs []string, _ string) (map[string]any, error) {
+func (t *TypingSubmission) GetByIDs(ctx context.Context, submissionIDs []string, _ string) (map[string]any, error) {
 	submissions, err := t.repo.GetByIDs(ctx, submissionIDs)
 	if err != nil {
 		return nil, err
@@ -123,15 +122,15 @@ func (t *typingSubmission) GetByIDs(ctx context.Context, submissionIDs []string,
 	return result, nil
 }
 
-func (t *typingSubmission) GetOverviewsPayload(ctx context.Context, submissionIDs []string) (map[string]any, error) {
+func (t *TypingSubmission) GetOverviewsPayload(ctx context.Context, submissionIDs []string) (map[string]any, error) {
 	return t.GetByIDs(ctx, submissionIDs, "")
 }
 
-func (t *typingSubmission) GetOverviewStats(payload any) any {
+func (t *TypingSubmission) GetOverviewStats(payload any) any {
 	return payload
 }
 
-func (t *typingSubmission) GetOverviewStatsByID(ctx context.Context, submissionID string) any {
+func (t *TypingSubmission) GetOverviewStatsByID(ctx context.Context, submissionID string) any {
 	sub, err := t.repo.Get(ctx, submissionID)
 	if err != nil {
 		return nil

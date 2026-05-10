@@ -7,24 +7,23 @@ import (
 
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
 	"github.com/CSKU-Lab/main-server/domain/models"
-	"github.com/CSKU-Lab/main-server/domain/registries"
 	"github.com/CSKU-Lab/main-server/domain/repositories"
 	"github.com/CSKU-Lab/main-server/internal/requests"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/go-ozzo/ozzo-validation/v4/is"
 )
 
-type deletedSectionAffected struct {
+type DeletedSectionAffected struct {
 	sectionStudentRepo repositories.SectionStudentRepository
 }
 
-func NewDeletedSectionAffected(sectionStudentRepo repositories.SectionStudentRepository) registries.AffectedEntities {
-	return &deletedSectionAffected{
+func NewDeletedSectionAffected(sectionStudentRepo repositories.SectionStudentRepository) *DeletedSectionAffected {
+	return &DeletedSectionAffected{
 		sectionStudentRepo: sectionStudentRepo,
 	}
 }
 
-func (d *deletedSectionAffected) GetByTypeAndID(
+func (d *DeletedSectionAffected) GetByTypeAndID(
 	ctx context.Context,
 	req *requests.GetAffectedEntities,
 ) ([]models.AffectedEntity, error) {

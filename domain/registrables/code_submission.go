@@ -5,21 +5,20 @@ import (
 	"errors"
 
 	"github.com/CSKU-Lab/main-server/domain/models"
-	"github.com/CSKU-Lab/main-server/domain/registries"
 	"github.com/CSKU-Lab/main-server/domain/repositories"
 	taskPB "github.com/CSKU-Lab/main-server/genproto/task/v1"
 	"github.com/google/uuid"
 )
 
-type codeSubmission struct {
+type CodeSubmission struct {
 	repo           repositories.CodeSubmissionRepository
 	codeMatRepo    repositories.CodeMaterialRepository
 	submissionRepo repositories.SubmissionRepository
 	taskGRPCClient taskPB.TaskServiceClient
 }
 
-func NewCodeSubmission(repo repositories.CodeSubmissionRepository, codeMatRepo repositories.CodeMaterialRepository, submissionRepo repositories.SubmissionRepository, taskGRPCClient taskPB.TaskServiceClient) registries.SubmissionRegistrable {
-	return &codeSubmission{
+func NewCodeSubmission(repo repositories.CodeSubmissionRepository, codeMatRepo repositories.CodeMaterialRepository, submissionRepo repositories.SubmissionRepository, taskGRPCClient taskPB.TaskServiceClient) *CodeSubmission {
+	return &CodeSubmission{
 		repo:           repo,
 		codeMatRepo:    codeMatRepo,
 		submissionRepo: submissionRepo,
@@ -71,7 +70,7 @@ func reorderTestCaseGroups(groups []models.TestCaseGroupResult, taskGroups []*ta
 	return ordered
 }
 
-func (c *codeSubmission) Create(ctx context.Context, uowRepo repositories.UoWInstance, submissionID string, matId string, payload []byte) error {
+func (c *CodeSubmission) Create(ctx context.Context, uowRepo repositories.UoWInstance, submissionID string, matId string, payload []byte) error {
 	parsedPayload, err := parsePayload[createCodeSubmissionPayload](payload)
 	if err != nil {
 		return errors.New("invalid payload type")
@@ -108,7 +107,7 @@ func (c *codeSubmission) Create(ctx context.Context, uowRepo repositories.UoWIns
 	return uowRepo.CodeSubmissionOutbox().Create(ctx, id.String(), submissionID, gradePayload)
 }
 
-func (c *codeSubmission) Update(ctx context.Context, uowRepo repositories.UoWInstance, submissionID string, payload []byte) error {
+func (c *CodeSubmission) Update(ctx context.Context, uowRepo repositories.UoWInstance, submissionID string, payload []byte) error {
 	parsedPayload, err := parsePayload[updateCodeSubmissionPayload](payload)
 	if err != nil {
 		return errors.New("invalid payload type")
@@ -125,7 +124,7 @@ func (c *codeSubmission) Update(ctx context.Context, uowRepo repositories.UoWIns
 	return uowRepo.CodeSubmission().Update(ctx, updatePayload)
 }
 
-func (c *codeSubmission) Get(ctx context.Context, submissionID string, viewBy string) (any, error) {
+func (c *CodeSubmission) Get(ctx context.Context, submissionID string, viewBy string) (any, error) {
 	submission, err := c.submissionRepo.Get(ctx, submissionID)
 	if err != nil {
 		return nil, err
@@ -188,7 +187,7 @@ func (c *codeSubmission) Get(ctx context.Context, submissionID string, viewBy st
 	return cleanedCodeSubmission, nil
 }
 
-func (c *codeSubmission) GetByIDs(ctx context.Context, submissionIDs []string, viewBy string) (map[string]any, error) {
+func (c *CodeSubmission) GetByIDs(ctx context.Context, submissionIDs []string, viewBy string) (map[string]any, error) {
 	submissions := make(map[string]any, len(submissionIDs))
 	for _, subID := range submissionIDs {
 		submission, err := c.submissionRepo.Get(ctx, subID)
@@ -256,7 +255,7 @@ func (c *codeSubmission) GetByIDs(ctx context.Context, submissionIDs []string, v
 	return submissions, nil
 }
 
-func (c *codeSubmission) GetOverviewStats(payload any) any {
+func (c *CodeSubmission) GetOverviewStats(payload any) any {
 	codeSubmission, ok := payload.(*models.CodeSubmission)
 	if !ok || codeSubmission == nil {
 		return nil
@@ -278,7 +277,7 @@ func (c *codeSubmission) GetOverviewStats(payload any) any {
 	}
 }
 
-func (c *codeSubmission) GetOverviewStatsByID(ctx context.Context, submissionID string) any {
+func (c *CodeSubmission) GetOverviewStatsByID(ctx context.Context, submissionID string) any {
 	codeSubmission, err := c.repo.Get(ctx, submissionID)
 	if err != nil {
 		return nil
@@ -300,7 +299,7 @@ func (c *codeSubmission) GetOverviewStatsByID(ctx context.Context, submissionID 
 	}
 }
 
-func (c *codeSubmission) GetOverviewsPayload(ctx context.Context, submissionIDs []string) (map[string]any, error) {
+func (c *CodeSubmission) GetOverviewsPayload(ctx context.Context, submissionIDs []string) (map[string]any, error) {
 	if len(submissionIDs) == 0 {
 		return map[string]any{}, nil
 	}

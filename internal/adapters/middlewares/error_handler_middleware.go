@@ -10,17 +10,17 @@ import (
 	"github.com/gofiber/fiber/v3"
 )
 
-type errorHandlerMiddleware struct {
+type ErrorHandlerMiddleware struct {
 	appConfig *configs.Config
 }
 
-func NewErrorHandlerMiddleware(appConfig *configs.Config) *errorHandlerMiddleware {
-	return &errorHandlerMiddleware{
+func NewErrorHandlerMiddleware(appConfig *configs.Config) *ErrorHandlerMiddleware {
+	return &ErrorHandlerMiddleware{
 		appConfig: appConfig,
 	}
 }
 
-func (e *errorHandlerMiddleware) ErrorHandler(c fiber.Ctx, err error) error {
+func (e *ErrorHandlerMiddleware) ErrorHandler(c fiber.Ctx, err error) error {
 	log.Println(err)
 	var csErr *cserrors.Error
 	if errors.As(err, &csErr) {

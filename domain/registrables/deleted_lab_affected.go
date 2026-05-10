@@ -4,12 +4,11 @@ import (
 	"context"
 
 	"github.com/CSKU-Lab/main-server/domain/models"
-	"github.com/CSKU-Lab/main-server/domain/registries"
 	"github.com/CSKU-Lab/main-server/domain/repositories"
 	"github.com/CSKU-Lab/main-server/internal/requests"
 )
 
-type deletedLabAffected struct {
+type DeletedLabAffected struct {
 	labRepo         repositories.LabRepository
 	labSectionRepo  repositories.LabSectionRepository
 	labMaterialRepo repositories.LabMaterialRepository
@@ -23,8 +22,8 @@ func NewDeletedLabAffected(
 	labMaterialRepo repositories.LabMaterialRepository,
 	defaultLabRepo repositories.DefaultLabRepository,
 	uowRepo repositories.UoWRepository,
-) registries.AffectedEntities {
-	return &deletedLabAffected{
+) *DeletedLabAffected {
+	return &DeletedLabAffected{
 		labRepo:         labRepo,
 		labSectionRepo:  labSectionRepo,
 		labMaterialRepo: labMaterialRepo,
@@ -33,7 +32,7 @@ func NewDeletedLabAffected(
 	}
 }
 
-func (d *deletedLabAffected) GetByTypeAndID(
+func (d *DeletedLabAffected) GetByTypeAndID(
 	ctx context.Context,
 	req *requests.GetAffectedEntities,
 ) ([]models.AffectedEntity, error) {

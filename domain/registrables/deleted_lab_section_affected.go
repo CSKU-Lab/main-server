@@ -4,17 +4,16 @@ import (
 	"context"
 
 	"github.com/CSKU-Lab/main-server/domain/models"
-	"github.com/CSKU-Lab/main-server/domain/registries"
 	"github.com/CSKU-Lab/main-server/internal/requests"
 )
 
-type deletedLabSectionAffected struct{}
+type DeletedLabSectionAffected struct{}
 
-func NewDeletedLabSectionAffected() registries.AffectedEntities {
-	return &deletedLabSectionAffected{}
+func NewDeletedLabSectionAffected() *DeletedLabSectionAffected {
+	return &DeletedLabSectionAffected{}
 }
 
-func (d *deletedLabSectionAffected) GetByTypeAndID(
+func (d *DeletedLabSectionAffected) GetByTypeAndID(
 	ctx context.Context,
 	req *requests.GetAffectedEntities,
 ) ([]models.AffectedEntity, error) {
