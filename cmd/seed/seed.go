@@ -5,9 +5,11 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
+	"net/http"
 	"os"
 
 	"github.com/CSKU-Lab/main-server/configs"
+	"github.com/CSKU-Lab/main-server/domain/cserrors"
 	"github.com/CSKU-Lab/main-server/domain/models"
 	"github.com/CSKU-Lab/main-server/domain/services"
 	"github.com/CSKU-Lab/main-server/internal/adapters/sqlx"
@@ -41,8 +43,18 @@ func main() {
 
 	groupID, err := userGroupService.Create(context.Background(), "Administrators")
 	if err != nil {
-		fmt.Println("❌ Error creating user group:", err)
-		os.Exit(1)
+		csErr, ok := err.(*cserrors.Error)
+		if !ok || csErr.HttpStatus != http.StatusConflict {
+			fmt.Println("❌ Error creating user group:", err)
+			os.Exit(1)
+		}
+		existing, err := userGroupRepo.GetByName(context.Background(), "Administrators")
+		if err != nil {
+			fmt.Println("❌ Error fetching existing user group:", err)
+			os.Exit(1)
+		}
+		groupID = existing.ID
+		fmt.Println("ℹ️ User group already exists, using existing group")
 	}
 
 	fmt.Println("✅ Seed completed")
