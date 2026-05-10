@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 
 	"github.com/CSKU-Lab/main-server/configs"
 	"golang.org/x/oauth2"
@@ -13,7 +14,6 @@ import (
 type googleOauthHandler struct {
 	auth   *oauth2.Config
 	config *configs.Config
-	states map[string]bool
 }
 
 func NewGoogleAuth(c *configs.Config) *googleOauthHandler {
@@ -28,25 +28,20 @@ func NewGoogleAuth(c *configs.Config) *googleOauthHandler {
 		Endpoint: google.Endpoint,
 	}
 
-	return &googleOauthHandler{auth: auth, states: make(map[string]bool), config: c}
+	return &googleOauthHandler{auth: auth, config: c}
 }
 
 func (g *googleOauthHandler) GenerateAuthURL() (string, error) {
-	state, err := generateState()
+	state, err := generateSignedState(g.config.JWTSecret)
 	if err != nil {
 		return "", err
 	}
 
-	g.states[state] = true
 	return g.auth.AuthCodeURL(state), nil
 }
 
 func (g *googleOauthHandler) VerifyState(state string) bool {
-	if g.states[state] {
-		delete(g.states, state)
-		return true
-	}
-	return false
+	return verifySignedState(state, g.config.JWTSecret)
 }
 
 var userInfoURL = "https://www.googleapis.com/oauth2/v2/userinfo"
@@ -65,6 +60,10 @@ func (g *googleOauthHandler) GetUserInfo(ctx context.Context, code string) (*Use
 
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("google userinfo returned status %d", resp.StatusCode)
+	}
+
 	var userInfo map[string]interface{}
 
 	err = json.NewDecoder(resp.Body).Decode(&userInfo)
@@ -72,8 +71,11 @@ func (g *googleOauthHandler) GetUserInfo(ctx context.Context, code string) (*Use
 		return nil, err
 	}
 
+	email, _ := userInfo["email"].(string)
+	picture, _ := userInfo["picture"].(string)
+
 	return &UserInfo{
-		Email:        userInfo["email"].(string),
-		ProfileImage: userInfo["picture"].(string),
+		Email:        email,
+		ProfileImage: picture,
 	}, nil
 }

@@ -1,7 +1,6 @@
 package rest
 
 import (
-	"context"
 	"net/http"
 	"time"
 
@@ -36,6 +35,13 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 	})
 
 	authRouter.Get("/sign-in/google/callback", func(c fiber.Ctx) error {
+		if googleErr := c.Query("error"); googleErr != "" {
+			if appConfig.DevMode {
+				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusBadRequest, Message: "Google OAuth error: " + googleErr})
+			}
+			return cserrors.NewRedirect(cserrors.REDIRECT_UNAUTHORIZED)
+		}
+
 		state := c.Query("state")
 		if !googleAuth.VerifyState(state) {
 			if appConfig.DevMode {
@@ -44,7 +50,7 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 			return cserrors.NewRedirect(cserrors.REDIRECT_SOMETHING_WENT_WRONG)
 		}
 
-		ctx := context.Background()
+		ctx := c.Context()
 
 		code := c.Query("code")
 
