@@ -59,10 +59,17 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 			if appConfig.DevMode {
 				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Error getting user info"})
 			}
+			return cserrors.NewRedirectWithError(cserrors.REDIRECT_SOMETHING_WENT_WRONG, err)
+		}
+
+		if userInfo.Email == "" {
+			if appConfig.DevMode {
+				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Google did not return an email"})
+			}
 			return cserrors.NewRedirect(cserrors.REDIRECT_SOMETHING_WENT_WRONG)
 		}
 
-		user, err := userService.GetByEmail(c.RequestCtx(), userInfo.Email)
+		user, err := userService.GetByEmail(ctx, userInfo.Email)
 		if err != nil {
 			if appConfig.DevMode {
 				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Error getting user"})
@@ -71,14 +78,14 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 		}
 
 		if user.ProfileImage == nil {
-			err = userService.Update(c.RequestCtx(), user.ID, &requests.UpdateUser{
+			err = userService.Update(ctx, user.ID, &requests.UpdateUser{
 				ProfileImage: &userInfo.ProfileImage,
 			})
 			if err != nil {
 				if appConfig.DevMode {
 					return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Error updating user profile image"})
 				}
-				return cserrors.NewRedirect(cserrors.REDIRECT_SOMETHING_WENT_WRONG)
+				return cserrors.NewRedirectWithError(cserrors.REDIRECT_SOMETHING_WENT_WRONG, err)
 			}
 		}
 
@@ -87,7 +94,7 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 			if appConfig.DevMode {
 				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Something went wrong"})
 			}
-			return cserrors.NewRedirect(cserrors.REDIRECT_SOMETHING_WENT_WRONG)
+			return cserrors.NewRedirectWithError(cserrors.REDIRECT_SOMETHING_WENT_WRONG, err)
 		}
 
 		newRefreshToken, err := auth.SignRefreshToken(user.ID, appConfig.JWTRefreshSecret)
@@ -95,15 +102,15 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 			if appConfig.DevMode {
 				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Something went wrong"})
 			}
-			return cserrors.NewRedirect(cserrors.REDIRECT_SOMETHING_WENT_WRONG)
+			return cserrors.NewRedirectWithError(cserrors.REDIRECT_SOMETHING_WENT_WRONG, err)
 		}
 
-		err = refreshTokenService.Set(c.RequestCtx(), user.ID, newRefreshToken)
+		err = refreshTokenService.Set(ctx, user.ID, newRefreshToken)
 		if err != nil {
 			if appConfig.DevMode {
 				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Something went wrong"})
 			}
-			return cserrors.NewRedirect(cserrors.REDIRECT_SOMETHING_WENT_WRONG)
+			return cserrors.NewRedirectWithError(cserrors.REDIRECT_SOMETHING_WENT_WRONG, err)
 		}
 
 		c.Cookie(&fiber.Cookie{

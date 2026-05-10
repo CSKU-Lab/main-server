@@ -42,14 +42,20 @@ const (
 type RedirectError interface {
 	Code() string
 	Error() string
+	Unwrap() error
 }
 
 type redirectError struct {
 	code RedirectCode
+	cause error
 }
 
 func NewRedirect(code RedirectCode) RedirectError {
 	return &redirectError{code: code}
+}
+
+func NewRedirectWithError(code RedirectCode, err error) RedirectError {
+	return &redirectError{code: code, cause: err}
 }
 
 func (r *redirectError) Code() string {
@@ -57,5 +63,12 @@ func (r *redirectError) Code() string {
 }
 
 func (r *redirectError) Error() string {
+	if r.cause != nil {
+		return string(r.code) + ": " + r.cause.Error()
+	}
 	return r.Code()
+}
+
+func (r *redirectError) Unwrap() error {
+	return r.cause
 }

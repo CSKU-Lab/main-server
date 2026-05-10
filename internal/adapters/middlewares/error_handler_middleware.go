@@ -24,11 +24,25 @@ func NewErrorHandlerMiddleware(appConfig *configs.Config, logger *zap.SugaredLog
 }
 
 func (e *ErrorHandlerMiddleware) ErrorHandler(c fiber.Ctx, err error) error {
-	logging.FromContext(c.Context()).Errorw("request error",
+	log := logging.FromContext(c.Context())
+
+	var redirectErr cserrors.RedirectError
+	if errors.As(err, &redirectErr) {
+		log.Errorw("request error",
+			"error", err,
+			"redirect_code", redirectErr.Code(),
+			"method", c.Method(),
+			"path", c.Path(),
+		)
+		return c.Redirect().Status(fiber.StatusTemporaryRedirect).To(fmt.Sprintf("%s/auth/sign-in?error=%s", e.appConfig.FRONTEND_URL, redirectErr.Code()))
+	}
+
+	log.Errorw("request error",
 		"error", err,
 		"method", c.Method(),
 		"path", c.Path(),
 	)
+
 	var csErr *cserrors.Error
 	if errors.As(err, &csErr) {
 		var errString string
@@ -40,11 +54,6 @@ func (e *ErrorHandlerMiddleware) ErrorHandler(c fiber.Ctx, err error) error {
 			"code":  errString,
 			"error": csErr.Message,
 		})
-	}
-
-	var redirectErr cserrors.RedirectError
-	if errors.As(err, &redirectErr) {
-		return c.Redirect().Status(fiber.StatusTemporaryRedirect).To(fmt.Sprintf("%s/auth/sign-in?error=%s", e.appConfig.FRONTEND_URL, redirectErr.Code()))
 	}
 
 	if errors.Is(err, fiber.ErrMethodNotAllowed) {
