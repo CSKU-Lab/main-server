@@ -41,12 +41,8 @@ type ConfigFile struct {
 }
 
 type CreateCompareRequest struct {
-	Name        string       `json:"name"`
-	Description string       `json:"description"`
-	BuildScript string       `json:"build_script"`
-	RunScript   string       `json:"run_script"`
-	RunName     string       `json:"run_name"`
-	Files       []ConfigFile `json:"files"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
 }
 
 type UpdateCompareRequest struct {
@@ -61,20 +57,12 @@ type UpdateCompareRequest struct {
 func (cc *CreateCompareRequest) Validate() error {
 	return validation.ValidateStruct(cc,
 		validation.Field(&cc.Name, validation.Required),
-		validation.Field(&cc.Description, validation.Required),
-		validation.Field(&cc.BuildScript, validation.Required),
-		validation.Field(&cc.RunScript, validation.Required),
-		validation.Field(&cc.RunName, validation.Required),
-		validation.Field(&cc.Files, validation.NilOrNotEmpty),
 	)
 }
 
 func (uc *UpdateCompareRequest) Validate() error {
 	return validation.ValidateStruct(uc,
 		validation.Field(&uc.Name, validation.NilOrNotEmpty),
-		validation.Field(&uc.Description, validation.NilOrNotEmpty),
-		validation.Field(&uc.BuildScript, validation.NilOrNotEmpty),
-		validation.Field(&uc.RunScript, validation.NilOrNotEmpty),
 		validation.Field(&uc.RunName, validation.NilOrNotEmpty),
 		validation.Field(&uc.Files, validation.NilOrNotEmpty),
 	)

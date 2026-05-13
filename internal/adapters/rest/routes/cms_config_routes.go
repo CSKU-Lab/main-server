@@ -270,6 +270,124 @@ func NewCMSConfigRoutes(router fiber.Router, configGRPCClient configPB.ConfigSer
 		})
 	})
 
+	type compareTestRequest struct {
+		Files       []models.ConfigFile `json:"files"`
+		BuildScript string              `json:"build_script"`
+		RunScript   string              `json:"run_script"`
+		SolOutput   string              `json:"sol_output"`
+		Output      string              `json:"output"`
+	}
+
+	type compareTestPayload struct {
+		Files       []models.ConfigFile `json:"files"`
+		BuildScript string              `json:"build_script"`
+		RunScript   string              `json:"run_script"`
+		RunName     string              `json:"run_name"`
+		SolOutput   string              `json:"sol_output"`
+		Output      string              `json:"output"`
+	}
+
+	configRouter.Post("/compare-scripts/:id/test", middlewares.RequireAdminOrInstructor(), func(c fiber.Ctx) error {
+		id := c.Params("id")
+		body := compareTestRequest{}
+		if err := c.Bind().JSON(&body); err != nil {
+			return err
+		}
+
+		compare, err := configGRPCClient.GetCompare(c.RequestCtx(), &configPB.GetCompareRequest{
+			Id: id,
+		})
+		if err != nil {
+			return err
+		}
+
+		qName, err := q.CreateQueue(c.RequestCtx(), "compare_test:"+id, &queue.QueueOptions{
+			AutoDelete: true,
+			Exclusive:  true,
+		})
+		if err != nil {
+			return err
+		}
+
+		payloadBytes, err := json.Marshal(&compareTestPayload{
+			Files:       body.Files,
+			BuildScript: body.BuildScript,
+			RunScript:   body.RunScript,
+			RunName:     compare.GetRunName(),
+			SolOutput:   body.SolOutput,
+			Output:      body.Output,
+		})
+		if err != nil {
+			return err
+		}
+
+		err = q.Publish(c.RequestCtx(), "", "compare_test", &queue.Derivery{
+			CorrelationID: id,
+			ReplyTo:       qName,
+			Body:          payloadBytes,
+		})
+		if err != nil {
+			return err
+		}
+
+		c.Set("Content-Type", "text/event-stream")
+		c.Set("Cache-Control", "no-cache")
+		c.Set("Connection", "keep-alive")
+		c.Set("Transfer-Encoding", "chunked")
+
+		ctx, cancel := context.WithCancel(context.Background())
+
+		c.Status(fiber.StatusOK).RequestCtx().SetBodyStreamWriter(func(w *bufio.Writer) {
+			fmt.Fprint(w, "event: connected\n\n")
+			err := w.Flush()
+			if err != nil {
+				cancel()
+				log.Println(err)
+				return
+			}
+
+			err = q.Consume(ctx, qName, 1, true, func(derivery *queue.Derivery, exit chan struct{}) error {
+				runResult := &models.TestRunnerResult{}
+				err := json.Unmarshal(derivery.Body, &runResult)
+				if err != nil {
+					return err
+				}
+
+				runResultBytes, err := json.Marshal(runResult)
+				if err != nil {
+					return err
+				}
+
+				fmt.Fprintf(w, "data: %s\n\n", runResultBytes)
+				err = w.Flush()
+				if err != nil {
+					cancel()
+					log.Println(err)
+					return err
+				}
+
+				if runResult.Status != models.CODE_EXECUTION_QUEUED && runResult.Status != models.CODE_EXECUTION_RUNNING {
+					exit <- struct{}{}
+				}
+
+				return nil
+			})
+			if err != nil {
+				log.Println("Error consuming compare test result:", err)
+				return
+			}
+
+			fmt.Fprint(w, "event: done\n\n")
+			err = w.Flush()
+			if err != nil {
+				cancel()
+				log.Println(err)
+				return
+			}
+		})
+		return nil
+	})
+
 	// GET /configs/compare-scripts/:id - View (Admin or Instructor)
 	configRouter.Get("/compare-scripts/:id", middlewares.RequireAdminOrInstructor(), func(c fiber.Ctx) error {
 		id := c.Params("id")
@@ -338,11 +456,55 @@ func NewCMSConfigRoutes(router fiber.Router, configGRPCClient configPB.ConfigSer
 		req := c.Locals("body").(*requests.CreateCompareRequest)
 		compare, err := configGRPCClient.CreateCompare(c.RequestCtx(), &configPB.CreateCompareRequest{
 			Name:        req.Name,
-			RunScript:   req.RunScript,
-			RunName:     req.RunName,
 			Description: req.Description,
-			BuildScript: req.BuildScript,
-			Files:       requests.MapConfigFilesToPB(req.Files),
+			BuildScript: "#!/bin/bash\n",
+			RunScript:   "#!/bin/bash\n",
+			RunName:     "main",
+			Files: []*configPB.File{
+				{
+					Name: "GUIDE.md",
+					Content: "# Compare Script Guide\n\n" +
+						"## What is a Compare Script?\n\n" +
+						"A compare script is a program that receives two text outputs and decides\n" +
+						"whether they match — using any logic you want (exact match, prefix match,\n" +
+						"numeric tolerance, etc.).\n\n" +
+						"## Result convention\n\n" +
+						"| `/box/compare_result.txt` content | Exit code | Verdict |\n" +
+						"|-----------------------------------|-----------|----------|\n" +
+						"| empty (or file absent) | 0 | **Accepted** |\n" +
+						"| non-empty message | 1 | **Wrong Answer** — message shown to user |\n\n" +
+						"Write your verdict message to `/box/compare_result.txt` and exit with the correct code.\n" +
+						"Anything printed to stdout is shown in the **Test** panel (useful for debugging) but ignored during grading.\n\n" +
+						"## Environment variables\n\n" +
+						"| Variable | Description |\n" +
+						"|----------|-------------|\n" +
+						"| `$RUN_NAME` | Absolute path to your compare script inside the sandbox |\n" +
+						"| `$SOL_OUTPUT` | Path to file containing the expected (solution) output |\n" +
+						"| `$OUTPUT` | Path to file containing the student's output |\n\n" +
+						"## Example run_script.sh\n\n" +
+						"```bash\n" +
+						"#!/bin/bash\n" +
+						"python3 \"$RUN_NAME\"\n" +
+						"```\n\n" +
+						"## Example compare script (exact_match.py)\n\n" +
+						"```python\n" +
+						"import os, sys\n\n" +
+						"sol = open(os.environ[\"SOL_OUTPUT\"]).read().strip()\n" +
+						"out = open(os.environ[\"OUTPUT\"]).read().strip()\n\n" +
+						"if sol != out:\n" +
+						"    with open(\"/box/compare_result.txt\", \"w\") as f:\n" +
+						"        f.write(f\"Expected: {sol}\\nGot:      {out}\\n\")\n" +
+						"    sys.exit(1)\n" +
+						"# exit 0, no file written = Accepted\n" +
+						"```\n\n" +
+						"## Typical workflow\n\n" +
+						"1. Add your compare script (e.g. `exact_match.py`) to this folder.\n" +
+						"2. Set **Run Name** to that filename (`exact_match.py`).\n" +
+						"3. Write `build_script.sh` to compile anything if needed.\n" +
+						"4. Write `run_script.sh` to invoke `$RUN_NAME`.\n" +
+						"5. Use the **Test** tab to verify behaviour before assigning to a task.\n",
+				},
+			},
 		})
 		if err != nil {
 			return err
