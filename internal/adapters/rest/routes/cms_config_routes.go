@@ -430,26 +430,29 @@ func NewCMSConfigRoutes(router fiber.Router, configGRPCClient configPB.ConfigSer
 			sortOrder = "desc"
 		}
 
-		paginationRes, err := configGRPCClient.GetComparesPagination(c.RequestCtx(), &configPB.GetComparesPaginationRequest{
-			Pagination: &configPB.PaginationRequest{
-				PageSize:  int32(pageSize),
-				Page:      int32(page),
-				SortOrder: sortOrder,
-				Search:    search,
-			},
-		})
-		if err != nil {
-			return err
-		}
+	paginationRes, err := configGRPCClient.GetComparesPagination(c.RequestCtx(), &configPB.GetComparesPaginationRequest{
+		Pagination: &configPB.PaginationRequest{
+			PageSize:  int32(pageSize),
+			Page:      int32(page),
+			SortOrder: sortOrder,
+			Search:    search,
+		},
+	})
+	if err != nil {
+		return err
+	}
 
-		return c.JSON(fiber.Map{
-			"pagination": fiber.Map{
-				"page":       page,
-				"total_page": int(math.Ceil(float64(paginationRes.Count) / float64(pageSize))),
-				"total_rows": paginationRes.Count,
-			},
-			"data": paginationRes.Compares,
-		})
+	compares := make([]*configPB.CompareResponse, len(paginationRes.Compares))
+	copy(compares, paginationRes.Compares)
+
+	return c.JSON(fiber.Map{
+		"pagination": fiber.Map{
+			"page":       page,
+			"total_page": int(math.Ceil(float64(paginationRes.Count) / float64(pageSize))),
+			"total_rows": paginationRes.Count,
+		},
+		"data": compares,
+	})
 	})
 
 	configRouter.Post("/compare-scripts", middlewares.RequireAdmin(), middlewares.ValidateMiddleware[requests.CreateCompareRequest](), func(c fiber.Ctx) error {
