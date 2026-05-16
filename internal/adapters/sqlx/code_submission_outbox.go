@@ -44,6 +44,8 @@ type codeSubmissionOutboxRecord struct {
 	IsSent      bool      `db:"is_sent"`
 	Payload     string    `db:"payload"`
 	CreatedAt   time.Time `db:"created_at"`
+	RetryCount  int       `db:"retry_count"`
+	LastAttempt *time.Time `db:"last_attempt_at"`
 }
 
 func (c *codeSubmissionOutboxRepository) Get(ctx context.Context, id string) (*repositories.CodeSubmissionOutboxPayload, error) {
