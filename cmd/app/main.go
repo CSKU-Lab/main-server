@@ -38,4 +38,8 @@ func main() {
 	if *mode == "api" || *mode == "all" {
 		startApiServer(ctx, db, config, logger)
 	}
+
+	if *mode == "worker" {
+		<-ctx.Done()
+	}
 }
