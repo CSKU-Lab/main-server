@@ -12,6 +12,9 @@ type CodeSubmissionOutboxRepository interface {
 	Update(ctx context.Context, id string, isSent bool) error
 	Get(ctx context.Context, id string) (*CodeSubmissionOutboxPayload, error)
 	Delete(ctx context.Context, id string) error
+	GetUnsent(ctx context.Context, limit int, olderThan time.Duration) ([]*CodeSubmissionOutboxPayload, error)
+	TryMarkSent(ctx context.Context, id string) (bool, error)
+	IncrementRetry(ctx context.Context, id string) error
 }
 
 type CodeSubmissionOutboxPayload struct {

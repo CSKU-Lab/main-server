@@ -949,6 +949,14 @@ table "code_submissions_outbox" {
     type = timestamp
     default = sql("CURRENT_TIMESTAMP")
   }
+  column "retry_count" {
+    type = int
+    default = 0
+  }
+  column "last_attempt_at" {
+    type = timestamp
+    null = true
+  }
   primary_key {
     columns = [ column.id ]
   }
