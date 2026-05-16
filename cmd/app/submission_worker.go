@@ -37,7 +37,7 @@ func startSubmissionWorker(ctx context.Context, logger *zap.SugaredLogger, db *s
 	codeSubmissionRepo := sqlxAdapter.NewCodeSubmission(db)
 	codeSubmissionOutboxRepo := sqlxAdapter.NewCodeSubmissionOutboxRepository(db)
 
-	rClient, err := pubsub.NewRedis(config.REDIS_SERVER_URL)
+	rClient, err := pubsub.NewRedis(config.REDIS_ADDR, config.REDIS_PASSWORD)
 	if err != nil {
 		logger.Fatalln(err)
 	}

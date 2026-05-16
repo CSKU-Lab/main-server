@@ -13,7 +13,16 @@ type redisPubSub struct {
 	mu sync.Mutex
 }
 
-func NewRedis(connStr string) (PubSub, error) {
+func NewRedis(connStr string, password ...string) (PubSub, error) {
+	if len(password) > 0 && password[0] != "" {
+		opt := &redis.Options{
+			Addr:     connStr,
+			Password: password[0],
+		}
+		c := redis.NewClient(opt)
+		return &redisPubSub{c: c}, nil
+	}
+
 	opt, err := redis.ParseURL(connStr)
 	if err != nil {
 		return nil, err

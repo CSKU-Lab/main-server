@@ -57,7 +57,7 @@ func ProvideTaskClient(cfg *configs.Config) (taskPB.TaskServiceClient, func(), e
 }
 
 func ProvideRedis(cfg *configs.Config) (pubsub.PubSub, error) {
-	return pubsub.NewRedis(cfg.REDIS_SERVER_URL)
+	return pubsub.NewRedis(cfg.REDIS_ADDR, cfg.REDIS_PASSWORD)
 }
 
 func ProvideMinio(ctx context.Context, cfg *configs.Config) repositories.FileRepository {
