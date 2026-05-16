@@ -3,6 +3,7 @@ package pubsub
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/redis/go-redis/v9"
@@ -14,25 +15,26 @@ type redisPubSub struct {
 }
 
 func NewRedis(connStr string, password ...string) (PubSub, error) {
-	if len(password) > 0 && password[0] != "" {
-		opt := &redis.Options{
-			Addr:     connStr,
-			Password: password[0],
+	pw := ""
+	if len(password) > 0 {
+		pw = password[0]
+	}
+
+	var c *redis.Client
+	if strings.Contains(connStr, "://") {
+		opt, err := redis.ParseURL(connStr)
+		if err != nil {
+			return nil, err
 		}
-		c := redis.NewClient(opt)
-		return &redisPubSub{c: c}, nil
+		c = redis.NewClient(opt)
+	} else {
+		c = redis.NewClient(&redis.Options{
+			Addr:     connStr,
+			Password: pw,
+		})
 	}
 
-	opt, err := redis.ParseURL(connStr)
-	if err != nil {
-		return nil, err
-	}
-
-	c := redis.NewClient(opt)
-
-	return &redisPubSub{
-		c: c,
-	}, nil
+	return &redisPubSub{c: c}, nil
 }
 
 func (r *redisPubSub) Publish(ctx context.Context, channel string, message string) error {
