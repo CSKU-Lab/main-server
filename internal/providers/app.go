@@ -49,6 +49,7 @@ func NewFiberApp(
 		BodyLimit:    10 * 1024 * 1024, // 10 MB
 	})
 
+	app.Use(middlewares.OtelMiddleware())
 	app.Use(middlewares.RequestLoggerMiddleware(logger))
 
 	app.Use(cors.New(cors.Config{

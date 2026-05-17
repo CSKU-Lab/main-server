@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	cskuotel "github.com/CSKU-Lab/otel"
 	"github.com/CSKU-Lab/main-server/configs"
 	"github.com/CSKU-Lab/main-server/domain/models"
 	"github.com/CSKU-Lab/main-server/domain/repositories"
@@ -144,6 +145,7 @@ func processOutboxRecord(ctx context.Context, deps *outboxDeps, subPayload *noti
 		CorrelationID: subPayload.ID,
 		ReplyTo:       qName,
 		Body:          []byte(subPayload.Payload),
+		Headers:       cskuotel.InjectTraceHeaders(ctx),
 	})
 	if err != nil {
 		deps.logger.Errorln("Cannot publish grade request message", "error", err)
