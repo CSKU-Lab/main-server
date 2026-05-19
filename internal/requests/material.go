@@ -5,10 +5,11 @@ import (
 )
 
 type CreateMaterial struct {
-	Name       string   `json:"name"`
-	Tags       []string `json:"tags"`
-	Type       string   `json:"type"`
-	Visibility string   `json:"visibility"`
+	Name        string   `json:"name"`
+	Tags        []string `json:"tags"`
+	Type        string   `json:"type"`
+	Visibility  string   `json:"visibility"`
+	ManualScore int      `json:"manual_score"`
 }
 
 func (c *CreateMaterial) Validate() error {
@@ -17,6 +18,17 @@ func (c *CreateMaterial) Validate() error {
 		validation.Field(&c.Tags),
 		validation.Field(&c.Type, validation.Required, validation.In("document", "code", "typing")),
 		validation.Field(&c.Visibility, validation.Required, validation.In("public", "private")),
+		validation.Field(&c.ManualScore, validation.Min(0)),
+	)
+}
+
+type ForkMaterial struct {
+	SourceMaterialID string `json:"source_material_id"`
+}
+
+func (f *ForkMaterial) Validate() error {
+	return validation.ValidateStruct(f,
+		validation.Field(&f.SourceMaterialID, validation.Required),
 	)
 }
 

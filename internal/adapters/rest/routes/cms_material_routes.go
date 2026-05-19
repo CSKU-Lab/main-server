@@ -8,24 +8,26 @@ import (
 
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
 	"github.com/CSKU-Lab/main-server/domain/models"
+	"github.com/CSKU-Lab/main-server/domain/permission"
 	"github.com/CSKU-Lab/main-server/domain/services"
 	"github.com/CSKU-Lab/main-server/internal/adapters/middlewares"
 	"github.com/CSKU-Lab/main-server/internal/requests"
 	"github.com/gofiber/fiber/v3"
 )
 
-func NewCMSMaterialRoutes(router fiber.Router, materialService services.MaterialService, materialAssetService services.MaterialAssetService, submissionService services.SubmissionService) {
-	materialRouter := router.Group("/materials")
+func NewCMSMaterialRoutes(router fiber.Router, materialService services.MaterialService, materialAssetService services.MaterialAssetService, submissionService services.SubmissionService, permService permission.Service) {
+	materialRouter := router.Group("/courses/:courseID/materials")
 
 	// Create material - instructors and admins only
 	materialRouter.Post("/", middlewares.RBACMiddleware([]models.Role{
 		models.ADMIN,
 		models.INSTRUCTOR,
-	}), middlewares.ValidateMiddleware[requests.CreateMaterial](), func(c fiber.Ctx) error {
+	}), middlewares.Permission(permService).ForCourse("courseID").CanModify(), middlewares.ValidateMiddleware[requests.CreateMaterial](), func(c fiber.Ctx) error {
 		req := c.Locals("body").(*requests.CreateMaterial)
 		user := c.Locals("user").(*models.User)
+		courseID := c.Params("courseID")
 
-		matID, err := materialService.Create(c.RequestCtx(), user.ID, req)
+		matID, err := materialService.Create(c.RequestCtx(), courseID, user.ID, req)
 		if err != nil {
 			return err
 		}
@@ -40,7 +42,8 @@ func NewCMSMaterialRoutes(router fiber.Router, materialService services.Material
 		models.ADMIN,
 		models.INSTRUCTOR,
 		models.STUDENT,
-	}), func(c fiber.Ctx) error {
+	}), middlewares.Permission(permService).ForCourse("courseID").CanView(), func(c fiber.Ctx) error {
+		courseID := c.Params("courseID")
 		pageQuery := c.Query("page", "1")
 		pageSizeQuery := c.Query("page_size", "10")
 		search := c.Query("search", "")
@@ -66,12 +69,12 @@ func NewCMSMaterialRoutes(router fiber.Router, materialService services.Material
 
 		user := c.Locals("user").(*models.User)
 
-		mats, err := materialService.GetPagination(c.RequestCtx(), user.ID, user.Roles, page, pageSize, search, sortBy, sortOrder, filterParams)
+		mats, err := materialService.GetPagination(c.RequestCtx(), courseID, user.ID, user.Roles, page, pageSize, search, sortBy, sortOrder, filterParams)
 		if err != nil {
 			return err
 		}
 
-		count, err := materialService.Count(c.RequestCtx(), user.ID, user.Roles, search, filterParams)
+		count, err := materialService.Count(c.RequestCtx(), courseID, user.ID, user.Roles, search, filterParams)
 		if err != nil {
 			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Error getting semesters count"})
 		}
@@ -86,14 +89,33 @@ func NewCMSMaterialRoutes(router fiber.Router, materialService services.Material
 		})
 	})
 
+	materialRouter.Post("/fork", middlewares.RBACMiddleware([]models.Role{
+		models.ADMIN,
+		models.INSTRUCTOR,
+	}), middlewares.Permission(permService).ForCourse("courseID").CanModify(), middlewares.ValidateMiddleware[requests.ForkMaterial](), func(c fiber.Ctx) error {
+		courseID := c.Params("courseID")
+		req := c.Locals("body").(*requests.ForkMaterial)
+		user := c.Locals("user").(*models.User)
+
+		matID, err := materialService.Fork(c.RequestCtx(), courseID, req.SourceMaterialID, user)
+		if err != nil {
+			return err
+		}
+
+		return c.Status(fiber.StatusCreated).JSON(fiber.Map{
+			"id": matID,
+		})
+	})
+
 	// Get material by ID - students, instructors, and admins can view
 	materialRouter.Get("/:id", middlewares.RBACMiddleware([]models.Role{
 		models.ADMIN,
 		models.INSTRUCTOR,
 		models.STUDENT,
-	}), func(c fiber.Ctx) error {
+	}), middlewares.Permission(permService).ForCourse("courseID").CanView(), func(c fiber.Ctx) error {
+		courseID := c.Params("courseID")
 		id := c.Params("id")
-		material, err := materialService.GetByID(c.RequestCtx(), id)
+		material, err := materialService.GetByID(c.RequestCtx(), courseID, id)
 		if err != nil {
 			return err
 		}
@@ -104,30 +126,32 @@ func NewCMSMaterialRoutes(router fiber.Router, materialService services.Material
 	materialRouter.Patch("/:id", middlewares.RBACMiddleware([]models.Role{
 		models.ADMIN,
 		models.INSTRUCTOR,
-	}), middlewares.ValidateMiddleware[requests.BaseUpdateMaterial](), func(c fiber.Ctx) error {
+	}), middlewares.Permission(permService).ForCourse("courseID").CanModify(), middlewares.ValidateMiddleware[requests.BaseUpdateMaterial](), func(c fiber.Ctx) error {
 		user := c.Locals("user").(*models.User)
+		courseID := c.Params("courseID")
 		id := c.Params("id")
 		req := c.Locals("body").(*requests.BaseUpdateMaterial)
 		rawReq := c.Body()
 
-		return materialService.UpdateByID(c.RequestCtx(), id, req, rawReq, user.ID)
+		return materialService.UpdateByID(c.RequestCtx(), courseID, id, req, rawReq, user.ID)
 	})
 
 	// Delete material - instructors and admins only
 	materialRouter.Delete("/:id", middlewares.RBACMiddleware([]models.Role{
 		models.ADMIN,
 		models.INSTRUCTOR,
-	}), func(c fiber.Ctx) error {
+	}), middlewares.Permission(permService).ForCourse("courseID").CanModify(), func(c fiber.Ctx) error {
 		user := c.Locals("user").(*models.User)
+		courseID := c.Params("courseID")
 		id := c.Params("id")
-		return materialService.DeleteByID(c.RequestCtx(), id, user.ID)
+		return materialService.DeleteByID(c.RequestCtx(), courseID, id, user.ID)
 	})
 
 	// Upload asset - instructors and admins only
 	materialRouter.Post("/:id/assets", middlewares.RBACMiddleware([]models.Role{
 		models.ADMIN,
 		models.INSTRUCTOR,
-	}), func(c fiber.Ctx) error {
+	}), middlewares.Permission(permService).ForCourse("courseID").CanModify(), func(c fiber.Ctx) error {
 		filePayload, err := c.FormFile("file")
 		if err != nil {
 			return err
@@ -147,7 +171,11 @@ func NewCMSMaterialRoutes(router fiber.Router, materialService services.Material
 			ContentType: filePayload.Header.Get("Content-Type"),
 		}
 
+		courseID := c.Params("courseID")
 		id := c.Params("id")
+		if _, err := materialService.GetByID(c.RequestCtx(), courseID, id); err != nil {
+			return err
+		}
 
 		fileURL, err := materialAssetService.UploadFile(c.RequestCtx(), id, imageFile)
 		if err != nil {

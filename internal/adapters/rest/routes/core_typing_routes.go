@@ -42,7 +42,7 @@ func NewCoreTypingRoute(
 			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusBadRequest, Message: "lab_id is required"})
 		}
 
-		material, err := materialService.GetByID(c.RequestCtx(), materialID)
+		material, err := materialService.GetByIDUnscoped(c.RequestCtx(), materialID)
 		if err != nil {
 			return err
 		}

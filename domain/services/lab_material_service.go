@@ -89,14 +89,20 @@ func (lm *labMaterialService) mutationPermission(ctx context.Context, userID str
 }
 
 func (lm *labMaterialService) rowExists(ctx context.Context, labID string, materialID string) error {
-	_, err := lm.labRepo.GetByID(ctx, labID)
+	lab, err := lm.labRepo.GetByID(ctx, labID)
 	if err != nil {
 		return err
 	}
 
-	_, err = lm.materialRepo.GetByID(ctx, materialID)
+	material, err := lm.materialRepo.GetByID(ctx, materialID)
 	if err != nil {
 		return err
+	}
+	if lab.CourseID != material.CourseID {
+		return cserrors.New(&cserrors.Option{
+			HttpStatus: http.StatusBadRequest,
+			Message:    "Material does not belong to this lab's course",
+		})
 	}
 	return nil
 }
@@ -227,12 +233,14 @@ func (lm *labMaterialService) GetPagination(ctx context.Context, page int, limit
 			tags = []string{}
 		}
 		matJson := &models.Material{
-			ID:         mat.ID,
-			Name:       mat.Name,
-			Tags:       tags,
-			Type:       mat.Type,
-			Visibility: mat.Visibility,
-			CreatedAt:  mat.CreatedAt,
+			ID:                   mat.ID,
+			CourseID:             mat.CourseID,
+			ForkedFromMaterialID: mat.ForkedFromMaterialID,
+			Name:                 mat.Name,
+			Tags:                 tags,
+			Type:                 mat.Type,
+			Visibility:           mat.Visibility,
+			CreatedAt:            mat.CreatedAt,
 		}
 		labMaterials[i].MaterialData = matJson
 	}

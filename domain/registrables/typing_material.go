@@ -56,3 +56,11 @@ func (t *TypingMaterial) UpdateByID(ctx context.Context, ID string, _ *requests.
 func (t *TypingMaterial) DeleteByID(ctx context.Context, ID string) error {
 	return t.repo.DeleteByID(ctx, ID)
 }
+
+func (t *TypingMaterial) Clone(ctx context.Context, sourceID string, targetID string) error {
+	source, err := t.repo.GetByID(ctx, sourceID)
+	if err != nil {
+		return err
+	}
+	return t.repo.Create(ctx, targetID, source.Content)
+}

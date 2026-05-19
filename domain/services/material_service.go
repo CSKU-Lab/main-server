@@ -16,13 +16,15 @@ import (
 )
 
 type MaterialService interface {
-	Create(ctx context.Context, createdByUserID string, req *requests.CreateMaterial) (string, error)
-	GetPagination(ctx context.Context, viewerID string, viewerRoles []models.Role, page int, limit int, search string, sortBy string, sortOrder string, filterParams map[string]string) ([]models.Material, error)
-	Count(ctx context.Context, viewerID string, viewerRoles []models.Role, search string, filters map[string]string) (int, error)
-	GetByID(ctx context.Context, ID string) (*models.MaterialDetail, error)
+	Create(ctx context.Context, courseID string, createdByUserID string, req *requests.CreateMaterial) (string, error)
+	Fork(ctx context.Context, targetCourseID string, sourceMaterialID string, user *models.User) (string, error)
+	GetPagination(ctx context.Context, courseID string, viewerID string, viewerRoles []models.Role, page int, limit int, search string, sortBy string, sortOrder string, filterParams map[string]string) ([]models.Material, error)
+	Count(ctx context.Context, courseID string, viewerID string, viewerRoles []models.Role, search string, filters map[string]string) (int, error)
+	GetByID(ctx context.Context, courseID string, ID string) (*models.MaterialDetail, error)
+	GetByIDUnscoped(ctx context.Context, ID string) (*models.MaterialDetail, error)
 	GetMaterialWithLatestSubmissionStatus(ctx context.Context, userID string, materialID string, labID string, sectionID string) (*models.MaterialWithSubmissionStatus, error)
-	UpdateByID(ctx context.Context, ID string, req *requests.BaseUpdateMaterial, rawReq []byte, userID string) error
-	DeleteByID(ctx context.Context, ID string, userID string) error
+	UpdateByID(ctx context.Context, courseID string, ID string, req *requests.BaseUpdateMaterial, rawReq []byte, userID string) error
+	DeleteByID(ctx context.Context, courseID string, ID string, userID string) error
 }
 
 type materialService struct {
@@ -50,7 +52,7 @@ func NewMaterialService(repo repositories.MaterialRepository, submissionRepo rep
 	}
 }
 
-func (s *materialService) Create(ctx context.Context, createdByUserID string, req *requests.CreateMaterial) (string, error) {
+func (s *materialService) Create(ctx context.Context, courseID string, createdByUserID string, req *requests.CreateMaterial) (string, error) {
 	materialHandler, exists := s.materialRegistry.GetHandler(req.Type)
 	if !exists {
 		return "", cserrors.New(&cserrors.Option{
@@ -69,7 +71,7 @@ func (s *materialService) Create(ctx context.Context, createdByUserID string, re
 			})
 		}
 
-		err = u.Material().Create(ctx, id.String(), createdByUserID, req)
+		err = u.Material().Create(ctx, id.String(), courseID, createdByUserID, nil, req)
 		if err != nil {
 			return err
 		}
@@ -94,6 +96,114 @@ func (s *materialService) Create(ctx context.Context, createdByUserID string, re
 	return matID, nil
 }
 
+func (s *materialService) Fork(ctx context.Context, targetCourseID string, sourceMaterialID string, user *models.User) (string, error) {
+	source, err := s.repo.GetByID(ctx, sourceMaterialID)
+	if err != nil {
+		return "", err
+	}
+
+	if err := s.canViewMaterial(ctx, source, user); err != nil {
+		return "", err
+	}
+
+	tags, err := s.readMaterialTagRepo.GetTags(ctx, source.ID)
+	if err != nil {
+		return "", err
+	}
+	if tags == nil {
+		tags = []string{}
+	}
+
+	req := &requests.CreateMaterial{
+		Name:        source.Name,
+		Tags:        tags,
+		Type:        source.Type,
+		Visibility:  source.Visibility,
+		ManualScore: source.ManualScore,
+	}
+
+	materialHandler, exists := s.materialRegistry.GetHandler(source.Type)
+	if !exists {
+		return "", cserrors.New(&cserrors.Option{
+			HttpStatus: http.StatusBadRequest,
+			Message:    "Unsupported material type",
+		})
+	}
+
+	var targetID string
+	err = s.uowRepo.Execute(ctx, func(u repositories.UoWInstance) error {
+		id, err := uuid.NewV7()
+		if err != nil {
+			return cserrors.New(&cserrors.Option{
+				Message:    "Failed to generate UUID",
+				HttpStatus: http.StatusInternalServerError,
+			})
+		}
+		targetID = id.String()
+
+		if err := u.Material().Create(ctx, targetID, targetCourseID, user.ID, &source.ID, req); err != nil {
+			return err
+		}
+
+		if err := u.MaterialTag().SetTags(ctx, targetID, tags); err != nil {
+			return err
+		}
+
+		updateReq := &requests.BaseUpdateMaterial{
+			AutoScore:   &source.AutoScore,
+			ManualScore: &source.ManualScore,
+		}
+		return u.Material().UpdateByID(ctx, targetID, updateReq)
+	})
+	if err != nil {
+		return "", err
+	}
+
+	if err := materialHandler.Clone(ctx, source.ID, targetID); err != nil {
+		_ = s.repo.DeleteByID(ctx, targetID)
+		return "", err
+	}
+
+	return targetID, nil
+}
+
+func (s *materialService) canViewMaterial(ctx context.Context, material *repositories.Material, user *models.User) error {
+	for _, role := range user.Roles {
+		if role == models.ADMIN {
+			return nil
+		}
+	}
+
+	if material.Visibility == "public" || material.CreatedBy == user.ID {
+		return nil
+	}
+
+	creators, err := s.uowCourseCreators(ctx, material.CourseID)
+	if err != nil {
+		return err
+	}
+	for _, creator := range creators {
+		if creator.ID == user.ID {
+			return nil
+		}
+	}
+
+	return cserrors.New(&cserrors.Option{
+		HttpStatus: http.StatusForbidden,
+		Message:    "No Permission",
+	})
+}
+
+func (s *materialService) uowCourseCreators(ctx context.Context, courseID string) ([]models.CourseCreator, error) {
+	var creators []models.CourseCreator
+	err := s.uowRepo.Execute(ctx, func(u repositories.UoWInstance) error {
+		var err error
+		creators, err = u.CourseCreator().GetCreators(ctx, courseID)
+		return err
+	})
+	return creators, err
+}
+
 func visibilityFilter(viewerID string, roles []models.Role) *repositories.VisibilityFilter {
 	for _, r := range roles {
 		if r == models.ADMIN {
@@ -108,7 +218,7 @@ func visibilityFilter(viewerID string, roles []models.Role) *repositories.Visibi
 	return &repositories.VisibilityFilter{OnlyPublic: true}
 }
 
-func (s *materialService) GetPagination(ctx context.Context, viewerID string, viewerRoles []models.Role, page int, limit int, search string, sortBy string, sortOrder string, filterParams map[string]string) ([]models.Material, error) {
+func (s *materialService) GetPagination(ctx context.Context, courseID string, viewerID string, viewerRoles []models.Role, page int, limit int, search string, sortBy string, sortOrder string, filterParams map[string]string) ([]models.Material, error) {
 	allowedSortFields := map[string]bool{
 		"name":         true,
 		"type":         true,
@@ -150,7 +260,7 @@ func (s *materialService) GetPagination(ctx context.Context, viewerID string, vi
 		return nil, err
 	}
 
-	materials, err := s.repo.GetPagination(ctx, page, limit, search, sanitizedSortBy, sanitizedSortOrder, filters, visibilityFilter(viewerID, viewerRoles))
+	materials, err := s.repo.GetPagination(ctx, courseID, page, limit, search, sanitizedSortBy, sanitizedSortOrder, filters, visibilityFilter(viewerID, viewerRoles))
 	if err != nil {
 		return nil, err
 	}
@@ -174,12 +284,14 @@ func (s *materialService) GetPagination(ctx context.Context, viewerID string, vi
 		}
 
 		matModels = append(matModels, models.Material{
-			ID:         mat.ID,
-			Name:       mat.Name,
-			Tags:       tags,
-			Type:       mat.Type,
-			Visibility: mat.Visibility,
-			CreatedAt:  mat.CreatedAt,
+			ID:                   mat.ID,
+			CourseID:             mat.CourseID,
+			ForkedFromMaterialID: mat.ForkedFromMaterialID,
+			Name:                 mat.Name,
+			Tags:                 tags,
+			Type:                 mat.Type,
+			Visibility:           mat.Visibility,
+			CreatedAt:            mat.CreatedAt,
 			CreatedBy: &models.MaterialCreator{
 				ID:           creator.ID,
 				DisplayName:  creator.DisplayName,
@@ -193,21 +305,37 @@ func (s *materialService) GetPagination(ctx context.Context, viewerID string, vi
 	return matModels, nil
 }
 
-func (s *materialService) Count(ctx context.Context, viewerID string, viewerRoles []models.Role, search string, filterParams map[string]string) (int, error) {
+func (s *materialService) Count(ctx context.Context, courseID string, viewerID string, viewerRoles []models.Role, search string, filterParams map[string]string) (int, error) {
 	filters, err := sanitize.Filters(filterParams, s.allowedFilterFields)
 	if err != nil {
 		return 0, err
 	}
 
-	return s.repo.Count(ctx, search, filters, visibilityFilter(viewerID, viewerRoles))
+	return s.repo.Count(ctx, courseID, search, filters, visibilityFilter(viewerID, viewerRoles))
 }
 
-func (s *materialService) GetByID(ctx context.Context, ID string) (*models.MaterialDetail, error) {
+func (s *materialService) GetByID(ctx context.Context, courseID string, ID string) (*models.MaterialDetail, error) {
+	mat, err := s.repo.GetByID(ctx, ID)
+	if err != nil {
+		return nil, err
+	}
+	if mat.CourseID != courseID {
+		return nil, cserrors.New(&cserrors.Option{HttpStatus: http.StatusNotFound, Message: "Material not found"})
+	}
+
+	return s.materialDetailFromRepo(ctx, mat)
+}
+
+func (s *materialService) GetByIDUnscoped(ctx context.Context, ID string) (*models.MaterialDetail, error) {
 	mat, err := s.repo.GetByID(ctx, ID)
 	if err != nil {
 		return nil, err
 	}
 
+	return s.materialDetailFromRepo(ctx, mat)
+}
+
+func (s *materialService) materialDetailFromRepo(ctx context.Context, mat *repositories.Material) (*models.MaterialDetail, error) {
 	materialHandler, exists := s.materialRegistry.GetHandler(mat.Type)
 	if !exists {
 		return nil, cserrors.New(&cserrors.Option{
@@ -233,14 +361,16 @@ func (s *materialService) GetByID(ctx context.Context, ID string) (*models.Mater
 
 	matModel := &models.MaterialDetail{
 		Material: &models.Material{
-			ID:          mat.ID,
-			Name:        mat.Name,
-			Type:        mat.Type,
-			Tags:        tags,
-			Visibility:  mat.Visibility,
-			AutoScore:   mat.AutoScore,
-			ManualScore: mat.ManualScore,
-			CreatedAt:   mat.CreatedAt,
+			ID:                   mat.ID,
+			CourseID:             mat.CourseID,
+			ForkedFromMaterialID: mat.ForkedFromMaterialID,
+			Name:                 mat.Name,
+			Type:                 mat.Type,
+			Tags:                 tags,
+			Visibility:           mat.Visibility,
+			AutoScore:            mat.AutoScore,
+			ManualScore:          mat.ManualScore,
+			CreatedAt:            mat.CreatedAt,
 			CreatedBy: &models.MaterialCreator{
 				ID:           creator.ID,
 				DisplayName:  creator.DisplayName,
@@ -250,7 +380,7 @@ func (s *materialService) GetByID(ctx context.Context, ID string) (*models.Mater
 		Payload: nil,
 	}
 
-	res, err := materialHandler.GetByID(ctx, ID)
+	res, err := materialHandler.GetByID(ctx, mat.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -264,10 +394,13 @@ func isUpdateBaseMaterial(req *requests.BaseUpdateMaterial) bool {
 	return req.Name != "" || req.Tags != nil || req.Visibility != "" || req.AutoScore != nil || req.ManualScore != nil
 }
 
-func (s *materialService) UpdateByID(ctx context.Context, ID string, req *requests.BaseUpdateMaterial, rawReq []byte, userID string) error {
+func (s *materialService) UpdateByID(ctx context.Context, courseID string, ID string, req *requests.BaseUpdateMaterial, rawReq []byte, userID string) error {
 	mat, err := s.repo.GetByID(ctx, ID)
 	if err != nil {
 		return err
+	}
+	if mat.CourseID != courseID {
+		return cserrors.New(&cserrors.Option{HttpStatus: http.StatusNotFound, Message: "Material not found"})
 	}
 	if mat.CreatedBy != userID {
 		return cserrors.New(&cserrors.Option{
@@ -325,10 +458,13 @@ func (s *materialService) UpdateByID(ctx context.Context, ID string, req *reques
 	return nil
 }
 
-func (s *materialService) DeleteByID(ctx context.Context, ID string, userID string) error {
+func (s *materialService) DeleteByID(ctx context.Context, courseID string, ID string, userID string) error {
 	mat, err := s.repo.GetByID(ctx, ID)
 	if err != nil {
 		return err
+	}
+	if mat.CourseID != courseID {
+		return cserrors.New(&cserrors.Option{HttpStatus: http.StatusNotFound, Message: "Material not found"})
 	}
 	if mat.CreatedBy != userID {
 		return cserrors.New(&cserrors.Option{

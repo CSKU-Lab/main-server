@@ -17,6 +17,7 @@ type MaterialRegisterable interface {
 	CalculateScores(rawReq []byte) (*MaterialScores, error)
 	UpdateByID(ctx context.Context, ID string, req *requests.BaseUpdateMaterial, rawReq []byte) error
 	DeleteByID(ctx context.Context, ID string) error
+	Clone(ctx context.Context, sourceID string, targetID string) error
 }
 
 type Material interface {

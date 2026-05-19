@@ -4,17 +4,17 @@ schema "public" {
 
 enum "role" {
   schema = schema.public
-  values = [ "student" , "instructor" , "admin" ]
+  values = ["student", "instructor", "admin"]
 }
 
 enum "user_type" {
   schema = schema.public
-  values = [ "oauth", "credential" ]
+  values = ["oauth", "credential"]
 }
 
 enum "course_visibility" {
   schema = schema.public
-  values = [ "public" , "private" ]
+  values = ["public", "private"]
 }
 
 table "users" {
@@ -47,38 +47,38 @@ table "users" {
     null = true
   }
   column "created_at" {
-    type = timestamp
+    type    = timestamp
     default = sql("CURRENT_TIMESTAMP")
   }
   column "updated_at" {
-    type = timestamp
+    type    = timestamp
     default = sql("CURRENT_TIMESTAMP")
   }
   column "is_deleted" {
-    type = boolean
+    type    = boolean
     default = false
   }
   column "deleted_at" {
     type = timestamp
     null = true
   }
-  primary_key  {
-    columns = [ column.id ]
+  primary_key {
+    columns = [column.id]
   }
   foreign_key "fk_group_id" {
-    columns = [ column.group_id ]
-    ref_columns = [ table.user_groups.column.id ]
-    on_delete = SET_NULL
+    columns     = [column.group_id]
+    ref_columns = [table.user_groups.column.id]
+    on_delete   = SET_NULL
   }
   index "unique_active_username" {
-    columns = [ column.username ]
-    where = "is_deleted = false"
-    unique = true
+    columns = [column.username]
+    where   = "is_deleted = false"
+    unique  = true
   }
   index "unique_active_email" {
-    columns = [ column.email ]
-    where = "is_deleted = false AND email IS NOT NULL"
-    unique = true
+    columns = [column.email]
+    where   = "is_deleted = false AND email IS NOT NULL"
+    unique  = true
   }
 }
 
@@ -91,12 +91,12 @@ table "user_refresh_tokens" {
     type = text
   }
   primary_key {
-    columns = [ column.user_id ]
+    columns = [column.user_id]
   }
   foreign_key "fk_user_id" {
-    columns = [ column.user_id ]
-    ref_columns = [ table.users.column.id ]
-    on_delete = CASCADE
+    columns     = [column.user_id]
+    ref_columns = [table.users.column.id]
+    on_delete   = CASCADE
   }
 }
 
@@ -109,12 +109,12 @@ table "user_passwords" {
     type = varchar(80)
   }
   primary_key {
-    columns = [ column.user_id ]
+    columns = [column.user_id]
   }
   foreign_key "fk_user_id" {
-    columns = [ column.user_id ]
-    ref_columns = [ table.users.column.id ]
-    on_delete = CASCADE
+    columns     = [column.user_id]
+    ref_columns = [table.users.column.id]
+    on_delete   = CASCADE
   }
 }
 
@@ -127,10 +127,10 @@ table "user_groups" {
     type = text
   }
   unique "name" {
-    columns = [ column.name ]
+    columns = [column.name]
   }
   primary_key {
-    columns = [ column.id ]
+    columns = [column.id]
   }
 }
 
@@ -154,32 +154,32 @@ table "courses" {
     type = enum.course_visibility
   }
   column "created_at" {
-    type = timestamp
+    type    = timestamp
     default = sql("CURRENT_TIMESTAMP")
   }
   column "updated_at" {
-    type = timestamp
+    type    = timestamp
     default = sql("CURRENT_TIMESTAMP")
   }
   column "is_archived" {
-    type = boolean
+    type    = boolean
     default = false
   }
   column "is_deleted" {
-    type = boolean
+    type    = boolean
     default = false
   }
   column "deleted_at" {
     type = timestamp
     null = true
   }
-  primary_key  {
-    columns = [ column.id ]
+  primary_key {
+    columns = [column.id]
   }
   index "unique_active_course" {
-    columns = [ column.name ]
-    where = "is_deleted = false AND is_archived = false"
-    unique = true
+    columns = [column.name]
+    where   = "is_deleted = false AND is_archived = false"
+    unique  = true
   }
 }
 
@@ -194,18 +194,18 @@ table "course_creators" {
   column "order" {
     type = integer
   }
-  primary_key  {
-    columns = [ column.course_id, column.creator_id , column.order ]
+  primary_key {
+    columns = [column.course_id, column.creator_id, column.order]
   }
   foreign_key "fk_course_id" {
-    columns = [ column.course_id ]
-    ref_columns = [ table.courses.column.id ]
-    on_delete = CASCADE
+    columns     = [column.course_id]
+    ref_columns = [table.courses.column.id]
+    on_delete   = CASCADE
   }
   foreign_key "fk_creator_id" {
-    columns = [ column.creator_id ]
-    ref_columns = [ table.users.column.id ]
-    on_delete = CASCADE
+    columns     = [column.creator_id]
+    ref_columns = [table.users.column.id]
+    on_delete   = CASCADE
   }
 }
 
@@ -218,21 +218,21 @@ table "course_enrollments" {
     type = uuid
   }
   column "created_at" {
-    type = timestamp
+    type    = timestamp
     default = sql("CURRENT_TIMESTAMP")
   }
   primary_key {
-    columns = [ column.course_id, column.student_id ]
+    columns = [column.course_id, column.student_id]
   }
   foreign_key "fk_course_id" {
-    columns = [ column.course_id ]
-    ref_columns = [ table.courses.column.id ]
-    on_delete = CASCADE
+    columns     = [column.course_id]
+    ref_columns = [table.courses.column.id]
+    on_delete   = CASCADE
   }
   foreign_key "fk_student_id" {
-    columns = [ column.student_id ]
-    ref_columns = [ table.users.column.id ]
-    on_delete = CASCADE
+    columns     = [column.student_id]
+    ref_columns = [table.users.column.id]
+    on_delete   = CASCADE
   }
 }
 
@@ -255,38 +255,38 @@ table "sections" {
     type = uuid
   }
   column "created_at" {
-    type = timestamp
+    type    = timestamp
     default = sql("CURRENT_TIMESTAMP")
   }
   column "updated_at" {
-    type = timestamp
+    type    = timestamp
     default = sql("CURRENT_TIMESTAMP")
   }
   column "is_deleted" {
-    type = boolean
+    type    = boolean
     default = false
   }
   column "deleted_at" {
     type = timestamp
     null = true
   }
-  primary_key  {
-    columns = [ column.id ]
+  primary_key {
+    columns = [column.id]
   }
   foreign_key "fk_course_id" {
-    columns = [ column.course_id ]
-    ref_columns = [ table.courses.column.id ]
-    on_delete = CASCADE
+    columns     = [column.course_id]
+    ref_columns = [table.courses.column.id]
+    on_delete   = CASCADE
   }
   foreign_key "fk_semester_id" {
-    columns = [ column.semester_id  ]
-    ref_columns = [ table.semesters.column.id ]
-    on_delete = CASCADE
+    columns     = [column.semester_id]
+    ref_columns = [table.semesters.column.id]
+    on_delete   = CASCADE
   }
   index "unique_active_section" {
-    columns = [ column.name, column.course_id, column.semester_id ]
-    where = "is_deleted = false"
-    unique = true
+    columns = [column.name, column.course_id, column.semester_id]
+    where   = "is_deleted = false"
+    unique  = true
   }
 }
 
@@ -298,18 +298,18 @@ table "section_instructors" {
   column "instructor_id" {
     type = uuid
   }
-  primary_key  {
-    columns = [ column.section_id,  column.instructor_id ]
+  primary_key {
+    columns = [column.section_id, column.instructor_id]
   }
   foreign_key "fk_section_id" {
-    columns = [ column.section_id ]
-    ref_columns = [ table.sections.column.id ]
-    on_delete = CASCADE
+    columns     = [column.section_id]
+    ref_columns = [table.sections.column.id]
+    on_delete   = CASCADE
   }
   foreign_key "fk_instructor_id" {
-    columns = [ column.instructor_id ]
-    ref_columns = [ table.users.column.id ]
-    on_delete = CASCADE
+    columns     = [column.instructor_id]
+    ref_columns = [table.users.column.id]
+    on_delete   = CASCADE
   }
 }
 
@@ -321,18 +321,18 @@ table "section_tas" {
   column "ta_id" {
     type = uuid
   }
-  primary_key  {
-    columns = [ column.section_id,  column.ta_id ]
+  primary_key {
+    columns = [column.section_id, column.ta_id]
   }
   foreign_key "fk_section_id" {
-    columns = [ column.section_id ]
-    ref_columns = [ table.sections.column.id ]
-    on_delete = CASCADE
+    columns     = [column.section_id]
+    ref_columns = [table.sections.column.id]
+    on_delete   = CASCADE
   }
   foreign_key "fk_ta_id" {
-    columns = [ column.ta_id ]
-    ref_columns = [ table.users.column.id ]
-    on_delete = CASCADE
+    columns     = [column.ta_id]
+    ref_columns = [table.users.column.id]
+    on_delete   = CASCADE
   }
 }
 
@@ -344,22 +344,22 @@ table "section_students" {
   column "student_id" {
     type = uuid
   }
-  primary_key  {
-    columns = [ column.section_id,  column.student_id ]
+  primary_key {
+    columns = [column.section_id, column.student_id]
   }
   column "is_deleted" {
-    type = boolean
+    type    = boolean
     default = false
   }
   foreign_key "fk_section_id" {
-    columns = [ column.section_id ]
-    ref_columns = [ table.sections.column.id ]
-    on_delete = CASCADE
+    columns     = [column.section_id]
+    ref_columns = [table.sections.column.id]
+    on_delete   = CASCADE
   }
   foreign_key "fk_student_id" {
-    columns = [ column.student_id ]
-    ref_columns = [ table.users.column.id ]
-    on_delete = CASCADE
+    columns     = [column.student_id]
+    ref_columns = [table.users.column.id]
+    on_delete   = CASCADE
   }
 }
 
@@ -379,30 +379,30 @@ table "section_logs" {
     type = text
   }
   column "timestamp" {
-    type = timestamp
+    type    = timestamp
     default = sql("CURRENT_TIMESTAMP")
   }
   column "ip_address" {
     type = inet
   }
-  primary_key  {
-    columns = [ column.id ]
+  primary_key {
+    columns = [column.id]
   }
   foreign_key "fk_user_id" {
-    columns = [ column.user_id ]
-    ref_columns = [ table.users.column.id ]
-    on_delete = SET_NULL
+    columns     = [column.user_id]
+    ref_columns = [table.users.column.id]
+    on_delete   = SET_NULL
   }
   foreign_key "fk_section_id" {
-    columns = [ column.section_id ]
-    ref_columns = [ table.sections.column.id ]
-    on_delete = CASCADE
+    columns     = [column.section_id]
+    ref_columns = [table.sections.column.id]
+    on_delete   = CASCADE
   }
 }
 
 enum "semester_type" {
   schema = schema.public
-  values = [ "first" , "second" , "summer" ]
+  values = ["first", "second", "summer"]
 }
 
 table "semesters" {
@@ -420,28 +420,28 @@ table "semesters" {
     type = date
   }
   column "created_at" {
-    type = timestamp
+    type    = timestamp
     default = sql("CURRENT_TIMESTAMP")
   }
   column "updated_at" {
-    type = timestamp
+    type    = timestamp
     default = sql("CURRENT_TIMESTAMP")
   }
   column "is_deleted" {
-    type = boolean
+    type    = boolean
     default = false
   }
   column "deleted_at" {
     type = timestamp
     null = true
   }
-  primary_key  {
-    columns = [ column.id ]
+  primary_key {
+    columns = [column.id]
   }
   index "unique_active_semester" {
-    columns = [ column.name, column.type ]
-    where = "is_deleted = false"
-    unique = true
+    columns = [column.name, column.type]
+    where   = "is_deleted = false"
+    unique  = true
   }
 }
 
@@ -463,38 +463,38 @@ table "default_labs" {
     type = int
   }
   column "created_at" {
-    type = timestamp
+    type    = timestamp
     default = sql("CURRENT_TIMESTAMP")
   }
   column "updated_at" {
-    type = timestamp
+    type    = timestamp
     default = sql("CURRENT_TIMESTAMP")
   }
   column "is_deleted" {
-    type = boolean
+    type    = boolean
     default = false
   }
   column "deleted_at" {
     type = timestamp
     null = true
   }
-  primary_key  {
-    columns = [ column.id ]
+  primary_key {
+    columns = [column.id]
   }
   index "unique_default_lab" {
-    columns = [ column.lab_id, column.course_id ]
-    where = "is_deleted = false"
-    unique = true
+    columns = [column.lab_id, column.course_id]
+    where   = "is_deleted = false"
+    unique  = true
   }
   foreign_key "fk_course_id" {
-    columns = [ column.course_id ]
-    ref_columns = [ table.courses.column.id ]
-    on_delete = CASCADE
+    columns     = [column.course_id]
+    ref_columns = [table.courses.column.id]
+    on_delete   = CASCADE
   }
   foreign_key "fk_lab_id" {
-    columns = [ column.lab_id ]
-    ref_columns = [ table.labs.column.id ]
-    on_delete = CASCADE
+    columns     = [column.lab_id]
+    ref_columns = [table.labs.column.id]
+    on_delete   = CASCADE
   }
 }
 
@@ -507,7 +507,7 @@ table "labs" {
     type = text
   }
   column "is_default" {
-    type = boolean
+    type    = boolean
     default = false
   }
   column "course_id" {
@@ -517,38 +517,38 @@ table "labs" {
     type = uuid
   }
   column "created_at" {
-    type = timestamp
+    type    = timestamp
     default = sql("CURRENT_TIMESTAMP")
   }
   column "updated_at" {
-    type = timestamp
+    type    = timestamp
     default = sql("CURRENT_TIMESTAMP")
   }
   column "is_deleted" {
-    type = boolean
+    type    = boolean
     default = false
   }
   column "deleted_at" {
     type = timestamp
     null = true
   }
-  primary_key  {
-    columns = [ column.id ]
+  primary_key {
+    columns = [column.id]
   }
   index "unique_display_name_per_course" {
-    columns = [ column.course_id, column.display_name ]
-    where = "is_deleted = false"
-    unique = true
+    columns = [column.course_id, column.display_name]
+    where   = "is_deleted = false"
+    unique  = true
   }
   foreign_key "fk_created_by" {
-    columns = [ column.created_by ]
-    ref_columns = [ table.users.column.id ]
-    on_delete = SET_NULL
+    columns     = [column.created_by]
+    ref_columns = [table.users.column.id]
+    on_delete   = SET_NULL
   }
   foreign_key "fk_course_id" {
-    columns = [ column.course_id ]
-    ref_columns = [ table.courses.column.id ]
-    on_delete = CASCADE
+    columns     = [column.course_id]
+    ref_columns = [table.courses.column.id]
+    on_delete   = CASCADE
   }
 }
 
@@ -564,44 +564,44 @@ table "lab_materials" {
     type = uuid
   }
   column "created_at" {
-    type = timestamp
+    type    = timestamp
     default = sql("CURRENT_TIMESTAMP")
   }
   column "updated_at" {
-    type = timestamp
+    type    = timestamp
     default = sql("CURRENT_TIMESTAMP")
   }
   column "is_deleted" {
-    type = boolean
+    type    = boolean
     default = false
   }
   column "deleted_at" {
     type = timestamp
     null = true
   }
-  primary_key  {
-    columns = [ column.id ]
+  primary_key {
+    columns = [column.id]
   }
   index "unique_lab_material" {
-    columns = [ column.lab_id, column.material_id ]
-    where = "is_deleted = false"
-    unique = true
+    columns = [column.lab_id, column.material_id]
+    where   = "is_deleted = false"
+    unique  = true
   }
   foreign_key "fk_lab_id" {
-    columns = [ column.lab_id ]
-    ref_columns = [ table.labs.column.id ]
-    on_delete = CASCADE
+    columns     = [column.lab_id]
+    ref_columns = [table.labs.column.id]
+    on_delete   = CASCADE
   }
   foreign_key "fk_material_id" {
-    columns = [ column.material_id ]
-    ref_columns = [ table.materials.column.id ]
-    on_delete = CASCADE
+    columns     = [column.material_id]
+    ref_columns = [table.materials.column.id]
+    on_delete   = CASCADE
   }
 }
 
 enum "lab_section_status" {
   schema = schema.public
-  values = [ "hidden" , "open", "closed", "readonly", "disabled" ]
+  values = ["hidden", "open", "closed", "readonly", "disabled"]
 }
 
 table "lab_sections" {
@@ -619,11 +619,11 @@ table "lab_sections" {
     type = int
   }
   column "created_at" {
-    type = timestamp
+    type    = timestamp
     default = sql("CURRENT_TIMESTAMP")
   }
   column "status" {
-    type = enum.lab_section_status
+    type    = enum.lab_section_status
     default = "hidden"
   }
   column "opened_at" {
@@ -635,51 +635,58 @@ table "lab_sections" {
     null = true
   }
   column "updated_at" {
-    type = timestamp
+    type    = timestamp
     default = sql("CURRENT_TIMESTAMP")
   }
   column "is_deleted" {
-    type = boolean
+    type    = boolean
     default = false
   }
   column "deleted_at" {
     type = timestamp
     null = true
   }
-  primary_key  {
-    columns = [ column.id ]
+  primary_key {
+    columns = [column.id]
   }
   index "unique_lab_section" {
-    columns = [ column.lab_id, column.section_id ]
-    where = "is_deleted = false"
-    unique = true
+    columns = [column.lab_id, column.section_id]
+    where   = "is_deleted = false"
+    unique  = true
   }
   foreign_key "fk_lab_id" {
-    columns = [ column.lab_id ]
-    ref_columns = [ table.labs.column.id ]
-    on_delete = CASCADE
+    columns     = [column.lab_id]
+    ref_columns = [table.labs.column.id]
+    on_delete   = CASCADE
   }
   foreign_key "fk_section_id" {
-    columns = [ column.section_id ]
-    ref_columns = [ table.sections.column.id ]
-    on_delete = CASCADE
+    columns     = [column.section_id]
+    ref_columns = [table.sections.column.id]
+    on_delete   = CASCADE
   }
 }
 
 enum "material_type" {
   schema = schema.public
-  values = [ "document" , "code" , "type" , "typing" ]
+  values = ["document", "code", "type", "typing"]
 }
 
 enum "visibility" {
   schema = schema.public
-  values = [ "public" , "private" ]
+  values = ["public", "private"]
 }
 
 table "materials" {
   schema = schema.public
   column "id" {
     type = uuid
+  }
+  column "course_id" {
+    type = uuid
+  }
+  column "forked_from_material_id" {
+    type = uuid
+    null = true
   }
   column "name" {
     type = text
@@ -694,36 +701,46 @@ table "materials" {
     type = uuid
   }
   column "auto_score" {
-    type = int
+    type    = int
     default = 0
   }
   column "manual_score" {
-    type = int
+    type    = int
     default = 0
   }
   column "created_at" {
-    type = timestamp
+    type    = timestamp
     default = sql("CURRENT_TIMESTAMP")
   }
   column "updated_at" {
-    type = timestamp
+    type    = timestamp
     default = sql("CURRENT_TIMESTAMP")
   }
   column "is_deleted" {
-    type = boolean
+    type    = boolean
     default = false
   }
   column "deleted_at" {
     type = timestamp
     null = true
   }
-  primary_key  {
-    columns = [ column.id ]
+  primary_key {
+    columns = [column.id]
   }
   foreign_key "fk_created_by" {
-    columns = [ column.created_by ]
-    ref_columns = [ table.users.column.id ]
-    on_delete = SET_NULL
+    columns     = [column.created_by]
+    ref_columns = [table.users.column.id]
+    on_delete   = SET_NULL
+  }
+  foreign_key "fk_course_id" {
+    columns     = [column.course_id]
+    ref_columns = [table.courses.column.id]
+    on_delete   = CASCADE
+  }
+  foreign_key "fk_forked_from_material_id" {
+    columns     = [column.forked_from_material_id]
+    ref_columns = [table.materials.column.id]
+    on_delete   = SET_NULL
   }
 }
 
@@ -733,24 +750,24 @@ table "code_materials" {
     type = uuid
   }
   column "description" {
-    type = text
-    null = true
+    type    = text
+    null    = true
     default = null
   }
   column "task_id" {
     type = uuid
   }
   column "hide_test_cases" {
-    type = boolean
+    type    = boolean
     default = true
   }
-  primary_key  {
-    columns = [ column.material_id ]
+  primary_key {
+    columns = [column.material_id]
   }
   foreign_key "fk_material_id" {
-    columns = [ column.material_id ]
-    ref_columns = [ table.materials.column.id ]
-    on_delete = CASCADE
+    columns     = [column.material_id]
+    ref_columns = [table.materials.column.id]
+    on_delete   = CASCADE
   }
 }
 
@@ -762,18 +779,18 @@ table "material_tags" {
   column "tag_id" {
     type = uuid
   }
-  primary_key  {
-    columns = [ column.material_id, column.tag_id ]
+  primary_key {
+    columns = [column.material_id, column.tag_id]
   }
   foreign_key "fk_material_id" {
-    columns = [ column.material_id ]
-    ref_columns = [ table.materials.column.id ]
-    on_delete = CASCADE
+    columns     = [column.material_id]
+    ref_columns = [table.materials.column.id]
+    on_delete   = CASCADE
   }
   foreign_key "fk_tag_id" {
-    columns = [ column.tag_id ]
-    ref_columns = [ table.tags.column.id ]
-    on_delete = CASCADE
+    columns     = [column.tag_id]
+    ref_columns = [table.tags.column.id]
+    on_delete   = CASCADE
   }
 }
 
@@ -786,16 +803,16 @@ table "tags" {
     type = text
   }
   unique "unique_tag_name" {
-    columns = [ column.name ]
+    columns = [column.name]
   }
   primary_key {
-    columns = [ column.id ]
+    columns = [column.id]
   }
 }
 
 enum "action" {
   schema = schema.public
-  values = [ "sign-in" , "sign-out" , "sign-in-failed" ]
+  values = ["sign-in", "sign-out", "sign-in-failed"]
 }
 
 table "auth_logs" {
@@ -812,18 +829,18 @@ table "auth_logs" {
   column "created_at" {
     type = timestamp
   }
-  primary_key  {
-    columns = [ column.id ]
+  primary_key {
+    columns = [column.id]
   }
   foreign_key "fk_user_id" {
-    columns = [ column.user_id ]
-    ref_columns = [ table.users.column.id ]
+    columns     = [column.user_id]
+    ref_columns = [table.users.column.id]
   }
 }
 
 enum "submission_status" {
   schema = schema.public
-  values = [ "queued", "running", "passed", "failed"]
+  values = ["queued", "running", "passed", "failed"]
 }
 
 table "submissions" {
@@ -854,45 +871,45 @@ table "submissions" {
   column "updated_at" {
     type = timestamp
   }
-  column "status"{
+  column "status" {
     type = enum.submission_status
   }
   column "submission_order" {
     type = integer
   }
   column "auto_score" {
-    type = int
+    type    = int
     default = 0
   }
   column "manual_score" {
-    type = int
+    type    = int
     default = 0
   }
   column "ip_address" {
     type = inet
   }
   primary_key {
-    columns = [ column.id ]
+    columns = [column.id]
   }
   foreign_key "fk_user_id" {
-    columns = [ column.user_id ]
-    ref_columns = [ table.users.column.id ]
+    columns     = [column.user_id]
+    ref_columns = [table.users.column.id]
   }
   foreign_key "fk_material_id" {
-    columns = [ column.material_id ]
-    ref_columns = [ table.materials.column.id ]
+    columns     = [column.material_id]
+    ref_columns = [table.materials.column.id]
   }
   foreign_key "fk_lab_id" {
-    columns = [ column.lab_id ]
-    ref_columns = [ table.labs.column.id ]
+    columns     = [column.lab_id]
+    ref_columns = [table.labs.column.id]
   }
   foreign_key "fk_section_id" {
-    columns = [ column.section_id ]
-    ref_columns = [ table.sections.column.id ]
+    columns     = [column.section_id]
+    ref_columns = [table.sections.column.id]
   }
   foreign_key "fk_course_id" {
-    columns = [ column.course_id ]
-    ref_columns = [ table.courses.column.id ]
+    columns     = [column.course_id]
+    ref_columns = [table.courses.column.id]
   }
 }
 
@@ -904,7 +921,7 @@ table "code_submissions" {
   column "files" {
     type = jsonb
   }
-  column "status"{
+  column "status" {
     type = text
     null = true
   }
@@ -921,36 +938,36 @@ table "code_submissions" {
     null = true
   }
   primary_key {
-    columns = [ column.submission_id ]
+    columns = [column.submission_id]
   }
   foreign_key "fk_submission_id" {
-    columns = [ column.submission_id ]
-    ref_columns = [ table.submissions.column.id ]
-    on_delete = CASCADE
+    columns     = [column.submission_id]
+    ref_columns = [table.submissions.column.id]
+    on_delete   = CASCADE
   }
 }
 
 table "code_submissions_outbox" {
   schema = schema.public
-  column "id"{
+  column "id" {
     type = uuid
   }
   column "submission_id" {
     type = uuid
   }
   column "is_sent" {
-    type = boolean
+    type    = boolean
     default = false
   }
   column "payload" {
     type = text
   }
   column "created_at" {
-    type = timestamp
+    type    = timestamp
     default = sql("CURRENT_TIMESTAMP")
   }
   column "retry_count" {
-    type = int
+    type    = int
     default = 0
   }
   column "last_attempt_at" {
@@ -958,12 +975,12 @@ table "code_submissions_outbox" {
     null = true
   }
   primary_key {
-    columns = [ column.id ]
+    columns = [column.id]
   }
   foreign_key "fk_aggregate_id" {
-    columns = [ column.submission_id ]
-    ref_columns = [ table.submissions.column.id ]
-    on_delete = CASCADE
+    columns     = [column.submission_id]
+    ref_columns = [table.submissions.column.id]
+    on_delete   = CASCADE
   }
 }
 
@@ -976,12 +993,12 @@ table "typing_materials" {
     type = text
   }
   primary_key {
-    columns = [ column.material_id ]
+    columns = [column.material_id]
   }
   foreign_key "fk_material_id" {
-    columns = [ column.material_id ]
-    ref_columns = [ table.materials.column.id ]
-    on_delete = CASCADE
+    columns     = [column.material_id]
+    ref_columns = [table.materials.column.id]
+    on_delete   = CASCADE
   }
 }
 
@@ -1003,11 +1020,11 @@ table "typing_submissions" {
     type = float
   }
   primary_key {
-    columns = [ column.submission_id ]
+    columns = [column.submission_id]
   }
   foreign_key "fk_submission_id" {
-    columns = [ column.submission_id ]
-    ref_columns = [ table.submissions.column.id ]
-    on_delete = CASCADE
+    columns     = [column.submission_id]
+    ref_columns = [table.submissions.column.id]
+    on_delete   = CASCADE
   }
 }

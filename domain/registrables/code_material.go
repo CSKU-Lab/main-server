@@ -8,6 +8,7 @@ import (
 	configPB "github.com/CSKU-Lab/main-server/genproto/config/v1"
 	taskPB "github.com/CSKU-Lab/main-server/genproto/task/v1"
 	"github.com/CSKU-Lab/main-server/internal/requests"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 type CodeMaterial struct {
@@ -282,7 +283,7 @@ func (c *CodeMaterial) GetByID(ctx context.Context, ID string) (any, error) {
 }
 
 func (c *CodeMaterial) Create(ctx context.Context, matID string, req *requests.CreateMaterial, rawReq []byte) error {
-	res, err := c.taskGRPCClient.CreateTask(ctx, nil)
+	res, err := c.taskGRPCClient.CreateTask(ctx, &emptypb.Empty{})
 	if err != nil {
 		return err
 	}
@@ -421,4 +422,51 @@ func (c *CodeMaterial) UpdateByID(ctx context.Context, ID string, req *requests.
 
 func (c *CodeMaterial) DeleteByID(ctx context.Context, ID string) error {
 	return nil
+}
+
+func (c *CodeMaterial) Clone(ctx context.Context, sourceID string, targetID string) error {
+	source, err := c.GetByID(ctx, sourceID)
+	if err != nil {
+		return err
+	}
+
+	sourcePayload := source.(*CodeMaterialResponse)
+	if err := c.Create(ctx, targetID, nil, nil); err != nil {
+		return err
+	}
+
+	testCaseGroups := sourcePayload.TestCaseGroups
+	payload := &CodeMaterialPayload{
+		Description:    sourcePayload.Description,
+		TestCaseGroups: &testCaseGroups,
+		ResourceFiles:  sourcePayload.ResourceFiles,
+		Limit:          sourcePayload.Limit,
+		HideTestCases:  &sourcePayload.HideTestCases,
+	}
+
+	payload.AllowedRunners = make([]AllowedRunner, 0, len(sourcePayload.AllowedRunners))
+	for _, runner := range sourcePayload.AllowedRunners {
+		payload.AllowedRunners = append(payload.AllowedRunners, AllowedRunner{
+			RunnerID: runner.ID,
+			Files:    runner.Files,
+		})
+	}
+
+	if sourcePayload.Solution != nil {
+		payload.Solution = &Solution{
+			RunnerID: sourcePayload.Solution.Runner.ID,
+			Files:    sourcePayload.Solution.Files,
+		}
+	}
+
+	if sourcePayload.CompareScript != nil {
+		payload.CompareScriptID = &sourcePayload.CompareScript.ID
+	}
+
+	rawReq, err := buildPayloadRequest(payload)
+	if err != nil {
+		return err
+	}
+
+	return c.UpdateByID(ctx, targetID, &requests.BaseUpdateMaterial{}, rawReq)
 }

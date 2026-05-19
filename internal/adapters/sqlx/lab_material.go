@@ -23,12 +23,14 @@ type labMaterialSchema struct {
 }
 
 type dbMaterial struct {
-	ID         string    `db:"id"`
-	Name       string    `db:"name"`
-	Type       string    `db:"type"`
-	Visibility string    `db:"visibility"`
-	CreatedAt  time.Time `db:"created_at"`
-	CreatedBy  string    `db:"created_by"`
+	ID                   string    `db:"id"`
+	CourseID             string    `db:"course_id"`
+	ForkedFromMaterialID *string   `db:"forked_from_material_id"`
+	Name                 string    `db:"name"`
+	Type                 string    `db:"type"`
+	Visibility           string    `db:"visibility"`
+	CreatedAt            time.Time `db:"created_at"`
+	CreatedBy            string    `db:"created_by"`
 }
 
 type sqlxLabMaterialRepository struct {
@@ -83,9 +85,9 @@ func (lm *sqlxLabMaterialRepository) DeleteByID(ctx context.Context, id string) 
 
 func (lm *sqlxLabMaterialRepository) GetByLabID(ctx context.Context, labID string) ([]models.Material, error) {
 	query := `
-		SELECT m.id, name, type, visibility, m.created_at, m.created_by FROM lab_materials lm
+		SELECT m.id, m.course_id, m.forked_from_material_id, name, type, visibility, m.created_at, m.created_by FROM lab_materials lm
 		JOIN materials m ON lm.material_id = m.id
-		WHERE lab_id = $1 AND lm.is_deleted = false
+		WHERE lab_id = $1 AND lm.is_deleted = false AND m.is_deleted = false
 	`
 
 	dbMaterials := []dbMaterial{}
@@ -96,12 +98,14 @@ func (lm *sqlxLabMaterialRepository) GetByLabID(ctx context.Context, labID strin
 	labMaterials := make([]models.Material, 0, len(dbMaterials))
 	for _, dbMat := range dbMaterials {
 		labMaterials = append(labMaterials, models.Material{
-			ID:         dbMat.ID,
-			Name:       dbMat.Name,
-			Type:       dbMat.Type,
-			Visibility: dbMat.Visibility,
-			CreatedAt:  dbMat.CreatedAt,
-			CreatedBy:  nil,
+			ID:                   dbMat.ID,
+			CourseID:             dbMat.CourseID,
+			ForkedFromMaterialID: dbMat.ForkedFromMaterialID,
+			Name:                 dbMat.Name,
+			Type:                 dbMat.Type,
+			Visibility:           dbMat.Visibility,
+			CreatedAt:            dbMat.CreatedAt,
+			CreatedBy:            nil,
 		})
 	}
 	return labMaterials, nil
