@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sync"
 	"time"
 
 	cskuotel "github.com/CSKU-Lab/otel"
@@ -31,6 +32,19 @@ type outboxDeps struct {
 	codeSubmissionOutboxRepo repositories.CodeSubmissionOutboxRepository
 	rClient                  pubsub.PubSub
 	q                        queue.Queue
+	qConnStr                 string
+	qMu                      sync.Mutex
+}
+
+func (d *outboxDeps) reconnectQueue() error {
+	d.qMu.Lock()
+	defer d.qMu.Unlock()
+	q, err := queue.NewRabbitMQ(d.qConnStr)
+	if err != nil {
+		return err
+	}
+	d.q = q
+	return nil
 }
 
 func startSubmissionWorker(ctx context.Context, logger *zap.SugaredLogger, db *sqlx.DB, config *configs.Config) {
@@ -61,6 +75,7 @@ func startSubmissionWorker(ctx context.Context, logger *zap.SugaredLogger, db *s
 		codeSubmissionOutboxRepo: codeSubmissionOutboxRepo,
 		rClient:                  rClient,
 		q:                        q,
+		qConnStr:                 config.RBMQ_SERVER_URL,
 	}
 
 	logger.Infoln("Submission Worker running...")
@@ -136,9 +151,20 @@ func processOutboxRecord(ctx context.Context, deps *outboxDeps, subPayload *noti
 		AutoDelete: true,
 	})
 	if err != nil {
-		deps.logger.Errorln("Cannot create grade result queue", "error", err)
-		deps.codeSubmissionOutboxRepo.IncrementRetry(ctx, subPayload.ID)
-		return
+		deps.logger.Warnw("Cannot create grade result queue, attempting reconnect", "error", err)
+		if reconnErr := deps.reconnectQueue(); reconnErr != nil {
+			deps.logger.Errorln("Cannot reconnect to RabbitMQ", "error", reconnErr)
+			deps.codeSubmissionOutboxRepo.IncrementRetry(ctx, subPayload.ID)
+			return
+		}
+		qName, err = deps.q.CreateQueue(ctx, "grade_result-"+subPayload.ID, &queue.QueueOptions{
+			AutoDelete: true,
+		})
+		if err != nil {
+			deps.logger.Errorln("Cannot create grade result queue after reconnect", "error", err)
+			deps.codeSubmissionOutboxRepo.IncrementRetry(ctx, subPayload.ID)
+			return
+		}
 	}
 
 	err = deps.q.Publish(ctx, "", "grade", &queue.Derivery{
@@ -148,9 +174,31 @@ func processOutboxRecord(ctx context.Context, deps *outboxDeps, subPayload *noti
 		Headers:       cskuotel.InjectTraceHeaders(ctx),
 	})
 	if err != nil {
-		deps.logger.Errorln("Cannot publish grade request message", "error", err)
-		deps.codeSubmissionOutboxRepo.IncrementRetry(ctx, subPayload.ID)
-		return
+		deps.logger.Warnw("Cannot publish grade request message, attempting reconnect", "error", err)
+		if reconnErr := deps.reconnectQueue(); reconnErr != nil {
+			deps.logger.Errorln("Cannot reconnect to RabbitMQ", "error", reconnErr)
+			deps.codeSubmissionOutboxRepo.IncrementRetry(ctx, subPayload.ID)
+			return
+		}
+		qName, err = deps.q.CreateQueue(ctx, "grade_result-"+subPayload.ID, &queue.QueueOptions{
+			AutoDelete: true,
+		})
+		if err != nil {
+			deps.logger.Errorln("Cannot re-create grade result queue after reconnect", "error", err)
+			deps.codeSubmissionOutboxRepo.IncrementRetry(ctx, subPayload.ID)
+			return
+		}
+		err = deps.q.Publish(ctx, "", "grade", &queue.Derivery{
+			CorrelationID: subPayload.ID,
+			ReplyTo:       qName,
+			Body:          []byte(subPayload.Payload),
+			Headers:       cskuotel.InjectTraceHeaders(ctx),
+		})
+		if err != nil {
+			deps.logger.Errorln("Cannot publish grade request message after reconnect", "error", err)
+			deps.codeSubmissionOutboxRepo.IncrementRetry(ctx, subPayload.ID)
+			return
+		}
 	}
 
 	marked, err := deps.codeSubmissionOutboxRepo.TryMarkSent(ctx, subPayload.ID)
