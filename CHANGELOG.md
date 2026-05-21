@@ -1,3 +1,10 @@
+# [0.7.0](https://github.com/CSKU-Lab/main-server/compare/v0.6.1...v0.7.0) (2026-05-21)
+
+
+### Features
+
+* **course:** update course lab materials logic follow frontend ([da2ec28](https://github.com/CSKU-Lab/main-server/commit/da2ec28df56fee0fa87b1c5d8df79babdf908a85))
+
 ## [0.6.1](https://github.com/CSKU-Lab/main-server/compare/v0.6.0...v0.6.1) (2026-05-20)
 
 
