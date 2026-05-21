@@ -78,9 +78,9 @@ func (sb *sidebarService) GetSidebar(
 
 			for _, mat := range mats {
 				labItem.SubItems = append(labItem.SubItems, &models.SidebarMaterial{
-					ID:     mat.ID,
-					Name:   mat.Name,
-					Status: sb.submissionService.GetMaterialStudentStatus(ctx, userID, mat.ID, lab.ID, section.ID),
+					ID:     mat.MaterialID,
+					Name:   mat.MaterialData.Name,
+					Status: sb.submissionService.GetMaterialStudentStatus(ctx, userID, mat.MaterialID, lab.ID, section.ID),
 				})
 			}
 

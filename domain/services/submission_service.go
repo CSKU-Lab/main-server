@@ -118,7 +118,7 @@ func (s *submissionService) GetGradebookBySectionID(ctx context.Context, ID stri
 		var totalMaxManualScore int
 
 		for _, lm := range labMats {
-			mat, err := s.materialRepo.GetByID(ctx, lm.ID)
+			mat, err := s.materialRepo.GetByID(ctx, lm.MaterialID)
 			if err != nil {
 				return nil, err
 			}
@@ -195,12 +195,10 @@ func (s *submissionService) GetLabStudentStatus(ctx context.Context, sectionID, 
 		MaterialCols: make([]models.MaterialCol, 0, len(materials)),
 	}
 
-	materialMap := make(map[string]*models.Material)
-	for i, mat := range materials {
-		materialMap[mat.ID] = &materials[i]
+	for _, mat := range materials {
 		res.MaterialCols = append(res.MaterialCols, models.MaterialCol{
-			MaterialID:   mat.ID,
-			MaterialName: mat.Name,
+			MaterialID:   mat.MaterialID,
+			MaterialName: mat.MaterialData.Name,
 		})
 	}
 
@@ -216,10 +214,10 @@ func (s *submissionService) GetLabStudentStatus(ctx context.Context, sectionID, 
 		}
 
 		for _, mat := range materials {
-			submission, err := s.repo.GetLatestOfStudentIDInSectionID(ctx, sectionID, labID, mat.ID, student.ID)
+			submission, err := s.repo.GetLatestOfStudentIDInSectionID(ctx, sectionID, labID, mat.MaterialID, student.ID)
 			if err != nil {
 				if errors.Is(err, sql.ErrNoRows) {
-					studentRow.MaterialStatuses[mat.ID] = models.MaterialStatus{
+					studentRow.MaterialStatuses[mat.MaterialID] = models.MaterialStatus{
 						Status:      models.NOT_SUBMITTED,
 						SubmittedAt: nil,
 					}
@@ -227,7 +225,7 @@ func (s *submissionService) GetLabStudentStatus(ctx context.Context, sectionID, 
 					return nil, err
 				}
 			} else {
-				studentRow.MaterialStatuses[mat.ID] = models.MaterialStatus{
+				studentRow.MaterialStatuses[mat.MaterialID] = models.MaterialStatus{
 					Status:      submission.Status,
 					SubmittedAt: &submission.CreatedAt,
 				}

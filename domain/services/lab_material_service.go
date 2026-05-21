@@ -16,9 +16,10 @@ type LabMaterialService interface {
 	Create(ctx context.Context, req *requests.SetLabMaterial, userID string, labID string) error
 	Delete(ctx context.Context, labID string, userID string, req *requests.DeleteLabMaterial) error
 	GetPagination(ctx context.Context, page int, limit int, sortBy string, sortOrder string, filterParams map[string]string) ([]models.LabMaterial, error)
-	GetByLabID(ctx context.Context, labID string) ([]models.Material, error)
+	GetByLabID(ctx context.Context, labID string) ([]models.LabMaterial, error)
 	GetByLabAndMaterialID(ctx context.Context, labID string, materialID string) (*models.LabMaterial, error)
 	Count(ctx context.Context, filterParams map[string]string) (int, error)
+	UpdatePosition(ctx context.Context, labID string, materialID string, userID string, position int) error
 }
 
 type labMaterialService struct {
@@ -27,23 +28,26 @@ type labMaterialService struct {
 	labRepo             repositories.LabRepository
 	materialRepo        repositories.MaterialRepository
 	readMaterialTagRepo repositories.ReadMaterialTagRepository
+	userRepo            repositories.User
 	allowedFilterFields map[string]bool
 	allowedSortFields   map[string]bool
 }
 
-func NewLabMaterialService(labMaterialRepo repositories.LabMaterialRepository, uowRepo repositories.UoWRepository, labRepo repositories.LabRepository, materialRepo repositories.MaterialRepository, readMaterialTagRepo repositories.ReadMaterialTagRepository) LabMaterialService {
+func NewLabMaterialService(labMaterialRepo repositories.LabMaterialRepository, uowRepo repositories.UoWRepository, labRepo repositories.LabRepository, materialRepo repositories.MaterialRepository, readMaterialTagRepo repositories.ReadMaterialTagRepository, userRepo repositories.User) LabMaterialService {
 	return &labMaterialService{
 		labMaterialRepo:     labMaterialRepo,
 		uowRepo:             uowRepo,
 		labRepo:             labRepo,
 		materialRepo:        materialRepo,
 		readMaterialTagRepo: readMaterialTagRepo,
+		userRepo:            userRepo,
 		allowedFilterFields: map[string]bool{
 			"lab_id":      true,
 			"material_id": true,
 		},
 		allowedSortFields: map[string]bool{
 			"created_at": true,
+			"position":   true,
 		},
 	}
 }
@@ -137,7 +141,61 @@ func (lm *labMaterialService) Create(ctx context.Context, req *requests.SetLabMa
 		})
 	}
 
-	return lm.labMaterialRepo.Create(ctx, req, ID.String(), labID)
+	maxPos, err := lm.labMaterialRepo.MaxPositionByLabID(ctx, labID)
+	if err != nil {
+		return cserrors.New(&cserrors.Option{
+			HttpStatus: http.StatusInternalServerError,
+			Message:    "Cannot determine material position",
+		})
+	}
+
+	return lm.labMaterialRepo.Create(ctx, req, ID.String(), labID, maxPos+1)
+}
+
+func (lm *labMaterialService) UpdatePosition(ctx context.Context, labID string, materialID string, userID string, newPos int) error {
+	err := lm.mutationPermission(ctx, userID, labID)
+	if err != nil {
+		return err
+	}
+
+	labMaterial, err := lm.labMaterialRepo.GetByID(ctx, labID, materialID)
+	if err != nil {
+		return err
+	}
+
+	oldPos := labMaterial.Position
+	if newPos == oldPos {
+		return nil
+	}
+
+	err = lm.uowRepo.Execute(ctx, func(u repositories.UoWInstance) error {
+		maxPos, err := lm.labMaterialRepo.MaxPositionByLabID(ctx, labID)
+		if err != nil {
+			return err
+		}
+
+		if newPos >= maxPos {
+			newPos = maxPos
+		}
+		if newPos < 1 {
+			newPos = 1
+		}
+
+		if newPos < oldPos {
+			err = lm.labMaterialRepo.ShiftRangeDown(ctx, labID, newPos, oldPos-1)
+		} else {
+			err = lm.labMaterialRepo.ShiftRangeUp(ctx, labID, oldPos+1, newPos)
+		}
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	return lm.labMaterialRepo.UpdatePosition(ctx, labMaterial.ID, newPos)
 }
 
 func (lm *labMaterialService) GetByLabAndMaterialID(ctx context.Context, labID string, materialID string) (*models.LabMaterial, error) {
@@ -175,7 +233,7 @@ func (lm *labMaterialService) Delete(ctx context.Context, labID string, userID s
 	return nil
 }
 
-func (lm *labMaterialService) GetByLabID(ctx context.Context, labID string) ([]models.Material, error) {
+func (lm *labMaterialService) GetByLabID(ctx context.Context, labID string) ([]models.LabMaterial, error) {
 	_, err := lm.labRepo.GetByID(ctx, labID)
 	if err != nil {
 		return nil, err
@@ -183,6 +241,31 @@ func (lm *labMaterialService) GetByLabID(ctx context.Context, labID string) ([]m
 	labMats, err := lm.labMaterialRepo.GetByLabID(ctx, labID)
 	if err != nil {
 		return nil, err
+	}
+
+	for i := range labMats {
+		tags, err := lm.readMaterialTagRepo.GetTags(ctx, labMats[i].MaterialID)
+		if err != nil {
+			return nil, err
+		}
+		if tags == nil {
+			tags = []string{}
+		}
+		labMats[i].MaterialData.Tags = tags
+
+		mat, err := lm.materialRepo.GetByID(ctx, labMats[i].MaterialID)
+		if err != nil {
+			return nil, err
+		}
+		creator, err := lm.userRepo.GetByID(ctx, mat.CreatedBy)
+		if err != nil {
+			return nil, err
+		}
+		labMats[i].MaterialData.CreatedBy = &models.MaterialCreator{
+			ID:           creator.ID,
+			DisplayName:  creator.DisplayName,
+			ProfileImage: creator.ProfileImage,
+		}
 	}
 
 	return labMats, nil

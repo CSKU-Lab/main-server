@@ -57,7 +57,7 @@ func initializeApp(ctx context.Context, cfg *configs.Config, db *sqlx.DB, logger
 	labMaterialRepository := providers.NewSqlxLabMaterialRepository(db)
 	materialRepository := providers.NewMaterialRepository(db)
 	readMaterialTagRepository := sqlx2.NewReadMaterialTagRepository(db)
-	labMaterialService := services.NewLabMaterialService(labMaterialRepository, uoWRepository, labRepository, materialRepository, readMaterialTagRepository)
+	labMaterialService := services.NewLabMaterialService(labMaterialRepository, uoWRepository, labRepository, materialRepository, readMaterialTagRepository, user)
 	defaultLabRepository := providers.NewSqlxDefaultLabRepository(db)
 	defaultLabService := services.NewDefaultLabService(defaultLabRepository, uoWRepository, courseRepository, labRepository)
 	deletedCourseAffected := registrables.NewDeletedCourseAffected(courseRepository, sectionRepository)

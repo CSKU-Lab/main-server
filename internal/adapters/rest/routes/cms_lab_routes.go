@@ -223,6 +223,14 @@ func NewCMSLabRoutes(router fiber.Router, labService services.LabService, labSec
 		req := c.Locals("body").(*requests.DeleteLabMaterial)
 		return labMaterialService.Delete(c.RequestCtx(), labID, user.ID, req)
 	})
+
+	labRouter.Patch("/:labID/materials/:materialID/position", middlewares.ValidateMiddleware[requests.UpdateLabMaterialPosition](), func(c fiber.Ctx) error {
+		user := c.Locals("user").(*models.User)
+		labID := c.Params("labID")
+		materialID := c.Params("materialID")
+		req := c.Locals("body").(*requests.UpdateLabMaterialPosition)
+		return labMaterialService.UpdatePosition(c.RequestCtx(), labID, materialID, user.ID, req.Position)
+	})
 }
 
 // fiber:context-methods migrated

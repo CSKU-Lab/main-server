@@ -571,6 +571,10 @@ table "lab_materials" {
     type    = timestamp
     default = sql("CURRENT_TIMESTAMP")
   }
+  column "position" {
+    type    = int
+    default = 0
+  }
   column "is_deleted" {
     type    = boolean
     default = false
