@@ -84,6 +84,10 @@ func NewDocumentMaterialRepository(db *sqlx.DB) repositories.DocumentMaterialRep
 	return sqlxAdapter.NewDocumentMaterialRepository(db)
 }
 
+func NewSearchRepository(db *sqlx.DB) repositories.SearchRepository {
+	return sqlxAdapter.NewSearchRepository(db)
+}
+
 var RepositorySet = wire.NewSet(
 	sqlxAdapter.NewUoWRepository,
 	NewUserRepository,
@@ -111,4 +115,5 @@ var RepositorySet = wire.NewSet(
 	NewSubmissionRepository,
 	NewCodeSubmissionRepository,
 	NewDocumentMaterialRepository,
+	NewSearchRepository,
 )

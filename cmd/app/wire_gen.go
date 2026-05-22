@@ -100,6 +100,8 @@ func initializeApp(ctx context.Context, cfg *configs.Config, db *sqlx.DB, logger
 	sidebarService := services.NewSidebarService(courseRepository, sectionStudentRepository, labSectionRepository, labMaterialRepository, submissionService)
 	gradebookExportService := services.NewGradebookExportService(submissionService)
 	materialService := services.NewMaterialService(materialRepository, submissionRepository, readMaterialTagRepository, uoWRepository, user, material)
+	searchRepository := providers.NewSearchRepository(db)
+	searchService := services.NewSearchService(searchRepository)
 	service := permission.NewService(user, courseRepository, courseCreatorRepository, sectionRepository, sectionInstructorRepository, sectionStudentRepository, submissionRepository)
 	queue, err := providers.ProvideRabbitMQ(cfg)
 	if err != nil {
@@ -114,7 +116,7 @@ func initializeApp(ctx context.Context, cfg *configs.Config, db *sqlx.DB, logger
 		return nil, nil, err
 	}
 	playgroundHandler := providers.NewPlaygroundHandler(graderServiceClient)
-	app := providers.NewFiberApp(cfg, logger, errorHandlerMiddleware, userService, refreshTokenService, userGroupService, courseService, courseEnrollmentService, semesterService, sectionLogService, sectionService, sectionStudentService, tagService, materialAssetService, labService, labSectionService, labMaterialService, defaultLabService, affectedEntitiesService, submissionService, sidebarService, gradebookExportService, materialService, service, configServiceClient, queue, pubSub, playgroundHandler)
+	app := providers.NewFiberApp(cfg, logger, errorHandlerMiddleware, userService, refreshTokenService, userGroupService, courseService, courseEnrollmentService, semesterService, sectionLogService, sectionService, sectionStudentService, tagService, materialAssetService, labService, labSectionService, labMaterialService, defaultLabService, affectedEntitiesService, submissionService, sidebarService, gradebookExportService, materialService, searchService, service, configServiceClient, queue, pubSub, playgroundHandler)
 	return app, func() {
 		cleanup3()
 		cleanup2()

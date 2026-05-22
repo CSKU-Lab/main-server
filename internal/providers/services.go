@@ -39,6 +39,7 @@ func NewSubmissionServiceArgs(
 }
 
 var ServiceSet = wire.NewSet(
+	services.NewSearchService,
 	services.NewUserService,
 	services.NewUserGroupService,
 	services.NewRefreshTokenService,
