@@ -1,3 +1,10 @@
+# [0.8.0](https://github.com/CSKU-Lab/main-server/compare/v0.7.0...v0.8.0) (2026-05-22)
+
+
+### Features
+
+* **material:** add a new document material type ([508c78d](https://github.com/CSKU-Lab/main-server/commit/508c78dfd205dcf106b7f64d6709e8ee1f196196))
+
 # [0.7.0](https://github.com/CSKU-Lab/main-server/compare/v0.6.1...v0.7.0) (2026-05-21)
 
 
