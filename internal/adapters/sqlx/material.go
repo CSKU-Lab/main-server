@@ -129,7 +129,7 @@ func (m *materialRepository) GetByID(ctx context.Context, ID string) (*repositor
 	err := m.db.GetContext(ctx, record, query, ID)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Material not found"})
+			return nil, cserrors.New(&cserrors.Option{HttpStatus: http.StatusNotFound, Message: "Material not found"})
 		}
 		return nil, err
 	}

@@ -186,9 +186,9 @@ func (lm *sqlxLabMaterialRepository) GetByLabID(ctx context.Context, labID strin
 func (lm *sqlxLabMaterialRepository) GetPagination(ctx context.Context, page int, limit int, sortBy string, sortOrder string, filters []sanitize.Filter) ([]models.LabMaterial, error) {
 	filterWhereClause, filterArgs := buildFilterWhereClause(filters, 1)
 
-	baseQuery := `SELECT id, lab_id, material_id, position, created_at, updated_at FROM lab_materials WHERE is_deleted = false`
+	baseQuery := `SELECT lm.id, lm.lab_id, lm.material_id, lm.position, lm.created_at, lm.updated_at FROM lab_materials lm JOIN materials m ON lm.material_id = m.id AND m.is_deleted = false WHERE lm.is_deleted = false`
 	query := fmt.Sprintf(`%s%s
-		ORDER BY %s %s
+		ORDER BY lm.%s %s
 		OFFSET $%d
 		LIMIT $%d`, baseQuery, filterWhereClause, sortBy, sortOrder, len(filterArgs)+1, len(filterArgs)+2)
 
@@ -218,7 +218,7 @@ func (lm *sqlxLabMaterialRepository) GetPagination(ctx context.Context, page int
 func (lm *sqlxLabMaterialRepository) Count(ctx context.Context, filters []sanitize.Filter) (int, error) {
 	filterWhereClause, filterArgs := buildFilterWhereClause(filters, 1)
 
-	baseQuery := `SELECT COUNT(*) FROM lab_materials WHERE is_deleted = false`
+	baseQuery := `SELECT COUNT(*) FROM lab_materials lm JOIN materials m ON lm.material_id = m.id AND m.is_deleted = false WHERE lm.is_deleted = false`
 
 	query := baseQuery + filterWhereClause
 	var count int

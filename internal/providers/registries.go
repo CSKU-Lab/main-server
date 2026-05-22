@@ -20,10 +20,12 @@ func ProvideTypingSubmission(
 func NewPopulatedMaterialRegistry(
 	codeMat *registrables.CodeMaterial,
 	typingMat *registrables.TypingMaterial,
+	docMat *registrables.DocumentMaterial,
 ) registries.Material {
 	r := registries.NewMaterialRegistry()
 	r.Register("code", codeMat)
 	r.Register("typing", typingMat)
+	r.Register("document", docMat)
 	return r
 }
 
@@ -59,6 +61,7 @@ var RegistrySet = wire.NewSet(
 	NewPopulatedAffectedEntityFactory,
 	registrables.NewCodeMaterial,
 	registrables.NewTypingMaterial,
+	registrables.NewDocumentMaterial,
 	registrables.NewCodeSubmission,
 	ProvideTypingSubmission,
 	registrables.NewDeletedCourseAffected,

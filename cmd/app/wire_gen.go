@@ -86,7 +86,9 @@ func initializeApp(ctx context.Context, cfg *configs.Config, db *sqlx.DB, logger
 	}
 	codeMaterial := registrables.NewCodeMaterial(codeMaterialRepository, taskServiceClient, configServiceClient)
 	typingMaterial := registrables.NewTypingMaterial(typingMaterialRepository)
-	material := providers.NewPopulatedMaterialRegistry(codeMaterial, typingMaterial)
+	documentMaterialRepository := providers.NewDocumentMaterialRepository(db)
+	documentMaterial := registrables.NewDocumentMaterial(documentMaterialRepository)
+	material := providers.NewPopulatedMaterialRegistry(codeMaterial, typingMaterial, documentMaterial)
 	pubSub, err := providers.ProvideRedis(cfg)
 	if err != nil {
 		cleanup2()

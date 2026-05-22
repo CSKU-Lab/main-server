@@ -1006,6 +1006,26 @@ table "typing_materials" {
   }
 }
 
+table "document_materials" {
+  schema = schema.public
+  column "material_id" {
+    type = uuid
+  }
+  column "content" {
+    type    = text
+    null    = true
+    default = null
+  }
+  primary_key {
+    columns = [column.material_id]
+  }
+  foreign_key "fk_material_id" {
+    columns     = [column.material_id]
+    ref_columns = [table.materials.column.id]
+    on_delete   = CASCADE
+  }
+}
+
 table "typing_submissions" {
   schema = schema.public
   column "submission_id" {
