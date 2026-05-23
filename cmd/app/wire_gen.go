@@ -64,7 +64,7 @@ func initializeApp(ctx context.Context, cfg *configs.Config, db *sqlx.DB, logger
 	deletedSemesterAffected := registrables.NewDeletedSemesterAffected(semesterRepository, sectionRepository, courseRepository)
 	deletedSectionAffected := registrables.NewDeletedSectionAffected(sectionStudentRepository)
 	deletedLabAffected := registrables.NewDeletedLabAffected(labRepository, labSectionRepository, labMaterialRepository, defaultLabRepository, uoWRepository)
-	deletedLabSectionAffected := registrables.NewDeletedLabSectionAffected()
+	deletedLabSectionAffected := registrables.NewDeletedLabSectionAffected(labMaterialRepository, uoWRepository)
 	affectedEntitiesFactory := providers.NewPopulatedAffectedEntityFactory(deletedCourseAffected, deletedSemesterAffected, deletedSectionAffected, deletedLabAffected, deletedLabSectionAffected)
 	affectedEntitiesService := services.NewAffectedEntitiesService(affectedEntitiesFactory)
 	submissionRepository := providers.NewSubmissionRepository(db)
