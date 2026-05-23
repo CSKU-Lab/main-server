@@ -105,7 +105,10 @@ func (s *submissionService) GetGradebookBySectionID(ctx context.Context, ID stri
 		return nil, err
 	}
 
-	res := &models.Gradebook{}
+	res := &models.Gradebook{
+		LabCol:     []models.LabCol{},
+		StudentRow: []models.StudentRow{},
+	}
 	labMaterials := make(map[string][]*repositories.Material)
 
 	for _, lab := range labs {
