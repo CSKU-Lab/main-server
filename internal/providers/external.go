@@ -9,6 +9,7 @@ import (
 	graderPB "github.com/CSKU-Lab/main-server/genproto/grader/v1"
 	taskPB "github.com/CSKU-Lab/main-server/genproto/task/v1"
 	"github.com/CSKU-Lab/main-server/internal/adapters/pubsub"
+	"github.com/CSKU-Lab/main-server/internal/adapters/ratelimit"
 	"github.com/CSKU-Lab/main-server/internal/adapters/rest"
 	"github.com/CSKU-Lab/main-server/internal/adapters/storage/minio"
 	"github.com/CSKU-Lab/queue"
@@ -70,6 +71,10 @@ func ProvideRedis(cfg *configs.Config) (pubsub.PubSub, error) {
 	return pubsub.NewRedis(cfg.REDIS_ADDR, cfg.REDIS_PASSWORD)
 }
 
+func ProvideRateLimiter(cfg *configs.Config) (ratelimit.RateLimiter, error) {
+	return ratelimit.NewRedisRateLimiter(cfg.REDIS_ADDR, cfg.REDIS_PASSWORD)
+}
+
 func ProvideMinio(ctx context.Context, cfg *configs.Config) repositories.FileRepository {
 	return minio.New(ctx, cfg)
 }
@@ -87,6 +92,7 @@ var ExternalSet = wire.NewSet(
 	ProvideConfigClient,
 	ProvideTaskClient,
 	ProvideRedis,
+	ProvideRateLimiter,
 	ProvideMinio,
 	ProvideRabbitMQ,
 	NewPlaygroundHandler,

@@ -7,8 +7,11 @@ import (
 	configPB "github.com/CSKU-Lab/main-server/genproto/config/v1"
 	"github.com/CSKU-Lab/main-server/internal/adapters/middlewares"
 	"github.com/CSKU-Lab/main-server/internal/adapters/pubsub"
+	"github.com/CSKU-Lab/main-server/internal/adapters/ratelimit"
 	"github.com/CSKU-Lab/main-server/internal/adapters/rest"
 	"github.com/CSKU-Lab/queue"
+	"time"
+
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/cors"
 	"go.uber.org/zap"
@@ -43,6 +46,7 @@ func NewFiberApp(
 	configGRPCClient configPB.ConfigServiceClient,
 	q queue.Queue,
 	rClient pubsub.PubSub,
+	rateLimiter ratelimit.RateLimiter,
 	playgroundHandler *rest.PlaygroundHandler,
 ) *fiber.App {
 	app := fiber.New(fiber.Config{
@@ -98,8 +102,10 @@ func NewFiberApp(
 		TagService:              tagService,
 	})
 
+	coreApi := protectedApi.Group("/", middlewares.RateLimitMiddleware(rateLimiter, 60, time.Minute))
+
 	rest.NewCoreRouter(&rest.CoreRouter{
-		Router:                  protectedApi,
+		Router:                  coreApi,
 		SectionService:          sectionService,
 		LabSectionService:       labSectionService,
 		LabService:              labService,

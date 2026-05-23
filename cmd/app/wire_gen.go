@@ -109,6 +109,12 @@ func initializeApp(ctx context.Context, cfg *configs.Config, db *sqlx.DB, logger
 		cleanup()
 		return nil, nil, err
 	}
+	rateLimiter, err := providers.ProvideRateLimiter(cfg)
+	if err != nil {
+		cleanup2()
+		cleanup()
+		return nil, nil, err
+	}
 	graderServiceClient, cleanup3, err := providers.ProvideGraderClient(cfg)
 	if err != nil {
 		cleanup2()
@@ -116,7 +122,7 @@ func initializeApp(ctx context.Context, cfg *configs.Config, db *sqlx.DB, logger
 		return nil, nil, err
 	}
 	playgroundHandler := providers.NewPlaygroundHandler(graderServiceClient)
-	app := providers.NewFiberApp(cfg, logger, errorHandlerMiddleware, userService, refreshTokenService, userGroupService, courseService, courseEnrollmentService, semesterService, sectionLogService, sectionService, sectionStudentService, tagService, materialAssetService, labService, labSectionService, labMaterialService, defaultLabService, affectedEntitiesService, submissionService, sidebarService, gradebookExportService, materialService, searchService, service, configServiceClient, queue, pubSub, playgroundHandler)
+	app := providers.NewFiberApp(cfg, logger, errorHandlerMiddleware, userService, refreshTokenService, userGroupService, courseService, courseEnrollmentService, semesterService, sectionLogService, sectionService, sectionStudentService, tagService, materialAssetService, labService, labSectionService, labMaterialService, defaultLabService, affectedEntitiesService, submissionService, sidebarService, gradebookExportService, materialService, searchService, service, configServiceClient, queue, pubSub, rateLimiter, playgroundHandler)
 	return app, func() {
 		cleanup3()
 		cleanup2()
