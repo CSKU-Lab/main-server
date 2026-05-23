@@ -169,7 +169,7 @@ func (s *sectionService) SetDefaultLabs(ctx context.Context, sectionID string, c
 				ID:        labSecID.String(),
 				Status:    "hidden",
 				OpenedAt:  nil,
-				ClosedAt:  nil,
+				ReadonlyAt:  nil,
 			})
 			if err != nil {
 				return err

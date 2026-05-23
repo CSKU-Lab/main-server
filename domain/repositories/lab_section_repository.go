@@ -16,7 +16,7 @@ type CreateLabSectionParams struct {
 	ID        string
 	Status    string
 	OpenedAt  *time.Time
-	ClosedAt  *time.Time
+	ReadonlyAt *time.Time
 }
 
 type LabSectionRepository interface {

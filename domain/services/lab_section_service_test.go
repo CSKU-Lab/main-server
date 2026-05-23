@@ -41,12 +41,12 @@ func TestApplyLabSectionScheduleSetsOpenedAtWhenOpening(t *testing.T) {
 	if req.OpenedAt == nil {
 		t.Fatal("expected opened_at to be set when opening without dates")
 	}
-	if req.ClosedAt != nil {
-		t.Fatal("did not expect closed_at to be set when opening without dates")
+	if req.ReadonlyAt != nil {
+		t.Fatal("did not expect readonly_at to be set when opening without dates")
 	}
 }
 
-func TestApplyLabSectionScheduleSetsClosedAtWhenClosing(t *testing.T) {
+func TestApplyLabSectionScheduleSetsReadonlyAtWhenClosing(t *testing.T) {
 	service := &labSectionService{}
 	status := "readonly"
 	req := &requests.UpdateLabSectionStatus{Status: &status}
@@ -55,8 +55,8 @@ func TestApplyLabSectionScheduleSetsClosedAtWhenClosing(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if req.ClosedAt == nil {
-		t.Fatal("expected closed_at to be set when closing without dates")
+	if req.ReadonlyAt == nil {
+		t.Fatal("expected readonly_at to be set when closing without dates")
 	}
 	if req.OpenedAt != nil {
 		t.Fatal("did not expect opened_at to be set when closing without dates")
@@ -89,12 +89,70 @@ func TestApplyLabSectionScheduleRejectsInvalidRange(t *testing.T) {
 	req := &requests.UpdateLabSectionStatus{
 		Status:   &status,
 		OpenedAt: &openedAt,
-		ClosedAt: &closedAt,
+		ReadonlyAt: &closedAt,
 	}
 
 	err := service.applyLabSectionSchedule(req, &models.LabSection{Status: "open"})
 	if err == nil {
-		t.Fatal("expected error for opened_at after closed_at")
+		t.Fatal("expected error for opened_at after readonly_at")
+	}
+	var csErr *cserrors.Error
+	if !errors.As(err, &csErr) {
+		t.Fatalf("expected cserrors.Error, got %T", err)
+	}
+}
+
+func TestApplyLabSectionForceOpenSetsOpenedAtNow(t *testing.T) {
+	service := &labSectionService{}
+	status := "open"
+	force := true
+	req := &requests.UpdateLabSectionStatus{Status: &status, Force: &force}
+
+	for _, fromStatus := range []string{"hidden", "readonly", "disabled"} {
+		req.OpenedAt = nil
+		req.ReadonlyAt = nil
+		err := service.applyLabSectionSchedule(req, &models.LabSection{Status: fromStatus})
+		if err != nil {
+			t.Fatalf("force open from %s: unexpected error: %v", fromStatus, err)
+		}
+		if req.OpenedAt == nil {
+			t.Fatalf("force open from %s: expected opened_at to be set", fromStatus)
+		}
+		if req.ReadonlyAt != nil {
+			t.Fatalf("force open from %s: expected readonly_at to be nil", fromStatus)
+		}
+	}
+}
+
+func TestApplyLabSectionForceNonOpenClearsTimes(t *testing.T) {
+	service := &labSectionService{}
+	force := true
+	for _, toStatus := range []string{"hidden", "readonly", "disabled"} {
+		status := toStatus
+		req := &requests.UpdateLabSectionStatus{Status: &status, Force: &force}
+		err := service.applyLabSectionSchedule(req, &models.LabSection{Status: "open"})
+		if err != nil {
+			t.Fatalf("force %s: unexpected error: %v", toStatus, err)
+		}
+		if req.OpenedAt != nil {
+			t.Fatalf("force %s: expected opened_at to be nil", toStatus)
+		}
+		if req.ReadonlyAt != nil {
+			t.Fatalf("force %s: expected readonly_at to be nil", toStatus)
+		}
+	}
+}
+
+func TestApplyLabSectionForceRejectsTimestamps(t *testing.T) {
+	service := &labSectionService{}
+	status := "open"
+	force := true
+	openedAt := time.Now()
+	req := &requests.UpdateLabSectionStatus{Status: &status, Force: &force, OpenedAt: &openedAt}
+
+	err := service.applyLabSectionSchedule(req, &models.LabSection{Status: "hidden"})
+	if err == nil {
+		t.Fatal("expected error when force=true with timestamps")
 	}
 	var csErr *cserrors.Error
 	if !errors.As(err, &csErr) {

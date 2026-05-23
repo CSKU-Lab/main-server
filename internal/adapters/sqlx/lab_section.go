@@ -22,7 +22,7 @@ type labSectionSchema struct {
 	Position  int        `db:"position"`
 	Status    string     `db:"status"`
 	OpenedAt  *time.Time `db:"opened_at"`
-	ClosedAt  *time.Time `db:"closed_at"`
+	ReadonlyAt  *time.Time `db:"readonly_at"`
 	CreatedAt time.Time  `db:"created_at"`
 	UpdatedAt time.Time  `db:"updated_at"`
 }
@@ -36,9 +36,9 @@ func NewSqlxLabSectionRepository(db instance) repositories.LabSectionRepository 
 }
 
 func (ls *sqlxLabSectionRepository) Create(ctx context.Context, params repositories.CreateLabSectionParams) error {
-	query := `INSERT INTO lab_sections (lab_id, section_id, position, id, status, opened_at, closed_at)
+	query := `INSERT INTO lab_sections (lab_id, section_id, position, id, status, opened_at, readonly_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)`
-	_, err := ls.db.ExecContext(ctx, query, params.LabID, params.SectionID, params.Position, params.ID, params.Status, params.OpenedAt, params.ClosedAt)
+	_, err := ls.db.ExecContext(ctx, query, params.LabID, params.SectionID, params.Position, params.ID, params.Status, params.OpenedAt, params.ReadonlyAt)
 	if err != nil {
 		return err
 	}
@@ -120,7 +120,7 @@ func (ls *sqlxLabSectionRepository) GetMaxPosition(ctx context.Context, sectionI
 func (ls *sqlxLabSectionRepository) GetPagination(ctx context.Context, page int, limit int, sortBy string, sortOrder string, filters []sanitize.Filter) ([]models.LabSection, error) {
 	filterWhereClause, filterArgs := buildFilterWhereClause(filters, 1)
 
-	baseQuery := `SELECT ls.id, ls.lab_id, ls.section_id, ls.position, ls.status, ls.opened_at, ls.closed_at, ls.created_at, ls.updated_at
+	baseQuery := `SELECT ls.id, ls.lab_id, ls.section_id, ls.position, ls.status, ls.opened_at, ls.readonly_at, ls.created_at, ls.updated_at
 		FROM lab_sections ls
 		JOIN labs l ON ls.lab_id = l.id
 		WHERE ls.is_deleted = false`
@@ -147,7 +147,7 @@ func (ls *sqlxLabSectionRepository) GetPagination(ctx context.Context, page int,
 			Position:  labSection.Position,
 			Status:    labSection.Status,
 			OpenedAt:  labSection.OpenedAt,
-			ClosedAt:  labSection.ClosedAt,
+			ReadonlyAt:  labSection.ReadonlyAt,
 			CreatedAt: labSection.CreatedAt,
 			UpdatedAt: labSection.UpdatedAt,
 		})
@@ -191,6 +191,19 @@ func (ls *sqlxLabSectionRepository) UpdateByID(ctx context.Context, labID string
 }
 
 func (ls *sqlxLabSectionRepository) UpdateStatusByID(ctx context.Context, labID string, sectionID string, id string, req *requests.UpdateLabSectionStatus) error {
+	if req.ClearTimes {
+		status := ""
+		if req.Status != nil {
+			status = *req.Status
+		}
+		_, err := ls.db.ExecContext(ctx, `
+			UPDATE lab_sections
+			SET status = $1, opened_at = $2, readonly_at = $3, updated_at = NOW()
+			WHERE lab_id = $4 AND section_id = $5 AND id = $6 AND is_deleted = false
+		`, status, req.OpenedAt, req.ReadonlyAt, labID, sectionID, id)
+		return err
+	}
+
 	updatedSchema := &labSectionSchema{
 		ID:        id,
 		LabID:     labID,
@@ -203,8 +216,8 @@ func (ls *sqlxLabSectionRepository) UpdateStatusByID(ctx context.Context, labID 
 	if req.OpenedAt != nil {
 		updatedSchema.OpenedAt = req.OpenedAt
 	}
-	if req.ClosedAt != nil {
-		updatedSchema.ClosedAt = req.ClosedAt
+	if req.ReadonlyAt != nil {
+		updatedSchema.ReadonlyAt = req.ReadonlyAt
 	}
 
 	updateFields := getUpdateFields(updatedSchema)
@@ -224,8 +237,7 @@ func (ls *sqlxLabSectionRepository) UpdateStatusByID(ctx context.Context, labID 
 		return err
 	}
 
-	query =
-		ls.db.Rebind(query)
+	query = ls.db.Rebind(query)
 
 	_, err = ls.db.ExecContext(ctx, query, args...)
 	if err != nil {
@@ -287,7 +299,7 @@ func (ls *sqlxLabSectionRepository) GetBySectionID(ctx context.Context, sectionI
 }
 
 func (ls *sqlxLabSectionRepository) GetByID(ctx context.Context, labID string, sectionID string) (*models.LabSection, error) {
-	query := `SELECT id, lab_id, section_id, position, status, opened_at, closed_at, created_at, updated_at FROM lab_sections WHERE lab_id = $1 AND section_id = $2 AND is_deleted = false`
+	query := `SELECT id, lab_id, section_id, position, status, opened_at, readonly_at, created_at, updated_at FROM lab_sections WHERE lab_id = $1 AND section_id = $2 AND is_deleted = false`
 
 	labSectionSchema := &labSectionSchema{}
 	err := ls.db.GetContext(ctx, labSectionSchema, query, labID, sectionID)
@@ -305,7 +317,7 @@ func (ls *sqlxLabSectionRepository) GetByID(ctx context.Context, labID string, s
 		Position:  labSectionSchema.Position,
 		Status:    labSectionSchema.Status,
 		OpenedAt:  labSectionSchema.OpenedAt,
-		ClosedAt:  labSectionSchema.ClosedAt,
+		ReadonlyAt:  labSectionSchema.ReadonlyAt,
 		CreatedAt: labSectionSchema.CreatedAt,
 		UpdatedAt: labSectionSchema.UpdatedAt,
 	}, nil
@@ -316,7 +328,7 @@ func (ls *sqlxLabSectionRepository) GetByLabID(
 	labID string,
 ) ([]models.LabSection, error) {
 	query := `
-		SELECT id, lab_id, section_id, position, status, opened_at, closed_at, created_at, updated_at
+		SELECT id, lab_id, section_id, position, status, opened_at, readonly_at, created_at, updated_at
 		FROM lab_sections
 		WHERE lab_id = $1 AND is_deleted = false
 	`
@@ -337,7 +349,7 @@ func (ls *sqlxLabSectionRepository) GetByLabID(
 			Position:  ls.Position,
 			Status:    ls.Status,
 			OpenedAt:  ls.OpenedAt,
-			ClosedAt:  ls.ClosedAt,
+			ReadonlyAt:  ls.ReadonlyAt,
 			CreatedAt: ls.CreatedAt,
 			UpdatedAt: ls.UpdatedAt,
 		})

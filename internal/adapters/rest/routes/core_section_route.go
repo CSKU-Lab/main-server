@@ -95,8 +95,8 @@ func NewCoreSectionRoute(router fiber.Router, sectionService services.SectionSer
 
 		return c.JSON(models.CoreLabResponse{
 			Name:          lab.DisplayName,
-			Status:        labSec.Status,
-			ClosedAt:      labSec.ClosedAt,
+			Status:        labSec.EffectiveStatus(),
+			ReadonlyAt:    labSec.ReadonlyAt,
 			StudentStatus: studentStatus,
 		})
 	})
@@ -152,7 +152,7 @@ func NewCoreSectionRoute(router fiber.Router, sectionService services.SectionSer
 		type labSectionResponse struct {
 			ID                 string     `json:"id"`
 			Name               string     `json:"name"`
-			ClosedAt           *time.Time `json:"closed_at,omitempty"`
+			ReadonlyAt           *time.Time `json:"readonly_at,omitempty"`
 			Status             string     `json:"status,omitempty"`
 			TotalMaterials     int        `json:"total_materials"`
 			CompletedMaterials int        `json:"completed_materials"`
@@ -200,8 +200,8 @@ func NewCoreSectionRoute(router fiber.Router, sectionService services.SectionSer
 			responseSections[i] = labSectionResponse{
 				ID:                 section.LabID,
 				Name:               lab.DisplayName,
-				ClosedAt:           section.ClosedAt,
-				Status:             section.Status,
+				ReadonlyAt:         section.ReadonlyAt,
+				Status:             section.EffectiveStatus(),
 				TotalMaterials:     totalMaterials,
 				CompletedMaterials: completedMaterials,
 				StudentStatus:      studentStatus,

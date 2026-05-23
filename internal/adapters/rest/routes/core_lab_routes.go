@@ -41,9 +41,9 @@ func NewCoreLabRoute(router fiber.Router, sectionService services.SectionService
 		}
 
 		return c.Status(fiber.StatusOK).JSON(models.CoreLabResponse{
-			Name:     lab.DisplayName,
-			Status:   labSection.Status,
-			ClosedAt: labSection.ClosedAt,
+			Name:       lab.DisplayName,
+			Status:     labSection.EffectiveStatus(),
+			ReadonlyAt: labSection.ReadonlyAt,
 		})
 	})
 

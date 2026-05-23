@@ -216,7 +216,7 @@ func (ls *labSectionService) Create(ctx context.Context, req *requests.SetLabSec
 			ID:        ID.String(),
 			Status:    "hidden",
 			OpenedAt:  nil,
-			ClosedAt:  nil,
+			ReadonlyAt:  nil,
 		})
 		if err != nil {
 			return err
@@ -312,9 +312,10 @@ func (ls *labSectionService) UpdateStatus(ctx context.Context, userID string, se
 	}
 
 	updateReq := &requests.UpdateLabSectionStatus{
-		Status:   req.Status,
-		OpenedAt: req.OpenedAt,
-		ClosedAt: req.ClosedAt,
+		Status:     req.Status,
+		OpenedAt:   req.OpenedAt,
+		ReadonlyAt: req.ReadonlyAt,
+		Force:      req.Force,
 	}
 
 	err = ls.applyLabSectionSchedule(updateReq, labSection)
@@ -334,40 +335,72 @@ func (ls *labSectionService) applyLabSectionSchedule(req *requests.UpdateLabSect
 		status = current.Status
 	}
 
-	if status == "disabled" {
-		if req.OpenedAt != nil || req.ClosedAt != nil {
+	if req.Force != nil && *req.Force {
+		if req.OpenedAt != nil || req.ReadonlyAt != nil {
 			return cserrors.New(&cserrors.Option{
 				HttpStatus: http.StatusBadRequest,
-				Message:    "opened_at and closed_at are not allowed for disabled status",
+				Message:    "opened_at and readonly_at must be empty when force is true",
 			})
 		}
+		now := time.Now()
+		switch status {
+		case "open":
+			req.OpenedAt = &now
+			req.ReadonlyAt = nil
+			req.ClearTimes = true
+		default:
+			req.OpenedAt = nil
+			req.ReadonlyAt = nil
+			req.ClearTimes = true
+		}
+		return nil
+	}
+
+	if status == "disabled" {
+		if req.OpenedAt != nil || req.ReadonlyAt != nil {
+			return cserrors.New(&cserrors.Option{
+				HttpStatus: http.StatusBadRequest,
+				Message:    "opened_at and readonly_at are not allowed for disabled status",
+			})
+		}
+		req.ClearTimes = true
 		return nil
 	}
 	if status != "" && status != "hidden" && status != "open" && status != "readonly" {
 		return cserrors.New(&cserrors.Option{
 			HttpStatus: http.StatusBadRequest,
-			Message:    "status must be hidden, open or readonly when using opened_at/closed_at",
+			Message:    "status must be hidden, open or readonly when using opened_at/readonly_at",
 		})
 	}
-	if req.OpenedAt == nil && req.ClosedAt == nil {
+	if status == "readonly" && req.OpenedAt != nil {
+		return cserrors.New(&cserrors.Option{
+			HttpStatus: http.StatusBadRequest,
+			Message:    "opened_at is not allowed for readonly status",
+		})
+	}
+	if req.OpenedAt == nil && req.ReadonlyAt == nil {
 		switch status {
 		case "open":
 			if current.OpenedAt == nil {
 				now := time.Now()
 				req.OpenedAt = &now
 			}
+			req.ClearTimes = true
 		case "readonly":
-			if current.ClosedAt == nil {
+			if current.ReadonlyAt == nil {
 				now := time.Now()
-				req.ClosedAt = &now
+				req.ReadonlyAt = &now
 			}
+			req.ClearTimes = true
+		case "hidden":
+			req.ClearTimes = true
 		}
 		return nil
 	}
 	if status == "" {
 		return cserrors.New(&cserrors.Option{
 			HttpStatus: http.StatusBadRequest,
-			Message:    "status is required when opened_at or closed_at is provided",
+			Message:    "status is required when opened_at or readonly_at is provided",
 		})
 	}
 
@@ -375,20 +408,20 @@ func (ls *labSectionService) applyLabSectionSchedule(req *requests.UpdateLabSect
 	if effectiveOpenedAt == nil {
 		effectiveOpenedAt = current.OpenedAt
 	}
-	effectiveClosedAt := req.ClosedAt
-	if effectiveClosedAt == nil {
-		effectiveClosedAt = current.ClosedAt
+	effectiveReadonlyAt := req.ReadonlyAt
+	if effectiveReadonlyAt == nil {
+		effectiveReadonlyAt = current.ReadonlyAt
 	}
 
-	if effectiveOpenedAt != nil && effectiveClosedAt != nil && effectiveOpenedAt.After(*effectiveClosedAt) {
+	if effectiveOpenedAt != nil && effectiveReadonlyAt != nil && effectiveOpenedAt.After(*effectiveReadonlyAt) {
 		return cserrors.New(&cserrors.Option{
 			HttpStatus: http.StatusBadRequest,
-			Message:    "opened_at must be before closed_at",
+			Message:    "opened_at must be before readonly_at",
 		})
 	}
 
 	now := time.Now()
-	derivedStatus := deriveScheduledStatus(now, effectiveOpenedAt, effectiveClosedAt)
+	derivedStatus := deriveScheduledStatus(now, effectiveOpenedAt, effectiveReadonlyAt)
 	req.Status = &derivedStatus
 	return nil
 }

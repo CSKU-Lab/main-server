@@ -17,6 +17,6 @@ type Lab struct {
 type CoreLabResponse struct {
 	Name          string     `json:"name"`
 	Status        string     `json:"status"`
-	ClosedAt      *time.Time `json:"closed_at"`
+	ReadonlyAt    *time.Time `json:"readonly_at"`
 	StudentStatus string     `json:"student_status"`
 }

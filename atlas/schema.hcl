@@ -634,7 +634,7 @@ table "lab_sections" {
     type = timestamp
     null = true
   }
-  column "closed_at" {
+  column "readonly_at" {
     type = timestamp
     null = true
   }

@@ -42,9 +42,11 @@ type (
 		LabID    string `json:"lab_id"`
 	}
 	UpdateLabSectionStatus struct {
-		Status   *string    `json:"status"`
-		OpenedAt *time.Time `json:"opened_at"`
-		ClosedAt *time.Time `json:"closed_at"`
+		Status     *string    `json:"status"`
+		OpenedAt   *time.Time `json:"opened_at"`
+		ReadonlyAt *time.Time `json:"readonly_at"`
+		Force      *bool      `json:"force"`
+		ClearTimes bool       `json:"-"`
 	}
 	DeleteLabSection struct {
 		LabIDs []string `json:"lab_ids"`
@@ -102,7 +104,7 @@ func (ls *UpdateLabSectionStatus) Validate() error {
 			validation.In("hidden", "open", "readonly", "disabled"),
 		),
 		validation.Field(&ls.OpenedAt, validation.Skip.When(ls.OpenedAt == nil)),
-		validation.Field(&ls.ClosedAt, validation.Skip.When(ls.ClosedAt == nil)),
+		validation.Field(&ls.ReadonlyAt, validation.Skip.When(ls.ReadonlyAt == nil)),
 	)
 }
 

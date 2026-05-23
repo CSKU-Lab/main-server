@@ -352,7 +352,7 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 			Position int        `json:"position"`
 			Status   string     `json:"status"`
 			OpenedAt *time.Time `json:"opened_at"`
-			ClosedAt *time.Time `json:"closed_at"`
+			ReadonlyAt *time.Time `json:"readonly_at"`
 			LabName  string     `json:"lab_name"`
 		}
 
@@ -364,12 +364,12 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 			}
 
 			responseSections[i] = labSectionResponse{
-				LabID:    section.LabID,
-				Position: section.Position,
-				Status:   section.Status,
-				OpenedAt: section.OpenedAt,
-				ClosedAt: section.ClosedAt,
-				LabName:  lab.DisplayName,
+				LabID:      section.LabID,
+				Position:   section.Position,
+				Status:     section.EffectiveStatus(),
+				OpenedAt:   section.OpenedAt,
+				ReadonlyAt: section.ReadonlyAt,
+				LabName:    lab.DisplayName,
 			}
 		}
 
@@ -416,16 +416,16 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 			LabName           string     `json:"lab_name"`
 			Status            string     `json:"status"`
 			OpenedAt          *time.Time `json:"opened_at"`
-			ClosedAt          *time.Time `json:"closed_at"`
+			ReadonlyAt          *time.Time `json:"readonly_at"`
 			CompletedStudents int        `json:"completed_students"`
 			TotalStudents     int        `json:"total_students"`
 		}
 
 		return c.JSON(labDetailResponse{
 			LabName:           lab.DisplayName,
-			Status:            labSection.Status,
+			Status:            labSection.EffectiveStatus(),
 			OpenedAt:          labSection.OpenedAt,
-			ClosedAt:          labSection.ClosedAt,
+			ReadonlyAt:        labSection.ReadonlyAt,
 			CompletedStudents: completedStudents,
 			TotalStudents:     totalStudents,
 		})
