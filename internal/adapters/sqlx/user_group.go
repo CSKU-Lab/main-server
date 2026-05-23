@@ -70,8 +70,8 @@ func (r *userGroupRepository) GetByName(ctx context.Context, name string) (*mode
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, cserrors.New(&cserrors.Option{
-				HttpStatus: http.StatusInternalServerError,
-				Message:    "User not found",
+				HttpStatus: http.StatusNotFound,
+				Message:    "User group not found",
 			})
 		}
 		return nil, err

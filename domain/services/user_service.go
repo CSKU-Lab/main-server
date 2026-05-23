@@ -297,9 +297,23 @@ func (s *userService) Create(ctx context.Context, req *requests.CreateMultiTypeU
 		if req.Group != nil {
 			userGroup, err := u.UserGroup().GetByName(ctx, *req.Group)
 			if err != nil {
-				return err
+				var csErr *cserrors.Error
+				if errors.As(err, &csErr) && csErr.HttpStatus == http.StatusNotFound {
+					groupID, genErr := uuid.NewV7()
+					if genErr != nil {
+						return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Cannot generate group ID"})
+					}
+					if createErr := u.UserGroup().Create(ctx, groupID.String(), *req.Group); createErr != nil {
+						return createErr
+					}
+					gid := groupID.String()
+					repoUser.GroupID = &gid
+				} else {
+					return err
+				}
+			} else {
+				repoUser.GroupID = &userGroup.ID
 			}
-			repoUser.GroupID = &userGroup.ID
 		}
 
 		err := u.User().Create(ctx, repoUser)
