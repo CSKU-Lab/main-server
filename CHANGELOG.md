@@ -1,3 +1,16 @@
+# [0.11.0](https://github.com/CSKU-Lab/main-server/compare/v0.10.0...v0.11.0) (2026-05-23)
+
+
+### Bug Fixes
+
+* empty submission gradebook return null ([992a9d1](https://github.com/CSKU-Lab/main-server/commit/992a9d17b3a73d9d72a585a492f736a5715b833e))
+
+
+### Features
+
+* add section lab affected entities ([71280b6](https://github.com/CSKU-Lab/main-server/commit/71280b6fa0cce3ed977b219608b17b646dbd2966))
+* **core:** add search route for command palette ([e5a5da8](https://github.com/CSKU-Lab/main-server/commit/e5a5da8ed305237002e25dff987d6da11957530d))
+
 # [0.10.0](https://github.com/CSKU-Lab/main-server/compare/v0.9.1...v0.10.0) (2026-05-23)
 
 
