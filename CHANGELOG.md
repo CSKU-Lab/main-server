@@ -1,3 +1,10 @@
+## [0.9.1](https://github.com/CSKU-Lab/main-server/compare/v0.9.0...v0.9.1) (2026-05-23)
+
+
+### Bug Fixes
+
+* import user ([6ca1695](https://github.com/CSKU-Lab/main-server/commit/6ca1695e98ed4d28011f645952e928a2615089cc))
+
 # [0.9.0](https://github.com/CSKU-Lab/main-server/compare/v0.8.0...v0.9.0) (2026-05-22)
 
 
