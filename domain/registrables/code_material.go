@@ -38,7 +38,7 @@ type File struct {
 	Content string `json:"content"`
 }
 
-type Limit struct {
+type Limits struct {
 	CpuTime      float32 `json:"cpu_time"`
 	CpuExtraTime float32 `json:"cpu_extra_time"`
 	WallTime     float32 `json:"wall_time"`
@@ -95,7 +95,7 @@ type CodeMaterialPayload struct {
 	CompareScriptID *string          `json:"compare_script_id,omitempty"`
 	Solution        *Solution        `json:"solution,omitempty"`
 	ResourceFiles   []File           `json:"resource_files,omitempty"`
-	Limit           *Limit           `json:"limit,omitempty"`
+	Limits          *Limits          `json:"limits,omitempty"`
 	HideTestCases   *bool            `json:"hide_test_cases"`
 }
 
@@ -107,7 +107,7 @@ type CodeMaterialResponse struct {
 	TestCaseGroups []TestCaseGroup         `json:"test_case_groups"`
 	AllowedRunners []AllowedRunnerResponse `json:"allowed_runners"`
 	CompareScript  *CompareScript          `json:"compare_script"`
-	Limit          *Limit                  `json:"limit"`
+	Limits         *Limits                 `json:"limits"`
 	HideTestCases  bool                    `json:"hide_test_cases"`
 }
 
@@ -167,9 +167,9 @@ func (c *CodeMaterial) GetByID(ctx context.Context, ID string) (any, error) {
 	}
 
 	// Build limit
-	var limit *Limit
+	var limit *Limits
 	if task.Limit != nil {
-		limit = &Limit{
+		limit = &Limits{
 			CpuTime:      task.GetLimit().GetCpuTime(),
 			CpuExtraTime: task.GetLimit().GetCpuExtraTime(),
 			WallTime:     task.GetLimit().GetWallTime(),
@@ -214,7 +214,7 @@ func (c *CodeMaterial) GetByID(ctx context.Context, ID string) (any, error) {
 		TestCaseGroups: make([]TestCaseGroup, len(task.GetTestCaseGroups())),
 		Solution:       solution,
 		ResourceFiles:  resourceFiles,
-		Limit:          limit,
+		Limits:         limit,
 	}
 
 	// Build allowed runners (runner metadata from config + custom files from task)
@@ -391,16 +391,16 @@ func (c *CodeMaterial) UpdateByID(ctx context.Context, ID string, req *requests.
 
 	// Build limit
 	var limit *taskPB.Limit
-	if payload.Limit != nil {
+	if payload.Limits != nil {
 		limit = &taskPB.Limit{
-			CpuTime:      payload.Limit.CpuTime,
-			CpuExtraTime: payload.Limit.CpuExtraTime,
-			WallTime:     payload.Limit.WallTime,
-			Memory:       payload.Limit.Memory,
-			Stack:        payload.Limit.Stack,
-			MaxOpenFiles: payload.Limit.MaxOpenFiles,
-			MaxFileSize:  payload.Limit.MaxFileSize,
-			NetworkAllow: payload.Limit.NetworkAllow,
+			CpuTime:      payload.Limits.CpuTime,
+			CpuExtraTime: payload.Limits.CpuExtraTime,
+			WallTime:     payload.Limits.WallTime,
+			Memory:       payload.Limits.Memory,
+			Stack:        payload.Limits.Stack,
+			MaxOpenFiles: payload.Limits.MaxOpenFiles,
+			MaxFileSize:  payload.Limits.MaxFileSize,
+			NetworkAllow: payload.Limits.NetworkAllow,
 		}
 	}
 
@@ -440,7 +440,7 @@ func (c *CodeMaterial) Clone(ctx context.Context, sourceID string, targetID stri
 		Description:    sourcePayload.Description,
 		TestCaseGroups: &testCaseGroups,
 		ResourceFiles:  sourcePayload.ResourceFiles,
-		Limit:          sourcePayload.Limit,
+		Limits:         sourcePayload.Limits,
 		HideTestCases:  &sourcePayload.HideTestCases,
 	}
 

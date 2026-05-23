@@ -542,11 +542,11 @@ func (s *materialService) filterPayloadForUser(materialType string, payload any)
 				Description    *string             `json:"description"`
 				AllowedRunners []studentRunner     `json:"allowed_runners"`
 				ResourceFiles  []registrables.File `json:"resource_files"`
-				Limit          any                 `json:"limit"`
+				Limits         any                 `json:"limits"`
 			}{
 				Description:    codePayload.Description,
 				AllowedRunners: filteredRunners,
-				Limit:          codePayload.Limit,
+				Limits:         codePayload.Limits,
 				ResourceFiles:  codePayload.ResourceFiles,
 			}
 		}
