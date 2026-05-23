@@ -1,3 +1,17 @@
+# [0.10.0](https://github.com/CSKU-Lab/main-server/compare/v0.9.1...v0.10.0) (2026-05-23)
+
+
+### Bug Fixes
+
+* enforce user validation on create ([1d32147](https://github.com/CSKU-Lab/main-server/commit/1d32147e0854a04cb7649a0c58ac8d2e44a41499))
+* response error back when add non student user to the section ([b7f8b7c](https://github.com/CSKU-Lab/main-server/commit/b7f8b7c3a940d4008d374509540ccffce0e65e82))
+
+
+### Features
+
+* add section lab search ([42c7377](https://github.com/CSKU-Lab/main-server/commit/42c7377ee0be6a7b12c87a53a817a25da61dab02))
+* improve section lab status to able to force status ([fa77188](https://github.com/CSKU-Lab/main-server/commit/fa771882501992e6feeee1bffc0d8b03d41f67ea))
+
 ## [0.9.1](https://github.com/CSKU-Lab/main-server/compare/v0.9.0...v0.9.1) (2026-05-23)
 
 
