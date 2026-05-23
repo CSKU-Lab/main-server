@@ -1,3 +1,10 @@
+## [0.12.1](https://github.com/CSKU-Lab/main-server/compare/v0.12.0...v0.12.1) (2026-05-23)
+
+
+### Bug Fixes
+
+* change typo from Limit -> Limits ([114176d](https://github.com/CSKU-Lab/main-server/commit/114176d4fb427bafca2a536d0f46099030f269d7))
+
 # [0.12.0](https://github.com/CSKU-Lab/main-server/compare/v0.11.0...v0.12.0) (2026-05-23)
 
 
