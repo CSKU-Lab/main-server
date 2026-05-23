@@ -8,4 +8,5 @@ import (
 
 type SearchRepository interface {
 	Search(ctx context.Context, q string, limit int) (*models.SearchResult, error)
+	SearchForStudent(ctx context.Context, userID, q string, limit int) (*models.CoreSearchResult, error)
 }

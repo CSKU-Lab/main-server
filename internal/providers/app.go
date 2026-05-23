@@ -111,6 +111,7 @@ func NewFiberApp(
 		SidebarService:          sidebarService,
 		MaterialService:         materialService,
 		SubmissionService:       submissionService,
+		SearchService:           searchService,
 		PubSub:                  rClient,
 		PermissionService:       permissionService,
 		Secret:                  cfg.JWTSecret,

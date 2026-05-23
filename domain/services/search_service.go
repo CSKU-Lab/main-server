@@ -9,6 +9,7 @@ import (
 
 type SearchService interface {
 	Search(ctx context.Context, q string, limit int) (*models.SearchResult, error)
+	SearchForStudent(ctx context.Context, userID, q string, limit int) (*models.CoreSearchResult, error)
 }
 
 type searchService struct {
@@ -21,4 +22,8 @@ func NewSearchService(searchRepo repositories.SearchRepository) SearchService {
 
 func (s *searchService) Search(ctx context.Context, q string, limit int) (*models.SearchResult, error) {
 	return s.searchRepo.Search(ctx, q, limit)
+}
+
+func (s *searchService) SearchForStudent(ctx context.Context, userID, q string, limit int) (*models.CoreSearchResult, error) {
+	return s.searchRepo.SearchForStudent(ctx, userID, q, limit)
 }

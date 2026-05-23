@@ -11,21 +11,22 @@ import (
 )
 
 type CoreRouter struct {
-	Router                   fiber.Router
-	SectionService           services.SectionService
-	LabSectionService        services.LabSectionService
-	LabService               services.LabService
-	SectionStudentService    services.SectionStudentService
-	LabMaterialService       services.LabMaterialService
-	CourseService            services.CourseService
-	CourseEnrollmentService  services.CourseEnrollmentService
-	DefaultLabService        services.DefaultLabService
-	SidebarService           services.SidebarService
-	MaterialService          services.MaterialService
-	SubmissionService        services.SubmissionService
-	PubSub                   pubsub.PubSub
-	PermissionService        permission.Service
-	Secret                   string
+	Router                  fiber.Router
+	SectionService          services.SectionService
+	LabSectionService       services.LabSectionService
+	LabService              services.LabService
+	SectionStudentService   services.SectionStudentService
+	LabMaterialService      services.LabMaterialService
+	CourseService           services.CourseService
+	CourseEnrollmentService services.CourseEnrollmentService
+	DefaultLabService       services.DefaultLabService
+	SidebarService          services.SidebarService
+	MaterialService         services.MaterialService
+	SubmissionService       services.SubmissionService
+	SearchService           services.SearchService
+	PubSub                  pubsub.PubSub
+	PermissionService       permission.Service
+	Secret                  string
 }
 
 func NewCoreRouter(r *CoreRouter) {
@@ -92,5 +93,10 @@ func NewCoreRouter(r *CoreRouter) {
 		r.CourseEnrollmentService,
 		r.LabSectionService,
 		r.Secret,
+	)
+
+	routes.NewCoreSearchRoutes(
+		coreRouter,
+		r.SearchService,
 	)
 }

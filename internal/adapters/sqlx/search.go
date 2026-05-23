@@ -347,3 +347,289 @@ func (r *sqlxSearchRepository) Search(ctx context.Context, q string, limit int) 
 
 	return result, nil
 }
+
+func (r *sqlxSearchRepository) SearchForStudent(ctx context.Context, userID, q string, limit int) (*models.CoreSearchResult, error) {
+	result := &models.CoreSearchResult{
+		PrivateCourses: []models.CoreSearchPrivateCourseResult{},
+		PublicCourses:  []models.CoreSearchPublicCourseResult{},
+		Sections:       []models.CoreSearchSectionResult{},
+		Labs:           []models.CoreSearchLabResult{},
+		Materials:      []models.CoreSearchMaterialResult{},
+	}
+
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+	errs := make([]error, 5)
+
+	wg.Add(5)
+
+	// Private courses: enrolled via sections → link to student's section
+	go func() {
+		defer wg.Done()
+		rows, err := r.db.QueryxContext(ctx, `
+			SELECT c.id, c.name, s.name AS section_name, s.id AS section_id, similarity(c.name, $2) AS sim
+			FROM courses c
+			JOIN sections s ON s.course_id = c.id
+			JOIN section_students ss ON ss.section_id = s.id
+			WHERE ss.student_id = $1
+			  AND similarity(c.name, $2) > 0.1
+			  AND ss.is_deleted = false
+			  AND s.is_deleted = false
+			  AND c.is_deleted = false
+			ORDER BY sim DESC
+			LIMIT $3
+		`, userID, q, limit)
+		if err != nil {
+			errs[0] = fmt.Errorf("core private courses: %w", err)
+			return
+		}
+		defer rows.Close()
+		var out []models.CoreSearchPrivateCourseResult
+		for rows.Next() {
+			var row struct {
+				ID          string  `db:"id"`
+				Name        string  `db:"name"`
+				SectionName string  `db:"section_name"`
+				SectionID   string  `db:"section_id"`
+				Sim         float64 `db:"sim"`
+			}
+			if err := rows.StructScan(&row); err != nil {
+				errs[0] = fmt.Errorf("core private courses scan: %w", err)
+				return
+			}
+			out = append(out, models.CoreSearchPrivateCourseResult{
+				ID:          row.ID,
+				Name:        row.Name,
+				SectionName: row.SectionName,
+				Path:        "/sections/" + row.SectionID,
+			})
+		}
+		mu.Lock()
+		if out != nil {
+			result.PrivateCourses = out
+		}
+		mu.Unlock()
+	}()
+
+	// Public courses: enrolled via course_enrollments → link to course page
+	go func() {
+		defer wg.Done()
+		rows, err := r.db.QueryxContext(ctx, `
+			SELECT c.id, c.name
+			FROM courses c
+			JOIN course_enrollments ce ON ce.course_id = c.id
+			WHERE ce.student_id = $1
+			  AND similarity(c.name, $2) > 0.1
+			  AND c.is_deleted = false
+			ORDER BY similarity(c.name, $2) DESC
+			LIMIT $3
+		`, userID, q, limit)
+		if err != nil {
+			errs[1] = fmt.Errorf("core public courses: %w", err)
+			return
+		}
+		defer rows.Close()
+		var out []models.CoreSearchPublicCourseResult
+		for rows.Next() {
+			var row struct {
+				ID   string `db:"id"`
+				Name string `db:"name"`
+			}
+			if err := rows.StructScan(&row); err != nil {
+				errs[1] = fmt.Errorf("core public courses scan: %w", err)
+				return
+			}
+			out = append(out, models.CoreSearchPublicCourseResult{
+				ID:   row.ID,
+				Name: row.Name,
+				Path: "/courses/" + row.ID,
+			})
+		}
+		mu.Lock()
+		if out != nil {
+			result.PublicCourses = out
+		}
+		mu.Unlock()
+	}()
+
+	// Enrolled sections
+	go func() {
+		defer wg.Done()
+		rows, err := r.db.QueryxContext(ctx, `
+			SELECT s.id, s.name, c.name AS course_name
+			FROM sections s
+			JOIN section_students ss ON ss.section_id = s.id
+			JOIN courses c ON c.id = s.course_id
+			WHERE ss.student_id = $1
+			  AND similarity(s.name, $2) > 0.1
+			  AND ss.is_deleted = false
+			  AND s.is_deleted = false
+			  AND c.is_deleted = false
+			ORDER BY similarity(s.name, $2) DESC
+			LIMIT $3
+		`, userID, q, limit)
+		if err != nil {
+			errs[2] = fmt.Errorf("core sections: %w", err)
+			return
+		}
+		defer rows.Close()
+		var out []models.CoreSearchSectionResult
+		for rows.Next() {
+			var row struct {
+				ID         string `db:"id"`
+				Name       string `db:"name"`
+				CourseName string `db:"course_name"`
+			}
+			if err := rows.StructScan(&row); err != nil {
+				errs[2] = fmt.Errorf("core sections scan: %w", err)
+				return
+			}
+			out = append(out, models.CoreSearchSectionResult{
+				ID:         row.ID,
+				Name:       row.Name,
+				CourseName: row.CourseName,
+				Path:       "/sections/" + row.ID,
+			})
+		}
+		mu.Lock()
+		if out != nil {
+			result.Sections = out
+		}
+		mu.Unlock()
+	}()
+
+	// Enrolled section labs
+	go func() {
+		defer wg.Done()
+		rows, err := r.db.QueryxContext(ctx, `
+			SELECT
+				ls.lab_id AS id,
+				l.display_name AS lab_name,
+				s.name AS section_name,
+				c.name AS course_name,
+				s.id AS section_id
+			FROM section_students ss
+			JOIN sections s ON s.id = ss.section_id
+			JOIN courses c ON c.id = s.course_id
+			JOIN lab_sections ls ON ls.section_id = s.id
+			JOIN labs l ON l.id = ls.lab_id
+			WHERE ss.student_id = $1
+			  AND similarity(l.display_name, $2) > 0.1
+			  AND ss.is_deleted = false
+			  AND s.is_deleted = false
+			  AND c.is_deleted = false
+			  AND ls.is_deleted = false
+			  AND l.is_deleted = false
+			ORDER BY similarity(l.display_name, $2) DESC
+			LIMIT $3
+		`, userID, q, limit)
+		if err != nil {
+			errs[3] = fmt.Errorf("core labs: %w", err)
+			return
+		}
+		defer rows.Close()
+		var out []models.CoreSearchLabResult
+		for rows.Next() {
+			var row struct {
+				ID          string `db:"id"`
+				LabName     string `db:"lab_name"`
+				SectionName string `db:"section_name"`
+				CourseName  string `db:"course_name"`
+				SectionID   string `db:"section_id"`
+			}
+			if err := rows.StructScan(&row); err != nil {
+				errs[3] = fmt.Errorf("core labs scan: %w", err)
+				return
+			}
+			out = append(out, models.CoreSearchLabResult{
+				ID:          row.ID,
+				LabName:     row.LabName,
+				SectionName: row.SectionName,
+				CourseName:  row.CourseName,
+				Path:        "/sections/" + row.SectionID + "/labs/" + row.ID,
+			})
+		}
+		mu.Lock()
+		if out != nil {
+			result.Labs = out
+		}
+		mu.Unlock()
+	}()
+
+	// Enrolled section lab materials
+	go func() {
+		defer wg.Done()
+		rows, err := r.db.QueryxContext(ctx, `
+			SELECT
+				m.id AS id,
+				m.name AS material_name,
+				l.display_name AS lab_name,
+				s.name AS section_name,
+				c.name AS course_name,
+				s.id AS section_id,
+				ls.lab_id AS lab_id
+			FROM section_students ss
+			JOIN sections s ON s.id = ss.section_id
+			JOIN courses c ON c.id = s.course_id
+			JOIN lab_sections ls ON ls.section_id = s.id
+			JOIN labs l ON l.id = ls.lab_id
+			JOIN lab_materials lm ON lm.lab_id = l.id
+			JOIN materials m ON m.id = lm.material_id
+			WHERE ss.student_id = $1
+			  AND similarity(m.name, $2) > 0.1
+			  AND ss.is_deleted = false
+			  AND s.is_deleted = false
+			  AND c.is_deleted = false
+			  AND ls.is_deleted = false
+			  AND l.is_deleted = false
+			  AND lm.is_deleted = false
+			  AND m.is_deleted = false
+			ORDER BY similarity(m.name, $2) DESC
+			LIMIT $3
+		`, userID, q, limit)
+		if err != nil {
+			errs[4] = fmt.Errorf("core materials: %w", err)
+			return
+		}
+		defer rows.Close()
+		var out []models.CoreSearchMaterialResult
+		for rows.Next() {
+			var row struct {
+				ID           string `db:"id"`
+				MaterialName string `db:"material_name"`
+				LabName      string `db:"lab_name"`
+				SectionName  string `db:"section_name"`
+				CourseName   string `db:"course_name"`
+				SectionID    string `db:"section_id"`
+				LabID        string `db:"lab_id"`
+			}
+			if err := rows.StructScan(&row); err != nil {
+				errs[4] = fmt.Errorf("core materials scan: %w", err)
+				return
+			}
+			out = append(out, models.CoreSearchMaterialResult{
+				ID:           row.ID,
+				MaterialName: row.MaterialName,
+				LabName:      row.LabName,
+				SectionName:  row.SectionName,
+				CourseName:   row.CourseName,
+				Path:         "/sections/" + row.SectionID + "/labs/" + row.LabID + "/materials/" + row.ID,
+			})
+		}
+		mu.Lock()
+		if out != nil {
+			result.Materials = out
+		}
+		mu.Unlock()
+	}()
+
+	wg.Wait()
+
+	for _, err := range errs {
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return result, nil
+}
