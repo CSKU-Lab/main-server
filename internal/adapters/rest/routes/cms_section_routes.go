@@ -311,6 +311,7 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 
 		pageQuery := c.Query("page", "1")
 		pageSizeQuery := c.Query("page_size", "10")
+		search := c.Query("search", "")
 		sortBy := c.Query("sort_by", "position")
 		sortOrder := c.Query("sort_order", "asc")
 
@@ -332,6 +333,9 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 		}
 
 		filterParams["section_id__is"] = sectionID
+		if search != "" {
+			filterParams["l.display_name__contains"] = search
+		}
 
 		labSections, err := labSectionService.GetPagination(c.RequestCtx(), page, pageSize, sortBy, sortOrder, filterParams)
 		if err != nil {
