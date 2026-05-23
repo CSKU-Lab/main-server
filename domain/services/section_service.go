@@ -482,7 +482,10 @@ func (s *sectionService) AddStudents(ctx context.Context, sectionID string, stud
 
 			isStudent := hasStudentRole(student.Roles)
 			if !isStudent {
-				continue
+				return cserrors.New(&cserrors.Option{
+					HttpStatus: http.StatusBadRequest,
+					Message:    "User \"" + student.DisplayName + "\" is not a student and cannot be added to the section",
+				})
 			}
 
 			err := u.SectionStudent().Add(ctx, sectionID, student.ID)
