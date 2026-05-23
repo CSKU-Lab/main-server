@@ -1,3 +1,10 @@
+# [0.12.0](https://github.com/CSKU-Lab/main-server/compare/v0.11.0...v0.12.0) (2026-05-23)
+
+
+### Features
+
+* implement rate limit middleware ([78bf470](https://github.com/CSKU-Lab/main-server/commit/78bf4705243e2c0376868d5b03b961c1eb48f736))
+
 # [0.11.0](https://github.com/CSKU-Lab/main-server/compare/v0.10.0...v0.11.0) (2026-05-23)
 
 
