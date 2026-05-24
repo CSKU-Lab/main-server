@@ -1,3 +1,10 @@
+# [0.14.0](https://github.com/CSKU-Lab/main-server/compare/v0.13.0...v0.14.0) (2026-05-24)
+
+
+### Features
+
+* add og resync internal endpoint ([b6efdae](https://github.com/CSKU-Lab/main-server/commit/b6efdaeae19219cd97d995e5c10bcb8dbb42be0f))
+
 # [0.13.0](https://github.com/CSKU-Lab/main-server/compare/v0.12.2...v0.13.0) (2026-05-24)
 
 
