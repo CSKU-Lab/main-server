@@ -1,3 +1,10 @@
+# [0.13.0](https://github.com/CSKU-Lab/main-server/compare/v0.12.2...v0.13.0) (2026-05-24)
+
+
+### Features
+
+* add GET /api/v1/lsp/token endpoint ([9e8aaa3](https://github.com/CSKU-Lab/main-server/commit/9e8aaa305f1f92f61222d6e372366c805f52307a))
+
 ## [0.12.2](https://github.com/CSKU-Lab/main-server/compare/v0.12.1...v0.12.2) (2026-05-24)
 
 
