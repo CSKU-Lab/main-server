@@ -1,3 +1,11 @@
+## [0.12.2](https://github.com/CSKU-Lab/main-server/compare/v0.12.1...v0.12.2) (2026-05-24)
+
+
+### Bug Fixes
+
+* reconnect postgres pubsub and bump queue to v0.3.2 ([165122e](https://github.com/CSKU-Lab/main-server/commit/165122e2a684052e4da66ab1df747e63aec9dc03))
+* use dedicated og service ([b9753ae](https://github.com/CSKU-Lab/main-server/commit/b9753aede43554d3148c7ce7f2a5822f8fbee448))
+
 ## [0.12.1](https://github.com/CSKU-Lab/main-server/compare/v0.12.0...v0.12.1) (2026-05-23)
 
 
