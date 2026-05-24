@@ -31,6 +31,7 @@ type Config struct {
 	REDIS_ADDR         string
 	REDIS_PASSWORD     string
 	REDIS_SERVER_URL   string
+	InternalToken      string
 }
 
 func NewConfig() *Config {
@@ -63,5 +64,6 @@ func NewConfig() *Config {
 		REDIS_ADDR:         os.Getenv("REDIS_ADDR"),
 		REDIS_PASSWORD:     os.Getenv("REDIS_PASSWORD"),
 		REDIS_SERVER_URL:   os.Getenv("REDIS_SERVER_URL"),
+		InternalToken:      os.Getenv("INTERNAL_TOKEN"),
 	}
 }
