@@ -13,6 +13,7 @@ import (
 	"github.com/CSKU-Lab/main-server/internal/converter"
 	"github.com/CSKU-Lab/main-server/internal/requests"
 	"github.com/CSKU-Lab/main-server/internal/sanitize"
+	"github.com/CSKU-Lab/queue"
 	"github.com/google/uuid"
 )
 
@@ -45,9 +46,10 @@ type sectionService struct {
 	sectionLogService     SectionLogService
 	allowedFilterFields   map[string]bool
 	allowedSortFields     map[string]bool
+	q                     queue.Queue
 }
 
-func NewSectionService(config *configs.Config, repo repositories.SectionRepository, uowRepo repositories.UoWRepository, courseRepo repositories.CourseRepository, sectionInstructorRepo repositories.SectionInstructorRepository, sectionStudentRepo repositories.SectionStudentRepository, storage repositories.FileRepository, userRepo repositories.User, semesterRepo repositories.SemesterRepository, sectionLogService SectionLogService) SectionService {
+func NewSectionService(config *configs.Config, repo repositories.SectionRepository, uowRepo repositories.UoWRepository, courseRepo repositories.CourseRepository, sectionInstructorRepo repositories.SectionInstructorRepository, sectionStudentRepo repositories.SectionStudentRepository, storage repositories.FileRepository, userRepo repositories.User, semesterRepo repositories.SemesterRepository, sectionLogService SectionLogService, q queue.Queue) SectionService {
 	return &sectionService{
 		config:                config,
 		repo:                  repo,
@@ -70,6 +72,7 @@ func NewSectionService(config *configs.Config, repo repositories.SectionReposito
 			"created_at": true,
 			"name":       true,
 		},
+		q: q,
 	}
 }
 
@@ -260,7 +263,16 @@ func (s *sectionService) Create(ctx context.Context, req *requests.CreateSection
 		return nil
 	})
 
-	return ID.String(), err
+	if err != nil {
+		return "", err
+	}
+
+	if semester, err := s.semesterRepo.GetByID(ctx, req.SemesterID); err == nil {
+		tag := semester.Name
+		publishOGEvent(s.q, ogImageEvent{Type: "section", ID: ID.String(), Title: req.Name, Tag: &tag})
+	}
+
+	return ID.String(), nil
 }
 
 func (s *sectionService) UpdateByID(ctx context.Context, ID string, req *requests.UpdateSection, userID string) error {
@@ -286,7 +298,7 @@ func (s *sectionService) UpdateByID(ctx context.Context, ID string, req *request
 		})
 	}
 
-	return s.uowRepo.Execute(ctx, func(suow repositories.UoWInstance) error {
+	err = s.uowRepo.Execute(ctx, func(suow repositories.UoWInstance) error {
 		if req.Banner != nil {
 			imagePath, err := s.storage.UploadFile(ctx, constants.SECTION_BANNER, req.Banner)
 			if err != nil {
@@ -334,6 +346,16 @@ func (s *sectionService) UpdateByID(ctx context.Context, ID string, req *request
 
 		return s.sectionLogService.Create(ctx, ID, "Updated section")
 	})
+	if err != nil {
+		return err
+	}
+
+	if section, err := s.GetByID(ctx, ID); err == nil {
+		tag := section.Semester.Name
+		publishOGEvent(s.q, ogImageEvent{Type: "section", ID: ID, Title: section.Name, Tag: &tag})
+	}
+
+	return nil
 }
 
 func (s *sectionService) GetByID(ctx context.Context, ID string) (*models.Section, error) {

@@ -34,7 +34,11 @@ func initializeApp(ctx context.Context, cfg *configs.Config, db *sqlx.DB, logger
 	userGroupService := services.NewUserGroupService(userGroup)
 	courseRepository := providers.NewCourseRepository(db)
 	courseCreatorRepository := providers.NewCourseCreatorRepository(db)
-	courseService := services.NewCourseService(courseRepository, courseCreatorRepository, uoWRepository)
+	queue, err := providers.ProvideRabbitMQ(cfg)
+	if err != nil {
+		return nil, nil, err
+	}
+	courseService := services.NewCourseService(courseRepository, courseCreatorRepository, uoWRepository, queue)
 	courseEnrollmentRepository := providers.NewCourseEnrollmentRepository(db)
 	courseEnrollmentService := services.NewCourseEnrollmentService(courseEnrollmentRepository, courseRepository)
 	semesterRepository := sqlx2.NewSqlxSemesterRepository(db)
@@ -45,7 +49,7 @@ func initializeApp(ctx context.Context, cfg *configs.Config, db *sqlx.DB, logger
 	sectionInstructorRepository := providers.NewSectionInstructorRepository(db)
 	sectionStudentRepository := providers.NewSectionStudentRepository(db)
 	fileRepository := providers.ProvideMinio(ctx, cfg)
-	sectionService := services.NewSectionService(cfg, sectionRepository, uoWRepository, courseRepository, sectionInstructorRepository, sectionStudentRepository, fileRepository, user, semesterRepository, sectionLogService)
+	sectionService := services.NewSectionService(cfg, sectionRepository, uoWRepository, courseRepository, sectionInstructorRepository, sectionStudentRepository, fileRepository, user, semesterRepository, sectionLogService, queue)
 	sectionStudentService := services.NewSectionStudentService(sectionStudentRepository, sectionRepository, user)
 	tagRepository := sqlx2.NewTagRepository(db)
 	tagService := services.NewTagService(tagRepository)
@@ -99,16 +103,10 @@ func initializeApp(ctx context.Context, cfg *configs.Config, db *sqlx.DB, logger
 	submissionService := services.NewSubmissionService(submissionServiceArgs)
 	sidebarService := services.NewSidebarService(courseRepository, sectionStudentRepository, labSectionRepository, labMaterialRepository, submissionService)
 	gradebookExportService := services.NewGradebookExportService(submissionService)
-	materialService := services.NewMaterialService(materialRepository, submissionRepository, readMaterialTagRepository, uoWRepository, user, material)
+	materialService := services.NewMaterialService(materialRepository, submissionRepository, readMaterialTagRepository, uoWRepository, user, material, queue)
 	searchRepository := providers.NewSearchRepository(db)
 	searchService := services.NewSearchService(searchRepository)
 	service := permission.NewService(user, courseRepository, courseCreatorRepository, sectionRepository, sectionInstructorRepository, sectionStudentRepository, submissionRepository)
-	queue, err := providers.ProvideRabbitMQ(cfg)
-	if err != nil {
-		cleanup2()
-		cleanup()
-		return nil, nil, err
-	}
 	rateLimiter, err := providers.ProvideRateLimiter(cfg)
 	if err != nil {
 		cleanup2()

@@ -12,6 +12,7 @@ import (
 	"github.com/CSKU-Lab/main-server/domain/repositories"
 	"github.com/CSKU-Lab/main-server/internal/requests"
 	"github.com/CSKU-Lab/main-server/internal/sanitize"
+	"github.com/CSKU-Lab/queue"
 	"github.com/google/uuid"
 )
 
@@ -35,9 +36,10 @@ type materialService struct {
 	userRepo            repositories.User
 	materialRegistry    registries.Material
 	allowedFilterFields map[string]bool
+	q                   queue.Queue
 }
 
-func NewMaterialService(repo repositories.MaterialRepository, submissionRepo repositories.SubmissionRepository, readMaterialTagRepo repositories.ReadMaterialTagRepository, uowRepo repositories.UoWRepository, userRepo repositories.User, materialRegistry registries.Material) MaterialService {
+func NewMaterialService(repo repositories.MaterialRepository, submissionRepo repositories.SubmissionRepository, readMaterialTagRepo repositories.ReadMaterialTagRepository, uowRepo repositories.UoWRepository, userRepo repositories.User, materialRegistry registries.Material, q queue.Queue) MaterialService {
 	return &materialService{
 		repo:                repo,
 		submissionRepo:      submissionRepo,
@@ -49,6 +51,7 @@ func NewMaterialService(repo repositories.MaterialRepository, submissionRepo rep
 			"name": true,
 			"type": true,
 		},
+		q: q,
 	}
 }
 
@@ -92,6 +95,9 @@ func (s *materialService) Create(ctx context.Context, courseID string, createdBy
 	if err != nil {
 		return "", err
 	}
+
+	tag := "Lab Material"
+	publishOGEvent(s.q, ogImageEvent{Type: "material", ID: matID, Title: req.Name, Tag: &tag})
 
 	return matID, nil
 }
@@ -454,6 +460,13 @@ func (s *materialService) UpdateByID(ctx context.Context, courseID string, ID st
 			return err
 		}
 	}
+
+	name := mat.Name
+	if req.Name != "" {
+		name = req.Name
+	}
+	tag := "Lab Material"
+	publishOGEvent(s.q, ogImageEvent{Type: "material", ID: ID, Title: name, Tag: &tag})
 
 	return nil
 }

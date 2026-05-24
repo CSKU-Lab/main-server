@@ -9,6 +9,7 @@ import (
 	"github.com/CSKU-Lab/main-server/domain/repositories"
 	"github.com/CSKU-Lab/main-server/internal/requests"
 	"github.com/CSKU-Lab/main-server/internal/sanitize"
+	"github.com/CSKU-Lab/queue"
 	"github.com/google/uuid"
 )
 
@@ -28,13 +29,15 @@ type courseService struct {
 	courseRepo        repositories.CourseRepository
 	courseCreatorRepo repositories.CourseCreatorRepository
 	uowRepo           repositories.UoWRepository
+	q                 queue.Queue
 }
 
-func NewCourseService(courseRepo repositories.CourseRepository, courseCreatorRepo repositories.CourseCreatorRepository, uowRepo repositories.UoWRepository) CourseService {
+func NewCourseService(courseRepo repositories.CourseRepository, courseCreatorRepo repositories.CourseCreatorRepository, uowRepo repositories.UoWRepository, q queue.Queue) CourseService {
 	return &courseService{
 		courseRepo:        courseRepo,
 		courseCreatorRepo: courseCreatorRepo,
 		uowRepo:           uowRepo,
+		q:                 q,
 	}
 }
 
@@ -65,7 +68,14 @@ func (s *courseService) Create(ctx context.Context, c *requests.CreateCourse) (*
 		return nil, err
 	}
 
-	return s.GetByID(ctx, id.String())
+	course, err := s.GetByID(ctx, id.String())
+	if err != nil {
+		return nil, err
+	}
+
+	publishOGEvent(s.q, ogImageEvent{Type: "course", ID: course.ID, Title: course.Name})
+
+	return course, nil
 }
 
 func (s *courseService) GetByID(ctx context.Context, ID string) (*models.Course, error) {
@@ -208,7 +218,7 @@ func (s *courseService) UpdateByID(ctx context.Context, ID string, c *requests.U
 		return nil
 	}
 
-	return s.uowRepo.Execute(ctx, func(u repositories.UoWInstance) error {
+	if err := s.uowRepo.Execute(ctx, func(u repositories.UoWInstance) error {
 		if c.Creators != nil {
 			err := u.CourseCreator().SetCreators(ctx, ID, *c.Creators)
 			if err != nil {
@@ -217,7 +227,15 @@ func (s *courseService) UpdateByID(ctx context.Context, ID string, c *requests.U
 		}
 
 		return u.Course().UpdateByID(ctx, ID, c)
-	})
+	}); err != nil {
+		return err
+	}
+
+	if course, err := s.GetByID(ctx, ID); err == nil {
+		publishOGEvent(s.q, ogImageEvent{Type: "course", ID: ID, Title: course.Name})
+	}
+
+	return nil
 }
 
 func (s *courseService) DeleteByID(ctx context.Context, ID string) error {
