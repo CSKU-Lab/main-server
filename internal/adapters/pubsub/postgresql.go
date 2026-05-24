@@ -4,14 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"go.uber.org/zap"
 )
 
 type postgresPubSub struct {
-	conn   *pgx.Conn
-	logger *zap.SugaredLogger
+	conn        *pgx.Conn
+	dataBaseURL string
+	logger      *zap.SugaredLogger
 }
 
 func NewPostgres(ctx context.Context, logger *zap.SugaredLogger, dataBaseURL string) (PubSub, func() error, error) {
@@ -30,8 +32,9 @@ func NewPostgres(ctx context.Context, logger *zap.SugaredLogger, dataBaseURL str
 	}
 
 	return &postgresPubSub{
-		conn:   conn,
-		logger: logger,
+		conn:        conn,
+		dataBaseURL: dataBaseURL,
+		logger:      logger,
 	}, close, nil
 }
 
@@ -54,8 +57,23 @@ func (p *postgresPubSub) Subscribe(ctx context.Context, channel string) (<-chan 
 
 			noti, err := p.conn.WaitForNotification(ctx)
 			if err != nil {
-				p.logger.Errorw("postgres pubsub subscribe error", "error", err)
-				return
+				if ctx.Err() != nil {
+					return
+				}
+				p.logger.Errorw("postgres pubsub subscribe error, reconnecting", "error", err)
+				_ = p.conn.Close(ctx)
+				time.Sleep(5 * time.Second)
+				newConn, connErr := pgx.Connect(ctx, p.dataBaseURL)
+				if connErr != nil {
+					p.logger.Errorw("postgres pubsub reconnect failed", "error", connErr)
+					return
+				}
+				p.conn = newConn
+				if _, listenErr := p.conn.Exec(ctx, fmt.Sprintf("LISTEN \"%s\"", channel)); listenErr != nil {
+					p.logger.Errorw("postgres pubsub re-LISTEN failed", "error", listenErr)
+					return
+				}
+				continue
 			}
 
 			payloadChan <- []byte(noti.Payload)

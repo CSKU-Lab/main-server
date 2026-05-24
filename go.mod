@@ -64,7 +64,7 @@ require (
 
 require (
 	github.com/CSKU-Lab/otel v0.1.1
-	github.com/CSKU-Lab/queue v0.3.0
+	github.com/CSKU-Lab/queue v0.3.2
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0
 	github.com/gofiber/fiber/v3 v3.0.0
 	github.com/golang-jwt/jwt/v5 v5.2.1
