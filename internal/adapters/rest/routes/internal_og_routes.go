@@ -28,13 +28,13 @@ func resyncAllOGImages(courseService services.CourseService, sectionService serv
 	courses, err := courseService.GetPagination(ctx, 1, 10000, "", "name", "asc", "active", "")
 	if err == nil {
 		for _, course := range courses {
-			publishOGEvent(q, ogImageEvent{Type: "course", ID: course.ID, Title: course.Name})
+			publishOGEvent(q, OGImageEvent{Type: "course", ID: course.ID, Title: course.Name})
 
 			materials, err := materialService.GetPagination(ctx, course.ID, "", []models.Role{models.ADMIN}, 1, 10000, "", "name", "asc", nil)
 			if err == nil {
 				for _, mat := range materials {
 					tag := mat.Type
-					publishOGEvent(q, ogImageEvent{Type: "material", ID: mat.ID, Title: mat.Name, Tag: &tag})
+					publishOGEvent(q, OGImageEvent{Type: "material", ID: mat.ID, Title: mat.Name, Tag: &tag})
 				}
 			}
 		}
@@ -44,7 +44,7 @@ func resyncAllOGImages(courseService services.CourseService, sectionService serv
 	if err == nil {
 		for _, sec := range sections {
 			tag := sec.Semester.Name
-			publishOGEvent(q, ogImageEvent{Type: "section", ID: sec.ID, Title: sec.Name, Tag: &tag})
+			publishOGEvent(q, OGImageEvent{Type: "section", ID: sec.ID, Title: sec.Name, Tag: &tag})
 		}
 	}
 }
