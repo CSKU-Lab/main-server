@@ -99,4 +99,6 @@ func NewCoreRouter(r *CoreRouter) {
 		coreRouter,
 		r.SearchService,
 	)
+
+	routes.NewLspTokenRoute(coreRouter, r.Secret)
 }
