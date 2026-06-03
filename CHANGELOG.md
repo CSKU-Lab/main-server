@@ -1,3 +1,10 @@
+## [0.14.2](https://github.com/CSKU-Lab/main-server/compare/v0.14.1...v0.14.2) (2026-06-03)
+
+
+### Bug Fixes
+
+* typing submission error rates ([222a4ae](https://github.com/CSKU-Lab/main-server/commit/222a4ae45ad149d8b264aa24a485ea83d718f9d3))
+
 ## [0.14.1](https://github.com/CSKU-Lab/main-server/compare/v0.14.0...v0.14.1) (2026-05-24)
 
 
