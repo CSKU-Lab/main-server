@@ -1,8 +1,11 @@
 package providers
 
 import (
+	"time"
+
 	"github.com/CSKU-Lab/main-server/configs"
 	"github.com/CSKU-Lab/main-server/domain/permission"
+	"github.com/CSKU-Lab/main-server/domain/repositories"
 	"github.com/CSKU-Lab/main-server/domain/services"
 	configPB "github.com/CSKU-Lab/main-server/genproto/config/v1"
 	"github.com/CSKU-Lab/main-server/internal/adapters/middlewares"
@@ -10,7 +13,6 @@ import (
 	"github.com/CSKU-Lab/main-server/internal/adapters/ratelimit"
 	"github.com/CSKU-Lab/main-server/internal/adapters/rest"
 	"github.com/CSKU-Lab/queue"
-	"time"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/cors"
@@ -48,6 +50,7 @@ func NewFiberApp(
 	rClient pubsub.PubSub,
 	rateLimiter ratelimit.RateLimiter,
 	playgroundHandler *rest.PlaygroundHandler,
+	typingSubRepo repositories.TypingSubmissionRepository,
 ) *fiber.App {
 	app := fiber.New(fiber.Config{
 		ErrorHandler: errMiddleware.ErrorHandler,
@@ -127,9 +130,10 @@ func NewFiberApp(
 		MaterialService:         materialService,
 		SubmissionService:       submissionService,
 		SearchService:           searchService,
-		PubSub:                  rClient,
-		PermissionService:       permissionService,
-		Secret:                  cfg.JWTSecret,
+		PubSub:                     rClient,
+		PermissionService:          permissionService,
+		TypingSubmissionRepository: typingSubRepo,
+		Secret:                     cfg.JWTSecret,
 	})
 
 	return app

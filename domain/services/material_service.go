@@ -435,8 +435,12 @@ func (s *materialService) UpdateByID(ctx context.Context, courseID string, ID st
 		return err
 	}
 
-	// Set the calculated auto_score on the request
-	req.AutoScore = &scores.AutoScore
+	// Only override auto_score when the handler derives it (e.g. code material
+	// sums testcase weights). For typing/document the handler returns 0, meaning
+	// the user-provided value should be kept as-is.
+	if scores.AutoScore > 0 {
+		req.AutoScore = &scores.AutoScore
+	}
 	// Only set manual_score if it wasn't provided in the request
 	if req.ManualScore == nil {
 		req.ManualScore = &scores.ManualScore
@@ -525,10 +529,12 @@ func (s *materialService) GetMaterialWithLatestSubmissionStatus(ctx context.Cont
 	filteredPayload := s.filterPayloadForUser(material.Type, payload)
 
 	return &models.MaterialWithSubmissionStatus{
-		Name:    material.Name,
-		Type:    material.Type,
-		Status:  status,
-		Payload: filteredPayload,
+		Name:        material.Name,
+		Type:        material.Type,
+		Status:      status,
+		AutoScore:   material.AutoScore,
+		ManualScore: material.ManualScore,
+		Payload:     filteredPayload,
 	}, nil
 }
 

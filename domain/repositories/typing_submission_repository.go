@@ -14,8 +14,14 @@ type CreateTypingSubmissionPayload struct {
 	Duration     float64
 }
 
+type BestTypingSubmission struct {
+	SubmissionID string
+	*models.TypingSubmission
+}
+
 type TypingSubmissionRepository interface {
 	Create(ctx context.Context, payload *CreateTypingSubmissionPayload) error
 	Get(ctx context.Context, submissionID string) (*models.TypingSubmission, error)
 	GetByIDs(ctx context.Context, submissionIDs []string) (map[string]*models.TypingSubmission, error)
+	GetBestByUserID(ctx context.Context, userID, materialID, labID, sectionID string) (*BestTypingSubmission, error)
 }

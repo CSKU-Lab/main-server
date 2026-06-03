@@ -127,7 +127,7 @@ func (s *submissionRepository) GetPagination(
 	}
 
 	baseQuery := `
-		SELECT id, user_id, lab_id, section_id, course_id, material_id, status, submission_order, created_at
+		SELECT id, user_id, lab_id, section_id, course_id, material_id, status, submission_order, auto_score, created_at
 		FROM submissions
 		WHERE user_id = $1
 	`
@@ -176,6 +176,7 @@ func (s *submissionRepository) GetPagination(
 			MaterialID: row.MaterialID,
 			Status:     row.Status,
 			Order:      row.Order,
+			AutoScore:  row.AutoScore,
 			CreatedAt:  row.CreatedAt,
 		}
 	}

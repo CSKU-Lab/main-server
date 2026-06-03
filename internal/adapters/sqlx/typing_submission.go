@@ -46,6 +46,30 @@ func (r *typingSubmissionRepo) Get(ctx context.Context, submissionID string) (*m
 	}, nil
 }
 
+func (r *typingSubmissionRepo) GetBestByUserID(ctx context.Context, userID, materialID, labID, sectionID string) (*repositories.BestTypingSubmission, error) {
+	var rec typingSubmissionRecord
+	err := r.db.GetContext(ctx, &rec, `
+		SELECT ts.submission_id, ts.raw_wpm, ts.adjusted_wpm, ts.error_rate, ts.duration
+		FROM typing_submissions ts
+		JOIN submissions s ON s.id = ts.submission_id
+		WHERE s.user_id = $1 AND s.material_id = $2 AND s.lab_id = $3 AND s.section_id = $4
+		ORDER BY ts.adjusted_wpm DESC
+		LIMIT 1
+	`, userID, materialID, labID, sectionID)
+	if err != nil {
+		return nil, err
+	}
+	return &repositories.BestTypingSubmission{
+		SubmissionID: rec.SubmissionID,
+		TypingSubmission: &models.TypingSubmission{
+			RawWPM:      rec.RawWPM,
+			AdjustedWPM: rec.AdjustedWPM,
+			ErrorRate:   rec.ErrorRate,
+			Duration:    rec.Duration,
+		},
+	}, nil
+}
+
 func (r *typingSubmissionRepo) GetByIDs(ctx context.Context, submissionIDs []string) (map[string]*models.TypingSubmission, error) {
 	if len(submissionIDs) == 0 {
 		return map[string]*models.TypingSubmission{}, nil

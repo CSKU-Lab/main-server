@@ -489,6 +489,7 @@ func (s *submissionService) GetUserSubmissionsWithMaterial(ctx context.Context, 
 			ID:        sub.ID,
 			Status:    sub.Status,
 			Order:     sub.Order,
+			AutoScore: sub.AutoScore,
 			CreatedAt: sub.CreatedAt,
 			Payload:   payloads[sub.ID],
 		}

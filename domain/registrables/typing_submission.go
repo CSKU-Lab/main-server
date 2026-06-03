@@ -2,6 +2,8 @@ package registrables
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"math"
 	"net/http"
 	"time"
@@ -14,27 +16,70 @@ import (
 )
 
 const (
-	maxRawWPM   = 300.0
-	minDuration = 3.0
+	maxRawWPM = 300.0
 )
 
 type TypingSubmission struct {
 	repo          repositories.TypingSubmissionRepository
 	typingMatRepo repositories.TypingMaterialRepository
+	materialRepo  repositories.MaterialRepository
 	secret        string
 }
 
-func NewTypingSubmission(repo repositories.TypingSubmissionRepository, typingMatRepo repositories.TypingMaterialRepository, secret string) *TypingSubmission {
+func NewTypingSubmission(repo repositories.TypingSubmissionRepository, typingMatRepo repositories.TypingMaterialRepository, materialRepo repositories.MaterialRepository, secret string) *TypingSubmission {
 	return &TypingSubmission{
 		repo:          repo,
 		typingMatRepo: typingMatRepo,
+		materialRepo:  materialRepo,
 		secret:        secret,
 	}
 }
 
+type keystroke struct {
+	K string `json:"k"` // key pressed ("Backspace" or single char)
+	T int64  `json:"t"` // ms since first keystroke
+}
+
 type createTypingSubmissionPayload struct {
-	Token     string `json:"token"`
-	TypedText string `json:"typed_text"`
+	Token      string      `json:"token"`
+	Keystrokes []keystroke `json:"keystrokes"`
+}
+
+// replayKeystrokes replays keystrokes against content and returns:
+//   - finalText: resulting text after applying all keystrokes
+//   - totalErrors: number of incorrect char keystrokes at the time of pressing
+//   - totalCharKeystrokes: total non-Backspace keystrokes (for rawWPM)
+func replayKeystrokes(content string, keystrokes []keystroke) (finalText string, totalErrors, totalCharKeystrokes int, err error) {
+	contentRunes := []rune(content)
+	buf := make([]rune, 0, len(contentRunes))
+
+	for i, ks := range keystrokes {
+		if i > 0 && ks.T < keystrokes[i-1].T {
+			return "", 0, 0, errors.New("keystroke timestamps are not monotonically increasing")
+		}
+
+		if ks.K == "Backspace" {
+			if len(buf) > 0 {
+				buf = buf[:len(buf)-1]
+			}
+			continue
+		}
+
+		r := []rune(ks.K)
+		if len(r) != 1 {
+			return "", 0, 0, fmt.Errorf("invalid keystroke: %q", ks.K)
+		}
+
+		cursor := len(buf)
+		if cursor < len(contentRunes) && r[0] != contentRunes[cursor] {
+			totalErrors++
+		}
+		buf = append(buf, r[0])
+		totalCharKeystrokes++
+	}
+
+	finalText = string(buf)
+	return
 }
 
 func (t *TypingSubmission) Create(ctx context.Context, uow repositories.UoWInstance, submissionID string, matID string, payload []byte) error {
@@ -59,14 +104,12 @@ func (t *TypingSubmission) Create(ctx context.Context, uow repositories.UoWInsta
 	if claims.MaterialID != matID {
 		return cserrors.New(&cserrors.Option{HttpStatus: http.StatusBadRequest, Message: "Session token does not match material"})
 	}
-
-	if len(parsed.TypedText) == 0 {
-		return cserrors.New(&cserrors.Option{HttpStatus: http.StatusBadRequest, Message: "No typed text provided"})
+	if claims.TypingStartedAt.IsZero() {
+		return cserrors.New(&cserrors.Option{HttpStatus: http.StatusBadRequest, Message: "Typing session was not started"})
 	}
 
-	duration := time.Since(claims.StartedAt).Seconds()
-	if duration < minDuration {
-		return cserrors.New(&cserrors.Option{HttpStatus: http.StatusBadRequest, Message: "Submission rejected: duration too short"})
+	if len(parsed.Keystrokes) == 0 {
+		return cserrors.New(&cserrors.Option{HttpStatus: http.StatusBadRequest, Message: "No keystrokes provided"})
 	}
 
 	mat, err := t.typingMatRepo.GetByID(ctx, matID)
@@ -74,12 +117,30 @@ func (t *TypingSubmission) Create(ctx context.Context, uow repositories.UoWInsta
 		return err
 	}
 
-	correct := countCorrectChars(mat.Content, parsed.TypedText)
-	errors := len(parsed.TypedText) - correct
+	finalText, totalErrors, totalCharKeystrokes, err := replayKeystrokes(mat.Content, parsed.Keystrokes)
+	if err != nil {
+		return cserrors.New(&cserrors.Option{HttpStatus: http.StatusBadRequest, Message: err.Error()})
+	}
+
+	// Validate the replayed text matches the material content exactly (anti-spoof)
+	if finalText != mat.Content {
+		return cserrors.New(&cserrors.Option{HttpStatus: http.StatusBadRequest, Message: "Typed text does not match material content"})
+	}
+
+	receivedAt := time.Now()
+	duration := receivedAt.Sub(claims.TypingStartedAt).Seconds()
+
+	// Minimum duration: time to type the full text at the maximum allowed WPM
+	minDuration := (float64(len([]rune(mat.Content))) / 5.0) / maxRawWPM * 60.0
+	if duration < minDuration {
+		return cserrors.New(&cserrors.Option{HttpStatus: http.StatusBadRequest, Message: "Submission rejected: duration too short"})
+	}
+
+	contentLen := float64(len([]rune(mat.Content)))
 	durationMin := duration / 60.0
-	rawWPM := (float64(len(parsed.TypedText)) / 5.0) / durationMin
-	adjWPM := (float64(correct) / 5.0) / durationMin
-	errorRate := (float64(errors) / math.Max(float64(len(parsed.TypedText)), 1)) * 100.0
+	rawWPM := (float64(totalCharKeystrokes) / 5.0) / durationMin
+	adjWPM := (contentLen / 5.0) / durationMin // finalText == content so all chars are correct
+	errorRate := (float64(totalErrors) / math.Max(contentLen, 1)) * 100.0
 
 	if rawWPM > maxRawWPM {
 		return cserrors.New(&cserrors.Option{HttpStatus: http.StatusBadRequest, Message: "Submission rejected: typing speed exceeds human limits"})
@@ -95,10 +156,29 @@ func (t *TypingSubmission) Create(ctx context.Context, uow repositories.UoWInsta
 		return err
 	}
 
+	baseMat, err := t.materialRepo.GetByID(ctx, matID)
+	if err != nil {
+		return err
+	}
+
+	accuracy := 100.0 - errorRate
+	autoScore := 0
 	status := models.PASSED
+
+	if baseMat.AutoScore > 0 {
+		wpmOK := mat.MinAdjWPM == 0 || adjWPM >= mat.MinAdjWPM
+		accOK := mat.MinAccuracy == 0 || accuracy >= mat.MinAccuracy
+		if wpmOK && accOK {
+			autoScore = baseMat.AutoScore
+		} else {
+			status = models.FAILED
+		}
+	}
+
 	return uow.Submission().Update(ctx, &repositories.UpdateSubmissionRequest{
-		ID:     submissionID,
-		Status: &status,
+		ID:        submissionID,
+		Status:    &status,
+		AutoScore: &autoScore,
 	})
 }
 
@@ -136,14 +216,4 @@ func (t *TypingSubmission) GetOverviewStatsByID(ctx context.Context, submissionI
 		return nil
 	}
 	return sub
-}
-
-func countCorrectChars(content, typed string) int {
-	correct := 0
-	for i := 0; i < len(typed) && i < len(content); i++ {
-		if typed[i] == content[i] {
-			correct++
-		}
-	}
-	return correct
 }

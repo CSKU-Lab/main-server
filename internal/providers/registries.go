@@ -12,9 +12,10 @@ import (
 func ProvideTypingSubmission(
 	repo repositories.TypingSubmissionRepository,
 	typingMatRepo repositories.TypingMaterialRepository,
+	materialRepo repositories.MaterialRepository,
 	cfg *configs.Config,
 ) *registrables.TypingSubmission {
-	return registrables.NewTypingSubmission(repo, typingMatRepo, cfg.JWTSecret)
+	return registrables.NewTypingSubmission(repo, typingMatRepo, materialRepo, cfg.JWTSecret)
 }
 
 func NewPopulatedMaterialRegistry(

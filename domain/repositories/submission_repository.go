@@ -38,5 +38,6 @@ type Submission struct {
 	MaterialID string
 	Status     models.SubmissionStatus
 	Order      int
+	AutoScore  int
 	CreatedAt  time.Time
 }

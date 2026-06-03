@@ -15,10 +15,11 @@ import (
 const maxSessionAge = 30 * time.Minute
 
 type TokenClaims struct {
-	StudentID  string    `json:"student_id"`
-	MaterialID string    `json:"material_id"`
-	LabID      string    `json:"lab_id"`
-	StartedAt  time.Time `json:"started_at"`
+	StudentID       string    `json:"student_id"`
+	MaterialID      string    `json:"material_id"`
+	LabID           string    `json:"lab_id"`
+	StartedAt       time.Time `json:"started_at"`
+	TypingStartedAt time.Time `json:"typing_started_at,omitempty"`
 }
 
 func GenerateToken(secret string, claims *TokenClaims) (string, error) {

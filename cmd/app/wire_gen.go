@@ -81,7 +81,7 @@ func initializeApp(ctx context.Context, cfg *configs.Config, db *sqlx.DB, logger
 	codeSubmission := registrables.NewCodeSubmission(codeSubmissionRepository, codeMaterialRepository, submissionRepository, taskServiceClient)
 	typingSubmissionRepository := providers.NewTypingSubmissionRepository(db)
 	typingMaterialRepository := sqlx2.NewTypingMaterialRepository(db)
-	typingSubmission := providers.ProvideTypingSubmission(typingSubmissionRepository, typingMaterialRepository, cfg)
+	typingSubmission := providers.ProvideTypingSubmission(typingSubmissionRepository, typingMaterialRepository, materialRepository, cfg)
 	submissionRegistry := providers.NewPopulatedSubmissionRegistry(codeSubmission, typingSubmission)
 	configServiceClient, cleanup2, err := providers.ProvideConfigClient(cfg)
 	if err != nil {
@@ -120,7 +120,7 @@ func initializeApp(ctx context.Context, cfg *configs.Config, db *sqlx.DB, logger
 		return nil, nil, err
 	}
 	playgroundHandler := providers.NewPlaygroundHandler(graderServiceClient)
-	app := providers.NewFiberApp(cfg, logger, errorHandlerMiddleware, userService, refreshTokenService, userGroupService, courseService, courseEnrollmentService, semesterService, sectionLogService, sectionService, sectionStudentService, tagService, materialAssetService, labService, labSectionService, labMaterialService, defaultLabService, affectedEntitiesService, submissionService, sidebarService, gradebookExportService, materialService, searchService, service, configServiceClient, queue, pubSub, rateLimiter, playgroundHandler)
+	app := providers.NewFiberApp(cfg, logger, errorHandlerMiddleware, userService, refreshTokenService, userGroupService, courseService, courseEnrollmentService, semesterService, sectionLogService, sectionService, sectionStudentService, tagService, materialAssetService, labService, labSectionService, labMaterialService, defaultLabService, affectedEntitiesService, submissionService, sidebarService, gradebookExportService, materialService, searchService, service, configServiceClient, queue, pubSub, rateLimiter, playgroundHandler, typingSubmissionRepository)
 	return app, func() {
 		cleanup3()
 		cleanup2()
