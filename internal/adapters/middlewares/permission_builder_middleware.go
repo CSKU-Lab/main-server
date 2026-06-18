@@ -153,6 +153,47 @@ func (pb *PermissionBuilder) CanCreate() fiber.Handler {
 	}
 }
 
+// CanCreateSubmission returns a middleware that checks if the user can create a submission in a section.
+// Admin, section instructors, and enrolled students can create submissions.
+func (pb *PermissionBuilder) CanCreateSubmission() fiber.Handler {
+	return func(c fiber.Ctx) error {
+		user := c.Locals("user").(*models.User)
+		sectionID := pb.getResourceID(c)
+
+		isAdmin, err := pb.permService.IsAdmin(c.Context(), user.ID)
+		if err != nil {
+			return err
+		}
+		if isAdmin {
+			return c.Next()
+		}
+
+		if sectionID != "" {
+			isStudent, err := pb.permService.IsSectionStudent(c.Context(), user.ID, sectionID)
+			if err != nil {
+				return err
+			}
+			if isStudent {
+				return c.Next()
+			}
+
+			isInstructor, err := pb.permService.IsSectionInstructor(c.Context(), user.ID, sectionID)
+			if err != nil {
+				return err
+			}
+			if isInstructor {
+				return c.Next()
+			}
+		}
+
+		return cserrors.New(&cserrors.Option{
+			HttpStatus: http.StatusForbidden,
+			Code:       cserrors.Forbidden,
+			Message:    fmt.Sprintf("Permission denied: cannot create submission in section %s. Must be enrolled or an instructor.", sectionID),
+		})
+	}
+}
+
 // CanView returns a middleware that checks if the user can view the resource.
 // Admin, course creators, section instructors, and enrolled students can view.
 func (pb *PermissionBuilder) CanView() fiber.Handler {

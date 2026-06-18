@@ -28,7 +28,7 @@ func NewCoreSubmissionRoutes(router fiber.Router, service services.SubmissionSer
 			c.Locals("section_id", *payload.SectionID)
 		}
 		return c.Next()
-	}, middlewares.Permission(permService).ForSection("section_id").FromLocals().CanCreate(), func(c fiber.Ctx) error {
+	}, middlewares.Permission(permService).ForSection("section_id").FromLocals().CanCreateSubmission(), func(c fiber.Ctx) error {
 		payload := c.Locals("body").(*requests.Submission)
 
 		id, err := service.Create(c.Context(), payload, c.Body())
