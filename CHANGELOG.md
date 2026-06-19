@@ -1,3 +1,10 @@
+## [0.14.3](https://github.com/CSKU-Lab/main-server/compare/v0.14.2...v0.14.3) (2026-06-19)
+
+
+### Bug Fixes
+
+* allow enrolled students to create submissions ([b50eefe](https://github.com/CSKU-Lab/main-server/commit/b50eefe69beef7e2bd8a75fc7975f9def7154c27))
+
 ## [0.14.2](https://github.com/CSKU-Lab/main-server/compare/v0.14.1...v0.14.2) (2026-06-03)
 
 
