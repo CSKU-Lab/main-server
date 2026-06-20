@@ -230,12 +230,20 @@ func (pb *PermissionBuilder) CanView() fiber.Handler {
 				return c.Next()
 			}
 		case "course":
-			// Course viewing requires being a creator
+			// Course viewing requires being a creator or an instructor in any section of the course
 			isCreator, err := pb.permService.IsCourseCreator(c.Context(), user.ID, resourceID)
 			if err != nil {
 				return err
 			}
 			if isCreator {
+				return c.Next()
+			}
+
+			isInstructor, err := pb.permService.IsCourseInstructor(c.Context(), user.ID, resourceID)
+			if err != nil {
+				return err
+			}
+			if isInstructor {
 				return c.Next()
 			}
 		case "lab":

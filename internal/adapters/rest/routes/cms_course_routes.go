@@ -67,11 +67,43 @@ func NewCMSCourseRoutes(router fiber.Router, courseService services.CourseServic
 			Sections []models.Section `json:"sections"`
 		}
 
+		user := c.Locals("user").(*models.User)
+		isInstructor := false
+		for _, r := range user.Roles {
+			if r == models.INSTRUCTOR {
+				isInstructor = true
+				break
+			}
+		}
+
+		isCourseCreator := false
+		if isInstructor {
+			var creatorErr error
+			isCourseCreator, creatorErr = permService.IsCourseCreator(c.RequestCtx(), user.ID, courseID)
+			if creatorErr != nil {
+				return creatorErr
+			}
+		}
+
 		sectionsOfSemesters := []sectionsOfSemester{}
 		for _, semester := range sems {
 			sections, err := sectionService.GetByCourseIDAndSemesterID(c.RequestCtx(), courseID, semester.ID)
 			if err != nil {
 				return err
+			}
+
+			if isInstructor && !isCourseCreator {
+				filtered := []models.Section{}
+				for _, s := range sections {
+					ok, err := permService.IsSectionInstructor(c.RequestCtx(), user.ID, s.ID)
+					if err != nil {
+						return err
+					}
+					if ok {
+						filtered = append(filtered, s)
+					}
+				}
+				sections = filtered
 			}
 
 			if len(sections) == 0 {
@@ -97,7 +129,7 @@ func NewCMSCourseRoutes(router fiber.Router, courseService services.CourseServic
 		})
 	})
 
-	courseRouter.Post("/", middlewares.ValidateMiddleware[requests.CreateCourse](), func(c fiber.Ctx) error {
+	courseRouter.Post("/", middlewares.AdminMiddleware, middlewares.ValidateMiddleware[requests.CreateCourse](), func(c fiber.Ctx) error {
 		req := c.Locals("body").(*requests.CreateCourse)
 
 		course, err := courseService.Create(c.RequestCtx(), req)
@@ -139,14 +171,36 @@ func NewCMSCourseRoutes(router fiber.Router, courseService services.CourseServic
 			})
 		}
 
-		courses, err := courseService.GetPagination(c.RequestCtx(), page, pageSize, search, sortBy, sortOrder, show, "")
-		if err != nil {
-			return err
+		user := c.Locals("user").(*models.User)
+		isInstructor := false
+		for _, r := range user.Roles {
+			if r == models.INSTRUCTOR {
+				isInstructor = true
+				break
+			}
 		}
 
-		count, err := courseService.Count(c.RequestCtx(), search, show, "")
-		if err != nil {
-			return err
+		var courses []models.Course
+		var count int
+
+		if isInstructor {
+			courses, err = courseService.GetPaginationForInstructor(c.RequestCtx(), user.ID, page, pageSize, search, sortBy, sortOrder, show)
+			if err != nil {
+				return err
+			}
+			count, err = courseService.CountForInstructor(c.RequestCtx(), user.ID, search, show)
+			if err != nil {
+				return err
+			}
+		} else {
+			courses, err = courseService.GetPagination(c.RequestCtx(), page, pageSize, search, sortBy, sortOrder, show, "")
+			if err != nil {
+				return err
+			}
+			count, err = courseService.Count(c.RequestCtx(), search, show, "")
+			if err != nil {
+				return err
+			}
 		}
 
 		return c.JSON(fiber.Map{

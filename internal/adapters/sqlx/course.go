@@ -331,6 +331,96 @@ func (r *sqlxCourseRepository) CountForStudent(ctx context.Context, studentID st
 	return count, nil
 }
 
+func (r *sqlxCourseRepository) GetPaginationForInstructor(ctx context.Context, instructorID string, page int, pageSize int, search string, sortBy string, sortOrder string, show string) ([]models.Course, error) {
+	var archiveCondition string
+	switch show {
+	case "active":
+		archiveCondition = "AND is_archived = false"
+	case "archived":
+		archiveCondition = "AND is_archived = true"
+	}
+
+	query := fmt.Sprintf(`
+		SELECT
+			id, name, description, banner, visibility,
+			(SELECT COUNT(DISTINCT ss.student_id) FROM section_students ss
+			 JOIN sections s ON ss.section_id = s.id
+			 WHERE s.course_id = courses.id AND s.is_deleted = false) AS total_students
+		FROM courses
+		WHERE LOWER(name) ILIKE $1
+		AND deleted_at IS NULL
+		%s
+		AND (
+			id IN (SELECT course_id FROM course_creators WHERE creator_id = $2)
+			OR id IN (
+				SELECT DISTINCT s.course_id FROM section_instructors si
+				JOIN sections s ON si.section_id = s.id
+				WHERE si.instructor_id = $2 AND s.is_deleted = false
+			)
+		)
+		ORDER BY %s %s
+		OFFSET $3
+		LIMIT $4
+	`, archiveCondition, sortBy, sortOrder)
+
+	rows, err := r.db.QueryxContext(ctx, query, "%"+search+"%", instructorID, (page-1)*pageSize, pageSize)
+	if err != nil {
+		return nil, err
+	}
+
+	courses := []models.Course{}
+	for rows.Next() {
+		var c course
+		if err := rows.StructScan(&c); err != nil {
+			return nil, err
+		}
+		courses = append(courses, models.Course{
+			ID:            c.ID,
+			Name:          c.Name,
+			Description:   c.Description,
+			Banner:        c.Banner,
+			Visibility:    c.Visibility,
+			TotalStudents: c.TotalStudents,
+			Creators:      make([]models.CourseCreator, 0),
+		})
+	}
+
+	return courses, nil
+}
+
+func (r *sqlxCourseRepository) CountForInstructor(ctx context.Context, instructorID string, search string, show string) (int, error) {
+	var archiveCondition string
+	switch show {
+	case "active":
+		archiveCondition = "AND is_archived = false"
+	case "archived":
+		archiveCondition = "AND is_archived = true"
+	}
+
+	query := fmt.Sprintf(`
+		SELECT COUNT(*) FROM courses
+		WHERE LOWER(name) ILIKE $1
+		AND deleted_at IS NULL
+		%s
+		AND (
+			id IN (SELECT course_id FROM course_creators WHERE creator_id = $2)
+			OR id IN (
+				SELECT DISTINCT s.course_id FROM section_instructors si
+				JOIN sections s ON si.section_id = s.id
+				WHERE si.instructor_id = $2 AND s.is_deleted = false
+			)
+		)
+	`, archiveCondition)
+
+	var count int
+	err := r.db.QueryRowxContext(ctx, query, "%"+search+"%", instructorID).Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
 func (r *sqlxCourseRepository) UpdateByID(ctx context.Context, ID string, c *requests.UpdateCourse) error {
 	fields := &updateCourse{
 		ID:          ID,

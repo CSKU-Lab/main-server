@@ -8,13 +8,14 @@ import (
 
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
 	"github.com/CSKU-Lab/main-server/domain/models"
+	"github.com/CSKU-Lab/main-server/domain/permission"
 	"github.com/CSKU-Lab/main-server/domain/services"
 	"github.com/CSKU-Lab/main-server/internal/adapters/middlewares"
 	"github.com/CSKU-Lab/main-server/internal/requests"
 	"github.com/gofiber/fiber/v3"
 )
 
-func NewCMSLabRoutes(router fiber.Router, labService services.LabService, labSectionService services.LabSectionService, labMaterialService services.LabMaterialService) {
+func NewCMSLabRoutes(router fiber.Router, labService services.LabService, labSectionService services.LabSectionService, labMaterialService services.LabMaterialService, permService permission.Service) {
 	labRouter := router.Group("/labs", middlewares.RBACMiddleware([]models.Role{
 		models.ADMIN,
 		models.INSTRUCTOR,
@@ -33,6 +34,16 @@ func NewCMSLabRoutes(router fiber.Router, labService services.LabService, labSec
 		req := c.Locals("body").(*requests.CreateLab)
 
 		user := c.Locals("user").(*models.User)
+
+		if !isAdminUser(user) {
+			ok, err := permService.IsCourseCreator(c.RequestCtx(), user.ID, req.CourseID)
+			if err != nil {
+				return err
+			}
+			if !ok {
+				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusForbidden, Code: cserrors.Forbidden, Message: "Permission denied: only admin or course creator can create labs"})
+			}
+		}
 
 		labID, err := labService.Create(c.RequestCtx(), req, user.ID)
 		if err != nil {
@@ -99,6 +110,21 @@ func NewCMSLabRoutes(router fiber.Router, labService services.LabService, labSec
 	labRouter.Delete("/:labID", func(c fiber.Ctx) error {
 		user := c.Locals("user").(*models.User)
 		labID := c.Params("labID")
+
+		if !isAdminUser(user) {
+			lab, err := labService.GetByID(c.RequestCtx(), labID)
+			if err != nil {
+				return err
+			}
+			ok, err := permService.IsCourseCreator(c.RequestCtx(), user.ID, lab.CourseID)
+			if err != nil {
+				return err
+			}
+			if !ok {
+				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusForbidden, Code: cserrors.Forbidden, Message: "Permission denied: only admin or course creator can delete labs"})
+			}
+		}
+
 		return labService.DeleteByID(c.RequestCtx(), labID, user.ID)
 	})
 
@@ -152,6 +178,21 @@ func NewCMSLabRoutes(router fiber.Router, labService services.LabService, labSec
 	labRouter.Post("/:labID/materials", middlewares.ValidateMiddleware[requests.SetLabMaterial](), func(c fiber.Ctx) error {
 		user := c.Locals("user").(*models.User)
 		labID := c.Params("labID")
+
+		if !isAdminUser(user) {
+			lab, err := labService.GetByID(c.RequestCtx(), labID)
+			if err != nil {
+				return err
+			}
+			ok, err := permService.IsCourseCreator(c.RequestCtx(), user.ID, lab.CourseID)
+			if err != nil {
+				return err
+			}
+			if !ok {
+				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusForbidden, Code: cserrors.Forbidden, Message: "Permission denied: only admin or course creator can add materials to labs"})
+			}
+		}
+
 		req := c.Locals("body").(*requests.SetLabMaterial)
 		err := labMaterialService.Create(c.RequestCtx(), req, user.ID, labID)
 		if err != nil {
@@ -220,6 +261,21 @@ func NewCMSLabRoutes(router fiber.Router, labService services.LabService, labSec
 	labRouter.Post("/:labID/materials/delete", middlewares.ValidateMiddleware[requests.DeleteLabMaterial](), func(c fiber.Ctx) error {
 		user := c.Locals("user").(*models.User)
 		labID := c.Params("labID")
+
+		if !isAdminUser(user) {
+			lab, err := labService.GetByID(c.RequestCtx(), labID)
+			if err != nil {
+				return err
+			}
+			ok, err := permService.IsCourseCreator(c.RequestCtx(), user.ID, lab.CourseID)
+			if err != nil {
+				return err
+			}
+			if !ok {
+				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusForbidden, Code: cserrors.Forbidden, Message: "Permission denied: only admin or course creator can remove materials from labs"})
+			}
+		}
+
 		req := c.Locals("body").(*requests.DeleteLabMaterial)
 		return labMaterialService.Delete(c.RequestCtx(), labID, user.ID, req)
 	})
@@ -227,10 +283,34 @@ func NewCMSLabRoutes(router fiber.Router, labService services.LabService, labSec
 	labRouter.Patch("/:labID/materials/:materialID/position", middlewares.ValidateMiddleware[requests.UpdateLabMaterialPosition](), func(c fiber.Ctx) error {
 		user := c.Locals("user").(*models.User)
 		labID := c.Params("labID")
+
+		if !isAdminUser(user) {
+			lab, err := labService.GetByID(c.RequestCtx(), labID)
+			if err != nil {
+				return err
+			}
+			ok, err := permService.IsCourseCreator(c.RequestCtx(), user.ID, lab.CourseID)
+			if err != nil {
+				return err
+			}
+			if !ok {
+				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusForbidden, Code: cserrors.Forbidden, Message: "Permission denied: only admin or course creator can reorder materials"})
+			}
+		}
+
 		materialID := c.Params("materialID")
 		req := c.Locals("body").(*requests.UpdateLabMaterialPosition)
 		return labMaterialService.UpdatePosition(c.RequestCtx(), labID, materialID, user.ID, req.Position)
 	})
+}
+
+func isAdminUser(user *models.User) bool {
+	for _, r := range user.Roles {
+		if r == models.ADMIN {
+			return true
+		}
+	}
+	return false
 }
 
 // fiber:context-methods migrated
