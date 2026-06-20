@@ -1,3 +1,15 @@
+# [0.17.0](https://github.com/CSKU-Lab/main-server/compare/v0.16.1...v0.17.0) (2026-06-20)
+
+
+### Bug Fixes
+
+* allow mistyped chars in typing submission and fix adjWPM ([53b0f56](https://github.com/CSKU-Lab/main-server/commit/53b0f56fcdda3ee7e266ea4f9016eb04f1a6eeec))
+
+
+### Features
+
+* **cms:** add Regrade All endpoint for code materials ([6b00d4f](https://github.com/CSKU-Lab/main-server/commit/6b00d4fcd1f7761bbda0ec653985c2702a9eadc0))
+
 ## [0.16.1](https://github.com/CSKU-Lab/main-server/compare/v0.16.0...v0.16.1) (2026-06-20)
 
 
