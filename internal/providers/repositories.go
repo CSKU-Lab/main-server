@@ -88,6 +88,10 @@ func NewSearchRepository(db *sqlx.DB) repositories.SearchRepository {
 	return sqlxAdapter.NewSearchRepository(db)
 }
 
+func NewSystemSettingsRepository(db *sqlx.DB) repositories.SystemSettingsRepository {
+	return sqlxAdapter.NewSystemSettingsRepository(db)
+}
+
 var RepositorySet = wire.NewSet(
 	sqlxAdapter.NewUoWRepository,
 	NewUserRepository,
@@ -116,4 +120,5 @@ var RepositorySet = wire.NewSet(
 	NewCodeSubmissionRepository,
 	NewDocumentMaterialRepository,
 	NewSearchRepository,
+	NewSystemSettingsRepository,
 )

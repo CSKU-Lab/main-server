@@ -43,20 +43,21 @@ type UpdateSubmissionPayload struct {
 }
 
 type submissionService struct {
-	repo               repositories.SubmissionRepository
-	materialRepo       repositories.MaterialRepository
-	sectionStudentRepo repositories.SectionStudentRepository
-	uowRepo            repositories.UoWRepository
-	registry           registries.SubmissionRegistry
-	userRepo           repositories.User
-	materialReigstry   registries.Material
-	sectionRepo        repositories.SectionRepository
-	labSectionRepo     repositories.LabSectionRepository
-	labMatRepo         repositories.LabMaterialRepository
-	codeSubmissionRepo repositories.CodeSubmissionRepository
-	codeMatRepo        repositories.CodeMaterialRepository
-	ps                 pubsub.PubSub
-	allowedSortFields  map[string]bool
+	repo                  repositories.SubmissionRepository
+	materialRepo          repositories.MaterialRepository
+	sectionStudentRepo    repositories.SectionStudentRepository
+	uowRepo               repositories.UoWRepository
+	registry              registries.SubmissionRegistry
+	userRepo              repositories.User
+	materialReigstry      registries.Material
+	sectionRepo           repositories.SectionRepository
+	labSectionRepo        repositories.LabSectionRepository
+	labMatRepo            repositories.LabMaterialRepository
+	codeSubmissionRepo    repositories.CodeSubmissionRepository
+	codeMatRepo           repositories.CodeMaterialRepository
+	ps                    pubsub.PubSub
+	systemSettingsService SystemSettingsService
+	allowedSortFields     map[string]bool
 }
 
 type SubmissionServiceArgs struct {
@@ -73,23 +74,25 @@ type SubmissionServiceArgs struct {
 	CodeSubmissionRepository repositories.CodeSubmissionRepository
 	CodeMaterialRepository   repositories.CodeMaterialRepository
 	PubSub                   pubsub.PubSub
+	SystemSettingsService    SystemSettingsService
 }
 
 func NewSubmissionService(args *SubmissionServiceArgs) SubmissionService {
 	return &submissionService{
-		repo:               args.SubmissionRepository,
-		materialRepo:       args.MaterialRepository,
-		uowRepo:            args.UowRepository,
-		registry:           args.SubmissionRegistry,
-		sectionStudentRepo: args.SectionStudentRepository,
-		userRepo:           args.UserRepository,
-		sectionRepo:        args.SectionRepository,
-		labSectionRepo:     args.LabSectionRepository,
-		labMatRepo:         args.LabMaterialRepository,
-		materialReigstry:   args.MaterialRegistry,
-		codeSubmissionRepo: args.CodeSubmissionRepository,
-		codeMatRepo:        args.CodeMaterialRepository,
-		ps:                 args.PubSub,
+		repo:                  args.SubmissionRepository,
+		materialRepo:          args.MaterialRepository,
+		uowRepo:               args.UowRepository,
+		registry:              args.SubmissionRegistry,
+		sectionStudentRepo:    args.SectionStudentRepository,
+		userRepo:              args.UserRepository,
+		sectionRepo:           args.SectionRepository,
+		labSectionRepo:        args.LabSectionRepository,
+		labMatRepo:            args.LabMaterialRepository,
+		materialReigstry:      args.MaterialRegistry,
+		codeSubmissionRepo:    args.CodeSubmissionRepository,
+		codeMatRepo:           args.CodeMaterialRepository,
+		ps:                    args.PubSub,
+		systemSettingsService: args.SystemSettingsService,
 		allowedSortFields: map[string]bool{
 			"order":      true,
 			"created_at": true,
@@ -728,10 +731,11 @@ func (s *submissionService) RegradeByMaterial(ctx context.Context, sectionID, la
 
 			queued := models.QUEUED
 			gradePayload := &models.GradeExecution{
-				ID:       id.String(),
-				Files:    codeSub.Files,
-				RunnerID: *codeSub.RunnerID,
-				TaskID:   codeMat.TaskID,
+				ID:              id.String(),
+				Files:           codeSub.Files,
+				RunnerID:        *codeSub.RunnerID,
+				TaskID:          codeMat.TaskID,
+				CompareScriptID: s.systemSettingsService.GetDefaultCompareScriptID(ctx),
 			}
 
 			_ = s.uowRepo.Execute(ctx, func(u repositories.UoWInstance) error {

@@ -45,6 +45,7 @@ func NewFiberApp(
 	materialService services.MaterialService,
 	searchService services.SearchService,
 	permissionService permission.Service,
+	systemSettingsService services.SystemSettingsService,
 	configGRPCClient configPB.ConfigServiceClient,
 	q queue.Queue,
 	rClient pubsub.PubSub,
@@ -84,11 +85,12 @@ func NewFiberApp(
 	protectedApi := api.Group("/", middlewares.ProtectedRouteMiddleware(cfg.JWTSecret))
 
 	rest.NewAdminRouter(&rest.AdminRouter{
-		Router:            protectedApi,
-		UserService:       userService,
-		CourseService:     courseService,
-		UserGroupService:  userGroupService,
-		PermissionService: permissionService,
+		Router:                protectedApi,
+		UserService:           userService,
+		CourseService:         courseService,
+		UserGroupService:      userGroupService,
+		PermissionService:     permissionService,
+		SystemSettingsService: systemSettingsService,
 	})
 
 	rest.NewCMSRouter(&rest.CMSRouter{

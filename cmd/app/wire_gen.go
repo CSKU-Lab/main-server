@@ -72,13 +72,15 @@ func initializeApp(ctx context.Context, cfg *configs.Config, db *sqlx.DB, logger
 	affectedEntitiesFactory := providers.NewPopulatedAffectedEntityFactory(deletedCourseAffected, deletedSemesterAffected, deletedSectionAffected, deletedLabAffected, deletedLabSectionAffected)
 	affectedEntitiesService := services.NewAffectedEntitiesService(affectedEntitiesFactory)
 	submissionRepository := providers.NewSubmissionRepository(db)
+	systemSettingsRepository := providers.NewSystemSettingsRepository(db)
+	systemSettingsService := services.NewSystemSettingsService(systemSettingsRepository)
 	codeSubmissionRepository := providers.NewCodeSubmissionRepository(db)
 	codeMaterialRepository := sqlx2.NewCodeMaterialRepository(db)
 	taskServiceClient, cleanup, err := providers.ProvideTaskClient(cfg)
 	if err != nil {
 		return nil, nil, err
 	}
-	codeSubmission := registrables.NewCodeSubmission(codeSubmissionRepository, codeMaterialRepository, submissionRepository, taskServiceClient)
+	codeSubmission := registrables.NewCodeSubmission(codeSubmissionRepository, codeMaterialRepository, submissionRepository, taskServiceClient, systemSettingsRepository)
 	typingSubmissionRepository := providers.NewTypingSubmissionRepository(db)
 	typingMaterialRepository := sqlx2.NewTypingMaterialRepository(db)
 	typingSubmission := providers.ProvideTypingSubmission(typingSubmissionRepository, typingMaterialRepository, materialRepository, cfg)
@@ -99,7 +101,7 @@ func initializeApp(ctx context.Context, cfg *configs.Config, db *sqlx.DB, logger
 		cleanup()
 		return nil, nil, err
 	}
-	submissionServiceArgs := providers.NewSubmissionServiceArgs(submissionRepository, materialRepository, uoWRepository, submissionRegistry, sectionStudentRepository, user, material, sectionRepository, labSectionRepository, labMaterialRepository, codeSubmissionRepository, codeMaterialRepository, pubSub)
+	submissionServiceArgs := providers.NewSubmissionServiceArgs(submissionRepository, materialRepository, uoWRepository, submissionRegistry, sectionStudentRepository, user, material, sectionRepository, labSectionRepository, labMaterialRepository, codeSubmissionRepository, codeMaterialRepository, pubSub, systemSettingsService)
 	submissionService := services.NewSubmissionService(submissionServiceArgs)
 	sidebarService := services.NewSidebarService(courseRepository, sectionStudentRepository, labSectionRepository, labMaterialRepository, submissionService)
 	gradebookExportService := services.NewGradebookExportService(submissionService)
@@ -120,7 +122,7 @@ func initializeApp(ctx context.Context, cfg *configs.Config, db *sqlx.DB, logger
 		return nil, nil, err
 	}
 	playgroundHandler := providers.NewPlaygroundHandler(graderServiceClient)
-	app := providers.NewFiberApp(cfg, logger, errorHandlerMiddleware, userService, refreshTokenService, userGroupService, courseService, courseEnrollmentService, semesterService, sectionLogService, sectionService, sectionStudentService, tagService, materialAssetService, labService, labSectionService, labMaterialService, defaultLabService, affectedEntitiesService, submissionService, sidebarService, gradebookExportService, materialService, searchService, service, configServiceClient, queue, pubSub, rateLimiter, playgroundHandler, typingSubmissionRepository)
+	app := providers.NewFiberApp(cfg, logger, errorHandlerMiddleware, userService, refreshTokenService, userGroupService, courseService, courseEnrollmentService, semesterService, sectionLogService, sectionService, sectionStudentService, tagService, materialAssetService, labService, labSectionService, labMaterialService, defaultLabService, affectedEntitiesService, submissionService, sidebarService, gradebookExportService, materialService, searchService, service, systemSettingsService, configServiceClient, queue, pubSub, rateLimiter, playgroundHandler, typingSubmissionRepository)
 	return app, func() {
 		cleanup3()
 		cleanup2()

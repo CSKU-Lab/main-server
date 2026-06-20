@@ -1064,3 +1064,17 @@ table "typing_submissions" {
     on_delete   = CASCADE
   }
 }
+
+table "system_settings" {
+  schema = schema.public
+  column "key" {
+    type = text
+  }
+  column "value" {
+    type = text
+    null = true
+  }
+  primary_key {
+    columns = [column.key]
+  }
+}

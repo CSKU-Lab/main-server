@@ -24,6 +24,7 @@ func NewSubmissionServiceArgs(
 	codeSubmissionRepo repositories.CodeSubmissionRepository,
 	codeMatRepo repositories.CodeMaterialRepository,
 	pubSub pubsub.PubSub,
+	systemSettingsService services.SystemSettingsService,
 ) *services.SubmissionServiceArgs {
 	return &services.SubmissionServiceArgs{
 		SubmissionRepository:     submissionRepo,
@@ -39,10 +40,12 @@ func NewSubmissionServiceArgs(
 		CodeSubmissionRepository: codeSubmissionRepo,
 		CodeMaterialRepository:   codeMatRepo,
 		PubSub:                   pubSub,
+		SystemSettingsService:    systemSettingsService,
 	}
 }
 
 var ServiceSet = wire.NewSet(
+	services.NewSystemSettingsService,
 	services.NewSearchService,
 	services.NewUserService,
 	services.NewUserGroupService,

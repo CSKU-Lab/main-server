@@ -10,19 +10,23 @@ import (
 	"github.com/google/uuid"
 )
 
+const defaultCompareScriptIDKey = "default_compare_script_id"
+
 type CodeSubmission struct {
-	repo           repositories.CodeSubmissionRepository
-	codeMatRepo    repositories.CodeMaterialRepository
-	submissionRepo repositories.SubmissionRepository
-	taskGRPCClient taskPB.TaskServiceClient
+	repo            repositories.CodeSubmissionRepository
+	codeMatRepo     repositories.CodeMaterialRepository
+	submissionRepo  repositories.SubmissionRepository
+	taskGRPCClient  taskPB.TaskServiceClient
+	settingsRepo    repositories.SystemSettingsRepository
 }
 
-func NewCodeSubmission(repo repositories.CodeSubmissionRepository, codeMatRepo repositories.CodeMaterialRepository, submissionRepo repositories.SubmissionRepository, taskGRPCClient taskPB.TaskServiceClient) *CodeSubmission {
+func NewCodeSubmission(repo repositories.CodeSubmissionRepository, codeMatRepo repositories.CodeMaterialRepository, submissionRepo repositories.SubmissionRepository, taskGRPCClient taskPB.TaskServiceClient, settingsRepo repositories.SystemSettingsRepository) *CodeSubmission {
 	return &CodeSubmission{
 		repo:           repo,
 		codeMatRepo:    codeMatRepo,
 		submissionRepo: submissionRepo,
 		taskGRPCClient: taskGRPCClient,
+		settingsRepo:   settingsRepo,
 	}
 }
 
@@ -98,13 +102,22 @@ func (c *CodeSubmission) Create(ctx context.Context, uowRepo repositories.UoWIns
 	}
 
 	gradePayload := &models.GradeExecution{
-		ID:       id.String(),
-		Files:    parsedPayload.Files,
-		RunnerID: parsedPayload.RunnerID,
-		TaskID:   codeMat.TaskID,
+		ID:              id.String(),
+		Files:           parsedPayload.Files,
+		RunnerID:        parsedPayload.RunnerID,
+		TaskID:          codeMat.TaskID,
+		CompareScriptID: c.resolveDefaultCompareScriptID(ctx),
 	}
 
 	return uowRepo.CodeSubmissionOutbox().Create(ctx, id.String(), submissionID, gradePayload)
+}
+
+func (c *CodeSubmission) resolveDefaultCompareScriptID(ctx context.Context) string {
+	val, err := c.settingsRepo.Get(ctx, defaultCompareScriptIDKey)
+	if err != nil || val == nil {
+		return ""
+	}
+	return *val
 }
 
 func (c *CodeSubmission) Update(ctx context.Context, uowRepo repositories.UoWInstance, submissionID string, payload []byte) error {

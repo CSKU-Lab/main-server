@@ -8,11 +8,12 @@ import (
 )
 
 type AdminRouter struct {
-	Router            fiber.Router
-	UserService       services.UserService
-	UserGroupService  services.UserGroupService
-	CourseService     services.CourseService
-	PermissionService permission.Service
+	Router                 fiber.Router
+	UserService            services.UserService
+	UserGroupService       services.UserGroupService
+	CourseService          services.CourseService
+	PermissionService      permission.Service
+	SystemSettingsService  services.SystemSettingsService
 }
 
 func NewAdminRouter(r *AdminRouter) {
@@ -20,4 +21,5 @@ func NewAdminRouter(r *AdminRouter) {
 
 	routes.NewAdminUserRoutes(adminRouter, r.UserService)
 	routes.NewAdminUserGroupRoutes(adminRouter, r.UserGroupService)
+	routes.NewAdminSettingsRoutes(adminRouter, r.SystemSettingsService)
 }
