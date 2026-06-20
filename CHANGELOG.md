@@ -1,3 +1,11 @@
+# [0.19.0](https://github.com/CSKU-Lab/main-server/compare/v0.18.0...v0.19.0) (2026-06-20)
+
+
+### Features
+
+* **CS-197:** add system settings with default compare script fallback for grading ([96ff0b4](https://github.com/CSKU-Lab/main-server/commit/96ff0b4079bfbf9fd62d9e9b4fe02ee3fc135aa5))
+* **CS-197:** set default compare script on code material creation ([2da4c68](https://github.com/CSKU-Lab/main-server/commit/2da4c6811cb0a36e2f9dd3adcf037d95e0aeeb78))
+
 # [0.18.0](https://github.com/CSKU-Lab/main-server/compare/v0.17.0...v0.18.0) (2026-06-20)
 
 
