@@ -252,13 +252,13 @@ func (s *materialService) GetPagination(ctx context.Context, courseID string, vi
 
 	if t, ok := filterParams["type__is"]; ok {
 		t = strings.ToLower(t)
-		if t != "first" && t != "second" && t != "summer" {
+		if t != "document" && t != "code" && t != "typing" {
 			return nil, cserrors.New(&cserrors.Option{
 				HttpStatus: http.StatusBadRequest,
-				Message:    "Invalid semester type filter",
+				Message:    "Invalid material type filter",
 			})
 		}
-		filterParams["type__is"] = strings.ToLower(t)
+		filterParams["type__is"] = t
 	}
 
 	filters, err := sanitize.Filters(filterParams, s.allowedFilterFields)

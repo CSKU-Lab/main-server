@@ -70,18 +70,22 @@ func buildVisibilityClause(visibility *repositories.VisibilityFilter, nextArgInd
 }
 
 func (m *materialRepository) GetPagination(ctx context.Context, courseID string, page int, limit int, search string, sortBy string, sortOrder string, filters []sanitize.Filter, visibility *repositories.VisibilityFilter) ([]repositories.Material, error) {
-	filterWhereClause, filterArgs := buildFilterWhereClause(filters, 3)
-	visibilityClause, visibilityArgs := buildVisibilityClause(visibility, len(filterArgs)+3)
+	filterWhereClause, filterArgs := buildFilterWhereClause(filters, 4)
+	visibilityClause, visibilityArgs := buildVisibilityClause(visibility, len(filterArgs)+4)
 
 	baseQuery := `SELECT id, course_id, forked_from_material_id, name, type, visibility, created_at, created_by, auto_score, manual_score FROM materials
-	WHERE (name ILIKE $1) AND course_id = $2 AND is_deleted = false`
+	WHERE (name ILIKE $1 OR id IN (
+		SELECT mt.material_id FROM material_tags mt
+		JOIN tags t ON mt.tag_id = t.id
+		WHERE LOWER(t.name) = LOWER($2)
+	)) AND course_id = $3 AND is_deleted = false`
 
 	query := fmt.Sprintf(`%s%s%s
 		ORDER BY %s %s
 		OFFSET $%d
-		LIMIT $%d`, baseQuery, filterWhereClause, visibilityClause, sortBy, sortOrder, len(filterArgs)+len(visibilityArgs)+3, len(filterArgs)+len(visibilityArgs)+4)
+		LIMIT $%d`, baseQuery, filterWhereClause, visibilityClause, sortBy, sortOrder, len(filterArgs)+len(visibilityArgs)+4, len(filterArgs)+len(visibilityArgs)+5)
 
-	args := []any{"%" + search + "%", courseID}
+	args := []any{"%" + search + "%", search, courseID}
 	args = append(args, filterArgs...)
 	args = append(args, visibilityArgs...)
 	args = append(args, (page-1)*limit, limit)
@@ -101,15 +105,19 @@ func (m *materialRepository) GetPagination(ctx context.Context, courseID string,
 }
 
 func (m *materialRepository) Count(ctx context.Context, courseID string, search string, filters []sanitize.Filter, visibility *repositories.VisibilityFilter) (int, error) {
-	filterWhereClause, filterArgs := buildFilterWhereClause(filters, 3)
-	visibilityClause, visibilityArgs := buildVisibilityClause(visibility, len(filterArgs)+3)
+	filterWhereClause, filterArgs := buildFilterWhereClause(filters, 4)
+	visibilityClause, visibilityArgs := buildVisibilityClause(visibility, len(filterArgs)+4)
 
 	baseQuery := `SELECT COUNT(*) FROM materials
-		WHERE (name ILIKE $1) AND course_id = $2 AND is_deleted = false`
+		WHERE (name ILIKE $1 OR id IN (
+			SELECT mt.material_id FROM material_tags mt
+			JOIN tags t ON mt.tag_id = t.id
+			WHERE LOWER(t.name) = LOWER($2)
+		)) AND course_id = $3 AND is_deleted = false`
 
 	query := fmt.Sprintf(`%s%s%s`, baseQuery, filterWhereClause, visibilityClause)
 
-	args := []any{"%" + search + "%", courseID}
+	args := []any{"%" + search + "%", search, courseID}
 	args = append(args, filterArgs...)
 	args = append(args, visibilityArgs...)
 
