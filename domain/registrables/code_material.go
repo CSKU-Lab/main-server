@@ -15,6 +15,7 @@ type CodeMaterial struct {
 	repo             repositories.CodeMaterialRepository
 	taskGRPCClient   taskPB.TaskServiceClient
 	configGRPCCLient configPB.ConfigServiceClient
+	settingsRepo     repositories.SystemSettingsRepository
 }
 
 type TestCase struct {
@@ -111,11 +112,12 @@ type CodeMaterialResponse struct {
 	HideTestCases  bool                    `json:"hide_test_cases"`
 }
 
-func NewCodeMaterial(repo repositories.CodeMaterialRepository, taskGRPCClient taskPB.TaskServiceClient, configGRPCClient configPB.ConfigServiceClient) *CodeMaterial {
+func NewCodeMaterial(repo repositories.CodeMaterialRepository, taskGRPCClient taskPB.TaskServiceClient, configGRPCClient configPB.ConfigServiceClient, settingsRepo repositories.SystemSettingsRepository) *CodeMaterial {
 	return &CodeMaterial{
 		repo:             repo,
 		taskGRPCClient:   taskGRPCClient,
 		configGRPCCLient: configGRPCClient,
+		settingsRepo:     settingsRepo,
 	}
 }
 
@@ -288,11 +290,21 @@ func (c *CodeMaterial) Create(ctx context.Context, matID string, req *requests.C
 		return err
 	}
 
-	if res.GetId() != "" {
-		err = c.repo.SetTaskID(ctx, matID, res.GetId())
-		if err != nil {
-			return err
-		}
+	if res.GetId() == "" {
+		return nil
+	}
+
+	if err = c.repo.SetTaskID(ctx, matID, res.GetId()); err != nil {
+		return err
+	}
+
+	defaultCompare, err := c.settingsRepo.Get(ctx, defaultCompareScriptIDKey)
+	if err == nil && defaultCompare != nil && *defaultCompare != "" {
+		taskID := res.GetId()
+		_, _ = c.taskGRPCClient.UpdateTask(ctx, &taskPB.UpdateTaskRequest{
+			Id:              &taskID,
+			CompareScriptId: defaultCompare,
+		})
 	}
 
 	return nil

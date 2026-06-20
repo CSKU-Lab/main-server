@@ -90,7 +90,7 @@ func initializeApp(ctx context.Context, cfg *configs.Config, db *sqlx.DB, logger
 		cleanup()
 		return nil, nil, err
 	}
-	codeMaterial := registrables.NewCodeMaterial(codeMaterialRepository, taskServiceClient, configServiceClient)
+	codeMaterial := registrables.NewCodeMaterial(codeMaterialRepository, taskServiceClient, configServiceClient, systemSettingsRepository)
 	typingMaterial := registrables.NewTypingMaterial(typingMaterialRepository)
 	documentMaterialRepository := providers.NewDocumentMaterialRepository(db)
 	documentMaterial := registrables.NewDocumentMaterial(documentMaterialRepository)
