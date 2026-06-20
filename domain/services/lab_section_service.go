@@ -373,10 +373,11 @@ func (ls *labSectionService) applyLabSectionSchedule(req *requests.UpdateLabSect
 		})
 	}
 	if status == "readonly" && req.OpenedAt != nil {
-		return cserrors.New(&cserrors.Option{
-			HttpStatus: http.StatusBadRequest,
-			Message:    "opened_at is not allowed for readonly status",
-		})
+		req.OpenedAt = nil
+	}
+	if status == "hidden" && (req.OpenedAt != nil || req.ReadonlyAt != nil) {
+		req.OpenedAt = nil
+		req.ReadonlyAt = nil
 	}
 	if req.OpenedAt == nil && req.ReadonlyAt == nil {
 		switch status {

@@ -201,7 +201,7 @@ func (s *sqlxSectionRepository) GetRawBySemesterID(ctx context.Context, ID strin
 func (s *sqlxSectionRepository) GetRawByID(ctx context.Context, ID string) (*repositories.RawSection, error) {
 	var dbSection rawSectionSchema
 	query := "SELECT id, name, banner, course_id, semester_id, created_at, updated_at FROM sections WHERE id = $1 AND is_deleted = false"
-	err := s.db.SelectContext(ctx, &dbSection, query, ID)
+	err := s.db.GetContext(ctx, &dbSection, query, ID)
 	if err != nil {
 		return nil, err
 	}
