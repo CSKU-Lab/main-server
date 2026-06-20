@@ -92,7 +92,7 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 	adminUserRouter.Post("/import", middlewares.ValidateMiddleware[requests.CreateManyUsers](), func(c fiber.Ctx) error {
 		createManyUsers := c.Locals("body").(*requests.CreateManyUsers)
 
-		err := userService.CreateMany(c.RequestCtx(), createManyUsers)
+		err := userService.UpsertMany(c.RequestCtx(), createManyUsers)
 		if err != nil {
 			var e *cserrors.Error
 			if errors.As(err, &e) {
@@ -100,7 +100,7 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 			}
 			return cserrors.New(&cserrors.Option{
 				HttpStatus: http.StatusInternalServerError,
-				Message:    "Error creating user",
+				Message:    "Error importing users",
 			})
 		}
 

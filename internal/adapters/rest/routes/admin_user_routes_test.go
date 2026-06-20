@@ -57,6 +57,10 @@ func (m *mockUserServiceForAdminRoutes) CreateMany(ctx context.Context, users *r
 	return nil
 }
 
+func (m *mockUserServiceForAdminRoutes) UpsertMany(ctx context.Context, users *requests.CreateManyUsers) error {
+	return nil
+}
+
 func (m *mockUserServiceForAdminRoutes) SetPassword(ctx context.Context, ID string, password string) error {
 	return nil
 }

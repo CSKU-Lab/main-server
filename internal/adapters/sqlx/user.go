@@ -312,6 +312,43 @@ func (r *userRepository) Create(ctx context.Context, req repositories.CreateMult
 	return nil
 }
 
+func (r *userRepository) Upsert(ctx context.Context, req repositories.CreateMultiTypeUser) error {
+	pgUser := user{
+		ID:          req.ID,
+		Username:    req.Username,
+		Type:        string(req.Type),
+		Email:       req.Email,
+		DisplayName: req.DisplayName,
+		Roles:       req.Roles,
+		GroupID:     req.GroupID,
+	}
+
+	query, args, err := sqlx.Named(`INSERT INTO users (
+			id,
+			username,
+			display_name,
+			email,
+			roles,
+			type,
+			group_id
+			) VALUES (:id,:username,:display_name,:email,:roles,:type,:group_id)
+			ON CONFLICT (username) WHERE is_deleted = false
+			DO UPDATE SET
+				display_name = EXCLUDED.display_name,
+				email = EXCLUDED.email,
+				roles = EXCLUDED.roles,
+				group_id = EXCLUDED.group_id,
+				updated_at = CURRENT_TIMESTAMP`, pgUser)
+	if err != nil {
+		return err
+	}
+
+	query = r.db.Rebind(query)
+
+	_, err = r.db.ExecContext(ctx, query, args...)
+	return err
+}
+
 func (r *userRepository) Update(ctx context.Context, ID string, req *requests.UpdateUser) error {
 	fields := &user{
 		ID:           ID,

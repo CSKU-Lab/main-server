@@ -90,6 +90,11 @@ func (m *mockUserRepo) Delete(ctx context.Context, ID string) error {
 	return args.Error(0)
 }
 
+func (m *mockUserRepo) Upsert(ctx context.Context, user repositories.CreateMultiTypeUser) error {
+	args := m.Called(ctx, user)
+	return args.Error(0)
+}
+
 func (m *mockUserRepo) DeleteMany(ctx context.Context, IDs []string) error {
 	args := m.Called(ctx, IDs)
 	return args.Error(0)

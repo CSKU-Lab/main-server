@@ -26,6 +26,7 @@ type UserService interface {
 	Count(ctx context.Context, search string, filterParams map[string]string) (int, error)
 	Create(ctx context.Context, user *requests.CreateMultiTypeUser) error
 	CreateMany(ctx context.Context, users *requests.CreateManyUsers) error
+	UpsertMany(ctx context.Context, users *requests.CreateManyUsers) error
 	SetPassword(ctx context.Context, ID string, password string) error
 	Update(ctx context.Context, ID string, user *requests.UpdateUser) error
 	Delete(ctx context.Context, ID string) error
@@ -354,6 +355,89 @@ func (s *userService) CreateMany(ctx context.Context, req *requests.CreateManyUs
 	}
 
 	return nil
+}
+
+func (s *userService) UpsertMany(ctx context.Context, req *requests.CreateManyUsers) error {
+	if len(req.Users) == 0 {
+		return cserrors.New(&cserrors.Option{
+			HttpStatus: http.StatusBadRequest,
+			Message:    "No users to import",
+		})
+	}
+
+	for _, user := range req.Users {
+		err := s.upsert(ctx, &user)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *userService) upsert(ctx context.Context, req *requests.CreateMultiTypeUser) error {
+	if models.UserType(req.Type) == models.UserTypeCredential {
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(*req.Password), 10)
+		if err != nil {
+			return cserrors.New(&cserrors.Option{
+				HttpStatus: http.StatusInternalServerError,
+				Message:    "Cannot generate password",
+			})
+		}
+		*req.Password = string(hashedPassword)
+	}
+
+	repoUser := repositories.CreateMultiTypeUser{
+		CreateMultiTypeUser: *req,
+	}
+
+	id, err := uuid.NewV7()
+	if err != nil {
+		return cserrors.New(&cserrors.Option{
+			HttpStatus: http.StatusInternalServerError,
+			Message:    "Cannot generate user ID",
+		})
+	}
+
+	repoUser.ID = id.String()
+
+	return s.uowRepository.Execute(ctx, func(u repositories.UoWInstance) error {
+		if req.Group != nil {
+			userGroup, err := u.UserGroup().GetByName(ctx, *req.Group)
+			if err != nil {
+				var csErr *cserrors.Error
+				if errors.As(err, &csErr) && csErr.HttpStatus == http.StatusNotFound {
+					groupID, genErr := uuid.NewV7()
+					if genErr != nil {
+						return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Cannot generate group ID"})
+					}
+					if createErr := u.UserGroup().Create(ctx, groupID.String(), *req.Group); createErr != nil {
+						return createErr
+					}
+					gid := groupID.String()
+					repoUser.GroupID = &gid
+				} else {
+					return err
+				}
+			} else {
+				repoUser.GroupID = &userGroup.ID
+			}
+		}
+
+		err := u.User().Upsert(ctx, repoUser)
+		if err != nil {
+			return err
+		}
+
+		if req.Password != nil {
+			err := u.UserPassword().SetPassword(ctx, repoUser.ID, *req.Password)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
 }
 
 func (s *userService) SetPassword(ctx context.Context, ID string, password string) error {
