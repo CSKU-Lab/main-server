@@ -30,7 +30,7 @@ func SignAccessToken(user *models.User, secret string) (string, error) {
 		"profileImage": user.ProfileImage,
 		"roles":        user.Roles,
 		"iss":          "cs-lab-backend",
-		"exp":          time.Now().Add(time.Hour * 1).Unix(),
+		"exp":          time.Now().Add(time.Hour * 6).Unix(),
 	})
 
 	return token.SignedString([]byte(secret))
