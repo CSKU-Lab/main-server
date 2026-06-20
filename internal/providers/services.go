@@ -21,6 +21,8 @@ func NewSubmissionServiceArgs(
 	sectionRepo repositories.SectionRepository,
 	labSectionRepo repositories.LabSectionRepository,
 	labMaterialRepo repositories.LabMaterialRepository,
+	codeSubmissionRepo repositories.CodeSubmissionRepository,
+	codeMatRepo repositories.CodeMaterialRepository,
 	pubSub pubsub.PubSub,
 ) *services.SubmissionServiceArgs {
 	return &services.SubmissionServiceArgs{
@@ -34,6 +36,8 @@ func NewSubmissionServiceArgs(
 		SectionRepository:        sectionRepo,
 		LabSectionRepository:     labSectionRepo,
 		LabMaterialRepository:    labMaterialRepo,
+		CodeSubmissionRepository: codeSubmissionRepo,
+		CodeMaterialRepository:   codeMatRepo,
 		PubSub:                   pubSub,
 	}
 }

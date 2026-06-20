@@ -478,6 +478,18 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 		})
 	})
 
+	cmsSectionRouter.Post("/:sectionID/labs/:labID/materials/:materialID/regrade", middlewares.Permission(permService).ForSection("sectionID").CanModify(), func(c fiber.Ctx) error {
+		sectionID := c.Params("sectionID")
+		labID := c.Params("labID")
+		materialID := c.Params("materialID")
+
+		if err := submissionService.RegradeByMaterial(c.RequestCtx(), sectionID, labID, materialID); err != nil {
+			return err
+		}
+
+		return c.SendStatus(http.StatusAccepted)
+	})
+
 	cmsSectionRouter.Patch("/:sectionID/labs/:labID", middlewares.Permission(permService).ForSection("sectionID").CanModify(), middlewares.ValidateMiddleware[requests.UpdateLabSectionStatus](), func(c fiber.Ctx) error {
 		user := c.Locals("user").(*models.User)
 		sectionID := c.Params("sectionID")

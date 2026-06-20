@@ -99,7 +99,7 @@ func initializeApp(ctx context.Context, cfg *configs.Config, db *sqlx.DB, logger
 		cleanup()
 		return nil, nil, err
 	}
-	submissionServiceArgs := providers.NewSubmissionServiceArgs(submissionRepository, materialRepository, uoWRepository, submissionRegistry, sectionStudentRepository, user, material, sectionRepository, labSectionRepository, labMaterialRepository, pubSub)
+	submissionServiceArgs := providers.NewSubmissionServiceArgs(submissionRepository, materialRepository, uoWRepository, submissionRegistry, sectionStudentRepository, user, material, sectionRepository, labSectionRepository, labMaterialRepository, codeSubmissionRepository, codeMaterialRepository, pubSub)
 	submissionService := services.NewSubmissionService(submissionServiceArgs)
 	sidebarService := services.NewSidebarService(courseRepository, sectionStudentRepository, labSectionRepository, labMaterialRepository, submissionService)
 	gradebookExportService := services.NewGradebookExportService(submissionService)

@@ -32,6 +32,7 @@ type SubmissionService interface {
 	GetStudentSubmissionsByMaterialSectionLab(ctx context.Context, materialID string, sectionID string, labID string, studentID string, page int, pageSize int, sortBy, sortOrder string) ([]models.StudentSubmission, int, error)
 	UpdateManualScore(ctx context.Context, submissionID string, manualScore int) error
 	GetMaterialStudentStatus(ctx context.Context, userID, materialID, labID, sectionID string) string
+	RegradeByMaterial(ctx context.Context, sectionID, labID, materialID string) error
 }
 
 type UpdateSubmissionPayload struct {
@@ -51,6 +52,8 @@ type submissionService struct {
 	sectionRepo        repositories.SectionRepository
 	labSectionRepo     repositories.LabSectionRepository
 	labMatRepo         repositories.LabMaterialRepository
+	codeSubmissionRepo repositories.CodeSubmissionRepository
+	codeMatRepo        repositories.CodeMaterialRepository
 	ps                 pubsub.PubSub
 	allowedSortFields  map[string]bool
 }
@@ -66,6 +69,8 @@ type SubmissionServiceArgs struct {
 	SectionRepository        repositories.SectionRepository
 	LabSectionRepository     repositories.LabSectionRepository
 	LabMaterialRepository    repositories.LabMaterialRepository
+	CodeSubmissionRepository repositories.CodeSubmissionRepository
+	CodeMaterialRepository   repositories.CodeMaterialRepository
 	PubSub                   pubsub.PubSub
 }
 
@@ -81,6 +86,8 @@ func NewSubmissionService(args *SubmissionServiceArgs) SubmissionService {
 		labSectionRepo:     args.LabSectionRepository,
 		labMatRepo:         args.LabMaterialRepository,
 		materialReigstry:   args.MaterialRegistry,
+		codeSubmissionRepo: args.CodeSubmissionRepository,
+		codeMatRepo:        args.CodeMaterialRepository,
 		ps:                 args.PubSub,
 		allowedSortFields: map[string]bool{
 			"order":      true,
@@ -680,4 +687,59 @@ func (s *submissionService) GetStudentSubmissionsByMaterialSectionLab(ctx contex
 	}
 
 	return result, count, nil
+}
+
+func (s *submissionService) RegradeByMaterial(ctx context.Context, sectionID, labID, materialID string) error {
+	mat, err := s.materialRepo.GetByID(ctx, materialID)
+	if err != nil {
+		return err
+	}
+	if mat.Type != "code" {
+		return nil
+	}
+
+	codeMat, err := s.codeMatRepo.GetByID(ctx, materialID)
+	if err != nil {
+		return err
+	}
+
+	submissions, err := s.repo.GetLatestByMaterialSectionAndLabID(ctx, materialID, sectionID, labID)
+	if err != nil {
+		return err
+	}
+
+	for _, sub := range submissions {
+		sub := sub
+		go func() {
+			codeSub, err := s.codeSubmissionRepo.Get(ctx, sub.ID)
+			if err != nil || codeSub.RunnerID == nil || *codeSub.RunnerID == "" {
+				return
+			}
+
+			id, err := uuid.NewV7()
+			if err != nil {
+				return
+			}
+
+			queued := models.QUEUED
+			gradePayload := &models.GradeExecution{
+				ID:       id.String(),
+				Files:    codeSub.Files,
+				RunnerID: *codeSub.RunnerID,
+				TaskID:   codeMat.TaskID,
+			}
+
+			_ = s.uowRepo.Execute(ctx, func(u repositories.UoWInstance) error {
+				if err := u.Submission().Update(ctx, &repositories.UpdateSubmissionRequest{
+					ID:     sub.ID,
+					Status: &queued,
+				}); err != nil {
+					return err
+				}
+				return u.CodeSubmissionOutbox().Create(ctx, id.String(), sub.ID, gradePayload)
+			})
+		}()
+	}
+
+	return nil
 }

@@ -13,6 +13,7 @@ type CodeSubmission struct {
 	AvgWallTime    *float32              `json:"avg_wall_time"`
 	AvgMemory      *int32                `json:"avg_memory"`
 	TestCaseGroups []TestCaseGroupResult `json:"test_case_groups"`
+	RunnerID       *string               `json:"runner_id"`
 }
 
 type SubmissionFile struct {
