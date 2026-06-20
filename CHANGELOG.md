@@ -1,3 +1,10 @@
+## [0.16.1](https://github.com/CSKU-Lab/main-server/compare/v0.16.0...v0.16.1) (2026-06-20)
+
+
+### Bug Fixes
+
+* use correct material ID for student status lookup and sort by position ([05c8656](https://github.com/CSKU-Lab/main-server/commit/05c865615573cbb53fc9c00de6a452a6ea06269b))
+
 # [0.16.0](https://github.com/CSKU-Lab/main-server/compare/v0.15.0...v0.16.0) (2026-06-20)
 
 
