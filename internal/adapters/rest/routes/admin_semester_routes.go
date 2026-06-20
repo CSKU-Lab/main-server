@@ -15,9 +15,9 @@ import (
 )
 
 func NewAdminSemesterRoutes(router fiber.Router, service services.SemesterService, sectionService services.SectionService, courseService services.CourseService) {
-	semesterRouter := router.Group("/semesters", middlewares.RequireAdmin())
+	semesterRouter := router.Group("/semesters")
 
-	semesterRouter.Post("/", middlewares.ValidateMiddleware[requests.CreateSemester](), func(c fiber.Ctx) error {
+	semesterRouter.Post("/", middlewares.RequireAdmin(), middlewares.ValidateMiddleware[requests.CreateSemester](), func(c fiber.Ctx) error {
 		sem := c.Locals("body").(*requests.CreateSemester)
 
 		err := service.Create(c.RequestCtx(), sem)
@@ -32,7 +32,7 @@ func NewAdminSemesterRoutes(router fiber.Router, service services.SemesterServic
 		return c.SendStatus(fiber.StatusCreated)
 	})
 
-	semesterRouter.Get("/", func(c fiber.Ctx) error {
+	semesterRouter.Get("/", middlewares.RequireAdminOrInstructor(), func(c fiber.Ctx) error {
 		pageQuery := c.Query("page", "1")
 		pageSizeQuery := c.Query("page_size", "10")
 		search := c.Query("search", "")
@@ -76,7 +76,7 @@ func NewAdminSemesterRoutes(router fiber.Router, service services.SemesterServic
 		})
 	})
 
-	semesterRouter.Get("/:semID", func(c fiber.Ctx) error {
+	semesterRouter.Get("/:semID", middlewares.RequireAdminOrInstructor(), func(c fiber.Ctx) error {
 		semID := c.Params("semID")
 		sem, err := service.GetByID(c.RequestCtx(), semID)
 		if err != nil {
@@ -90,7 +90,7 @@ func NewAdminSemesterRoutes(router fiber.Router, service services.SemesterServic
 		return c.JSON(sem)
 	})
 
-	semesterRouter.Patch("/:semID", middlewares.ValidateMiddleware[requests.UpdateSemester](), func(c fiber.Ctx) error {
+	semesterRouter.Patch("/:semID", middlewares.RequireAdmin(), middlewares.ValidateMiddleware[requests.UpdateSemester](), func(c fiber.Ctx) error {
 		ID := c.Params("semID")
 
 		sem := c.Locals("body").(*requests.UpdateSemester)
@@ -112,7 +112,7 @@ func NewAdminSemesterRoutes(router fiber.Router, service services.SemesterServic
 		return c.SendStatus(fiber.StatusAccepted)
 	})
 
-	semesterRouter.Delete("/:semID", func(c fiber.Ctx) error {
+	semesterRouter.Delete("/:semID", middlewares.RequireAdmin(), func(c fiber.Ctx) error {
 		err := service.DeleteByID(c.RequestCtx(), c.Params("semID"))
 		if err != nil {
 			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Error deleting semester"})
@@ -121,7 +121,7 @@ func NewAdminSemesterRoutes(router fiber.Router, service services.SemesterServic
 		return c.SendStatus(fiber.StatusNoContent)
 	})
 
-	semesterRouter.Get("/:semID/affected-sections", func(c fiber.Ctx) error {
+	semesterRouter.Get("/:semID/affected-sections", middlewares.RequireAdmin(), func(c fiber.Ctx) error {
 		semID := c.Params("semID")
 
 		courseWithSections, err := service.GetAffectedSections(c.RequestCtx(), semID)
