@@ -1,3 +1,10 @@
+# [0.16.0](https://github.com/CSKU-Lab/main-server/compare/v0.15.0...v0.16.0) (2026-06-20)
+
+
+### Features
+
+* support upsert on user import route ([8311dfa](https://github.com/CSKU-Lab/main-server/commit/8311dfa8ed10f4df281e6e2c4c12fbc128608b57))
+
 # [0.15.0](https://github.com/CSKU-Lab/main-server/compare/v0.14.3...v0.15.0) (2026-06-20)
 
 
