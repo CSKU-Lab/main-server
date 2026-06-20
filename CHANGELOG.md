@@ -1,3 +1,10 @@
+# [0.18.0](https://github.com/CSKU-Lab/main-server/compare/v0.17.0...v0.18.0) (2026-06-20)
+
+
+### Features
+
+* **CS-199:** add instructor delete submission endpoint ([21d072c](https://github.com/CSKU-Lab/main-server/commit/21d072ca8231c9650d7135809cbef30d4d187ba5))
+
 # [0.17.0](https://github.com/CSKU-Lab/main-server/compare/v0.16.1...v0.17.0) (2026-06-20)
 
 
