@@ -151,6 +151,7 @@ func NewCoreCourseRoute(
 				if err != nil {
 					return err
 				}
+				resp.Banner = section.Banner
 				for _, inst := range section.Instructors {
 					resp.Instructors = append(resp.Instructors, myCourseInstructor{
 						ID:           inst.ID,
