@@ -370,6 +370,11 @@ func (s *submissionRepository) GetPaginationByMaterialSectionLabAndStudentID(ctx
 	return result, nil
 }
 
+func (s *submissionRepository) Delete(ctx context.Context, id string) error {
+	_, err := s.db.ExecContext(ctx, `DELETE FROM submissions WHERE id = $1`, id)
+	return err
+}
+
 func (s *submissionRepository) CountByMaterialSectionLabAndStudentID(ctx context.Context, materialID string, sectionID string, labID string, studentID string) (int, error) {
 	query := `
 		SELECT COUNT(*) 

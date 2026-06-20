@@ -27,6 +27,7 @@ type SubmissionRepository interface {
 	CountByMaterialSectionLabAndStudentID(ctx context.Context, materialID string, sectionID string, labID string, studentID string) (int, error)
 
 	CountCompletedStudentsByLabAndSection(ctx context.Context, labID string, sectionID string) (int, error)
+	Delete(ctx context.Context, id string) error
 }
 
 type Submission struct {

@@ -45,6 +45,18 @@ func NewCMSSubmissionRoutes(router fiber.Router, submissionService services.Subm
 		},
 	)
 
+	// Delete submission - instructors can delete any submission in their sections
+	submissionRouter.Delete("/:id",
+		middlewares.Permission(permService).ForSubmission("id").CanGrade(),
+		func(c fiber.Ctx) error {
+			id := c.Params("id")
+			if err := submissionService.DeleteSubmission(c.RequestCtx(), id); err != nil {
+				return err
+			}
+			return c.SendStatus(http.StatusNoContent)
+		},
+	)
+
 	// Update manual score (grade) - instructors can grade submissions
 	submissionRouter.Patch("/:id/manual-score",
 		middlewares.Permission(permService).ForSubmission("id").CanGrade(),

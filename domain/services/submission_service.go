@@ -33,6 +33,7 @@ type SubmissionService interface {
 	UpdateManualScore(ctx context.Context, submissionID string, manualScore int) error
 	GetMaterialStudentStatus(ctx context.Context, userID, materialID, labID, sectionID string) string
 	RegradeByMaterial(ctx context.Context, sectionID, labID, materialID string) error
+	DeleteSubmission(ctx context.Context, submissionID string) error
 }
 
 type UpdateSubmissionPayload struct {
@@ -687,6 +688,10 @@ func (s *submissionService) GetStudentSubmissionsByMaterialSectionLab(ctx contex
 	}
 
 	return result, count, nil
+}
+
+func (s *submissionService) DeleteSubmission(ctx context.Context, submissionID string) error {
+	return s.repo.Delete(ctx, submissionID)
 }
 
 func (s *submissionService) RegradeByMaterial(ctx context.Context, sectionID, labID, materialID string) error {
