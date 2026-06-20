@@ -122,8 +122,9 @@ func (t *TypingSubmission) Create(ctx context.Context, uow repositories.UoWInsta
 		return cserrors.New(&cserrors.Option{HttpStatus: http.StatusBadRequest, Message: err.Error()})
 	}
 
-	// Validate the replayed text matches the material content exactly (anti-spoof)
-	if finalText != mat.Content {
+	finalTextRunes := []rune(finalText)
+	contentRunes := []rune(mat.Content)
+	if len(finalTextRunes) != len(contentRunes) {
 		return cserrors.New(&cserrors.Option{HttpStatus: http.StatusBadRequest, Message: "Typed text does not match material content"})
 	}
 
@@ -131,15 +132,22 @@ func (t *TypingSubmission) Create(ctx context.Context, uow repositories.UoWInsta
 	duration := receivedAt.Sub(claims.TypingStartedAt).Seconds()
 
 	// Minimum duration: time to type the full text at the maximum allowed WPM
-	minDuration := (float64(len([]rune(mat.Content))) / 5.0) / maxRawWPM * 60.0
+	minDuration := (float64(len(contentRunes)) / 5.0) / maxRawWPM * 60.0
 	if duration < minDuration {
 		return cserrors.New(&cserrors.Option{HttpStatus: http.StatusBadRequest, Message: "Submission rejected: duration too short"})
 	}
 
-	contentLen := float64(len([]rune(mat.Content)))
+	contentLen := float64(len(contentRunes))
 	durationMin := duration / 60.0
 	rawWPM := (float64(totalCharKeystrokes) / 5.0) / durationMin
-	adjWPM := (contentLen / 5.0) / durationMin // finalText == content so all chars are correct
+
+	correctChars := 0
+	for i, r := range finalTextRunes {
+		if r == contentRunes[i] {
+			correctChars++
+		}
+	}
+	adjWPM := (float64(correctChars) / 5.0) / durationMin
 	errorRate := (float64(totalErrors) / math.Max(contentLen, 1)) * 100.0
 
 	if rawWPM > maxRawWPM {
