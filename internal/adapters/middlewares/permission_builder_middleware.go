@@ -109,9 +109,14 @@ func (pb *PermissionBuilder) CanCreate() fiber.Handler {
 		// Check resource-specific permissions
 		switch pb.resourceType {
 		case "section":
-			// Section creation requires course creator or instructor status
-			if resourceID != "" {
-				isCreator, err := pb.permService.IsCourseCreator(c.Context(), user.ID, resourceID)
+			// Section creation: check course creator status using course_id from form body
+			// (resourceID is empty for POST /sections since there's no URL param)
+			courseID := c.FormValue("course_id")
+			if courseID == "" {
+				courseID = resourceID
+			}
+			if courseID != "" {
+				isCreator, err := pb.permService.IsCourseCreator(c.Context(), user.ID, courseID)
 				if err != nil {
 					return err
 				}
