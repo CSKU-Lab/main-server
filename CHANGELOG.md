@@ -1,3 +1,10 @@
+# [0.15.0](https://github.com/CSKU-Lab/main-server/compare/v0.14.3...v0.15.0) (2026-06-20)
+
+
+### Features
+
+* extend JWT access token expiry to 6 hours ([6645295](https://github.com/CSKU-Lab/main-server/commit/6645295efe00168412b248a6fddbc7a85bfba941))
+
 ## [0.14.3](https://github.com/CSKU-Lab/main-server/compare/v0.14.2...v0.14.3) (2026-06-19)
 
 
