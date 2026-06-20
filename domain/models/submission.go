@@ -16,7 +16,7 @@ type Submission struct {
 	ID        string           `json:"id"`
 	Status    SubmissionStatus `json:"status"`
 	Order     int              `json:"order"`
-	AutoScore int              `json:"auto_score"`
+	AutoScore int              `json:"auto_score,omitempty"`
 	CreatedAt time.Time        `json:"created_at"`
 	Payload   any              `json:"payload"`
 }

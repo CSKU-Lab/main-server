@@ -43,6 +43,20 @@ type updateCodeSubmissionPayload struct {
 	TestCaseGroups models.TestCaseGroupResults `json:"test_case_groups"`
 }
 
+type coreTestCaseGroupResult struct {
+	ID      string                `json:"id"`
+	Results []models.TestCaseResult `json:"results"`
+}
+
+type coreCodeSubmission struct {
+	SubmissionID   string                    `json:"submission_id"`
+	Files          models.SubmissionFiles    `json:"files"`
+	Status         *string                   `json:"status"`
+	AvgWallTime    *float32                  `json:"avg_wall_time"`
+	AvgMemory      *int32                    `json:"avg_memory"`
+	TestCaseGroups []coreTestCaseGroupResult `json:"test_case_groups"`
+}
+
 func reorderTestCaseGroups(groups []models.TestCaseGroupResult, taskGroups []*taskPB.TestCaseGroup) []models.TestCaseGroupResult {
 	resultGroupByID := make(map[string]map[string]models.TestCaseResult, len(groups))
 	for _, g := range groups {
@@ -174,27 +188,37 @@ func (c *CodeSubmission) Get(ctx context.Context, submissionID string, viewBy st
 		TestCaseGroups: testCaseGroups,
 	}
 
-	if codeMat.HideTestCases && viewBy != "instructor" {
-		cleanedTestCaseGroups := make([]models.TestCaseGroupResult, 0, len(testCaseGroups))
+	if viewBy != "instructor" {
+		coreGroups := make([]coreTestCaseGroupResult, 0, len(testCaseGroups))
 		for _, tg := range testCaseGroups {
-			_tg := models.TestCaseGroupResult{
+			cg := coreTestCaseGroupResult{
 				ID:      tg.ID,
-				Score:   tg.Score,
 				Results: make([]models.TestCaseResult, 0, len(tg.Results)),
 			}
-
 			for _, tc := range tg.Results {
-				_tg.Results = append(_tg.Results, models.TestCaseResult{
+				result := models.TestCaseResult{
 					ID:       tc.ID,
-					Message:  tc.Message,
 					Status:   tc.Status,
 					WallTime: tc.WallTime,
 					Memory:   tc.Memory,
-				})
+					Message:  tc.Message,
+				}
+				if !codeMat.HideTestCases {
+					result.Input = tc.Input
+					result.Output = tc.Output
+				}
+				cg.Results = append(cg.Results, result)
 			}
-			cleanedTestCaseGroups = append(cleanedTestCaseGroups, _tg)
+			coreGroups = append(coreGroups, cg)
 		}
-		cleanedCodeSubmission.TestCaseGroups = cleanedTestCaseGroups
+		return &coreCodeSubmission{
+			SubmissionID:   cleanedCodeSubmission.SubmissionID,
+			Files:          cleanedCodeSubmission.Files,
+			Status:         cleanedCodeSubmission.Status,
+			AvgWallTime:    cleanedCodeSubmission.AvgWallTime,
+			AvgMemory:      cleanedCodeSubmission.AvgMemory,
+			TestCaseGroups: coreGroups,
+		}, nil
 	}
 
 	return cleanedCodeSubmission, nil
@@ -239,30 +263,40 @@ func (c *CodeSubmission) GetByIDs(ctx context.Context, submissionIDs []string, v
 			TestCaseGroups: testCaseGroups,
 		}
 
-		if codeMat.HideTestCases && viewBy != "instructor" {
-			cleanedTestCaseGroups := make([]models.TestCaseGroupResult, 0, len(testCaseGroups))
+		if viewBy != "instructor" {
+			coreGroups := make([]coreTestCaseGroupResult, 0, len(testCaseGroups))
 			for _, tg := range testCaseGroups {
-				_tg := models.TestCaseGroupResult{
+				cg := coreTestCaseGroupResult{
 					ID:      tg.ID,
-					Score:   tg.Score,
 					Results: make([]models.TestCaseResult, 0, len(tg.Results)),
 				}
-
 				for _, tc := range tg.Results {
-					_tg.Results = append(_tg.Results, models.TestCaseResult{
+					result := models.TestCaseResult{
 						ID:       tc.ID,
-						Message:  tc.Message,
 						Status:   tc.Status,
 						WallTime: tc.WallTime,
 						Memory:   tc.Memory,
-					})
+						Message:  tc.Message,
+					}
+					if !codeMat.HideTestCases {
+						result.Input = tc.Input
+						result.Output = tc.Output
+					}
+					cg.Results = append(cg.Results, result)
 				}
-				cleanedTestCaseGroups = append(cleanedTestCaseGroups, _tg)
+				coreGroups = append(coreGroups, cg)
 			}
-			cleanedCodeSubmission.TestCaseGroups = cleanedTestCaseGroups
+			submissions[subID] = &coreCodeSubmission{
+				SubmissionID:   cleanedCodeSubmission.SubmissionID,
+				Files:          cleanedCodeSubmission.Files,
+				Status:         cleanedCodeSubmission.Status,
+				AvgWallTime:    cleanedCodeSubmission.AvgWallTime,
+				AvgMemory:      cleanedCodeSubmission.AvgMemory,
+				TestCaseGroups: coreGroups,
+			}
+		} else {
+			submissions[subID] = cleanedCodeSubmission
 		}
-
-		submissions[subID] = cleanedCodeSubmission
 	}
 
 	return submissions, nil
