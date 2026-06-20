@@ -183,6 +183,12 @@ func (s *userService) GetPagination(ctx context.Context, page int, limit int, se
 		return nil, err
 	}
 
+	for i, f := range filters {
+		if f.Field == "roles" {
+			filters[i].IsArray = true
+		}
+	}
+
 	hasGroupFilter := slices.ContainsFunc(filters, func(filter sanitize.Filter) bool {
 		if filter.Field == "group" {
 			return true
@@ -237,6 +243,12 @@ func (s *userService) Count(ctx context.Context, search string, filterParams map
 	filters, err := sanitize.Filters(filterParams, s.allowedFilterFields)
 	if err != nil {
 		return 0, err
+	}
+
+	for i, f := range filters {
+		if f.Field == "roles" {
+			filters[i].IsArray = true
+		}
 	}
 
 	hasGroupFilter := slices.ContainsFunc(filters, func(filter sanitize.Filter) bool {

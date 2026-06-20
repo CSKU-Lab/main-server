@@ -32,6 +32,7 @@ type Filter struct {
 	Field    string
 	Operator string
 	Value    string
+	IsArray  bool
 }
 
 func FindBy(allowedFields map[string]bool, field string) error {

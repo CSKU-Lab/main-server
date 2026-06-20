@@ -19,12 +19,20 @@ func buildFilterWhereClause(filters []sanitize.Filter, startingArgIndex int) (st
 	for _, filter := range filters {
 		switch filter.Operator {
 		case "is":
-			conditions = append(conditions, fmt.Sprintf("%s = $%d", filter.Field, argIndex))
+			if filter.IsArray {
+				conditions = append(conditions, fmt.Sprintf("$%d = ANY(%s)", argIndex, filter.Field))
+			} else {
+				conditions = append(conditions, fmt.Sprintf("%s = $%d", filter.Field, argIndex))
+			}
 			args = append(args, filter.Value)
 			argIndex++
 
 		case "is_not":
-			conditions = append(conditions, fmt.Sprintf("%s != $%d", filter.Field, argIndex))
+			if filter.IsArray {
+				conditions = append(conditions, fmt.Sprintf("NOT ($%d = ANY(%s))", argIndex, filter.Field))
+			} else {
+				conditions = append(conditions, fmt.Sprintf("%s != $%d", filter.Field, argIndex))
+			}
 			args = append(args, filter.Value)
 			argIndex++
 
