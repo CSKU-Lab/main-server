@@ -63,7 +63,7 @@ func NewCoreLabRoute(router fiber.Router, sectionService services.SectionService
 
 		pageQuery := c.Query("page", "1")
 		pageSizeQuery := c.Query("page_size", "10")
-		sortBy := c.Query("sort_by", "created_at")
+		sortBy := c.Query("sort_by", "position")
 		sortOrder := c.Query("sort_order", "asc")
 
 		filterParams := make(map[string]string)
