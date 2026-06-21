@@ -448,10 +448,10 @@ func (s *materialService) UpdateByID(ctx context.Context, courseID string, ID st
 		return err
 	}
 
-	// Only override auto_score when the handler derives it (e.g. code material
-	// sums testcase weights). For typing/document the handler returns 0, meaning
-	// the user-provided value should be kept as-is.
-	if scores.AutoScore > 0 {
+	// Override auto_score when the handler derives it. For code/typing that
+	// means score > 0; for document we always propagate (including 0, so that
+	// removing all embedded problems resets the score correctly).
+	if scores.AutoScore > 0 || mat.Type == "document" {
 		req.AutoScore = &scores.AutoScore
 	}
 	// Only set manual_score if it wasn't provided in the request

@@ -2,6 +2,7 @@ package registrables
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 
@@ -12,11 +13,12 @@ import (
 )
 
 type DocumentMaterial struct {
-	repo repositories.DocumentMaterialRepository
+	repo         repositories.DocumentMaterialRepository
+	materialRepo repositories.MaterialRepository
 }
 
-func NewDocumentMaterial(repo repositories.DocumentMaterialRepository) *DocumentMaterial {
-	return &DocumentMaterial{repo: repo}
+func NewDocumentMaterial(repo repositories.DocumentMaterialRepository, materialRepo repositories.MaterialRepository) *DocumentMaterial {
+	return &DocumentMaterial{repo: repo, materialRepo: materialRepo}
 }
 
 type DocumentMaterialPayload struct {
@@ -25,6 +27,25 @@ type DocumentMaterialPayload struct {
 
 type DocumentMaterialResponse struct {
 	Content *string `json:"content"`
+}
+
+type tiptapNode struct {
+	Type    string                 `json:"type"`
+	Attrs   map[string]interface{} `json:"attrs"`
+	Content []tiptapNode           `json:"content"`
+}
+
+func sumEmbeddedCodeScores(nodes []tiptapNode) int {
+	total := 0
+	for _, node := range nodes {
+		if node.Type == "codeMaterialEmbed" {
+			if score, ok := node.Attrs["autoScore"].(float64); ok {
+				total += int(score)
+			}
+		}
+		total += sumEmbeddedCodeScores(node.Content)
+	}
+	return total
 }
 
 func (d *DocumentMaterial) Create(ctx context.Context, matID string, _ *requests.CreateMaterial, _ []byte) error {
@@ -44,8 +65,28 @@ func (d *DocumentMaterial) GetByID(ctx context.Context, ID string) (any, error) 
 	return &DocumentMaterialResponse{Content: doc.Content}, nil
 }
 
-func (d *DocumentMaterial) CalculateScores(_ []byte) (*registries.MaterialScores, error) {
-	return &registries.MaterialScores{AutoScore: 0, ManualScore: 0}, nil
+func (d *DocumentMaterial) CalculateScores(rawReq []byte) (*registries.MaterialScores, error) {
+	if rawReq == nil {
+		return &registries.MaterialScores{}, nil
+	}
+
+	payload, err := parsePayload[DocumentMaterialPayload](rawReq)
+	if err != nil {
+		return nil, err
+	}
+
+	if payload == nil || payload.Content == nil {
+		return &registries.MaterialScores{}, nil
+	}
+
+	var doc tiptapNode
+	if err := json.Unmarshal([]byte(*payload.Content), &doc); err != nil {
+		// invalid JSON content — treat as no embeds
+		return &registries.MaterialScores{}, nil
+	}
+
+	autoScore := sumEmbeddedCodeScores(doc.Content)
+	return &registries.MaterialScores{AutoScore: autoScore}, nil
 }
 
 func (d *DocumentMaterial) UpdateByID(ctx context.Context, ID string, _ *requests.BaseUpdateMaterial, rawReq []byte) error {
