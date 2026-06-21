@@ -7,9 +7,8 @@ import (
 )
 
 type TypingMaterialPayload struct {
-	Content     string
-	MinAdjWPM   float64
-	MinAccuracy float64
+	Content    string
+	TypingType string
 }
 
 type TypingMaterialRepository interface {

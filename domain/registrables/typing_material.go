@@ -17,13 +17,12 @@ func NewTypingMaterial(repo repositories.TypingMaterialRepository) *TypingMateri
 }
 
 type typingMaterialPayload struct {
-	Content     string  `json:"content"`
-	MinAdjWPM   float64 `json:"min_adj_wpm"`
-	MinAccuracy float64 `json:"min_accuracy"`
+	Content    string `json:"content"`
+	TypingType string `json:"typing_type"`
 }
 
 func (t *TypingMaterial) Create(ctx context.Context, matID string, _ *requests.CreateMaterial, rawReq []byte) error {
-	p := &repositories.TypingMaterialPayload{}
+	p := &repositories.TypingMaterialPayload{TypingType: "practice"}
 	if rawReq != nil {
 		parsed, err := parsePayload[typingMaterialPayload](rawReq)
 		if err != nil {
@@ -31,8 +30,9 @@ func (t *TypingMaterial) Create(ctx context.Context, matID string, _ *requests.C
 		}
 		if parsed != nil {
 			p.Content = parsed.Content
-			p.MinAdjWPM = parsed.MinAdjWPM
-			p.MinAccuracy = parsed.MinAccuracy
+			if parsed.TypingType != "" {
+				p.TypingType = parsed.TypingType
+			}
 		}
 	}
 	return t.repo.Create(ctx, matID, p)
@@ -54,7 +54,6 @@ func (t *TypingMaterial) UpdateByID(ctx context.Context, ID string, _ *requests.
 	if parsed == nil {
 		return nil
 	}
-	// Preserve existing content when update only touches scoring config
 	existing, err := t.repo.GetByID(ctx, ID)
 	if err != nil {
 		return err
@@ -63,10 +62,13 @@ func (t *TypingMaterial) UpdateByID(ctx context.Context, ID string, _ *requests.
 	if content == "" {
 		content = existing.Content
 	}
+	typingType := parsed.TypingType
+	if typingType == "" {
+		typingType = existing.TypingType
+	}
 	return t.repo.UpdateByID(ctx, ID, &repositories.TypingMaterialPayload{
-		Content:     content,
-		MinAdjWPM:   parsed.MinAdjWPM,
-		MinAccuracy: parsed.MinAccuracy,
+		Content:    content,
+		TypingType: typingType,
 	})
 }
 
@@ -80,8 +82,7 @@ func (t *TypingMaterial) Clone(ctx context.Context, sourceID string, targetID st
 		return err
 	}
 	return t.repo.Create(ctx, targetID, &repositories.TypingMaterialPayload{
-		Content:     source.Content,
-		MinAdjWPM:   source.MinAdjWPM,
-		MinAccuracy: source.MinAccuracy,
+		Content:    source.Content,
+		TypingType: source.TypingType,
 	})
 }

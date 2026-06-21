@@ -21,20 +21,19 @@ func NewTypingMaterialRepository(db *sqlx.DB) repositories.TypingMaterialReposit
 
 func (r *typingMaterialRepo) Create(ctx context.Context, materialID string, payload *repositories.TypingMaterialPayload) error {
 	_, err := r.db.ExecContext(ctx,
-		`INSERT INTO typing_materials (material_id, content, min_adj_wpm, min_accuracy) VALUES ($1, $2, $3, $4)`,
-		materialID, payload.Content, payload.MinAdjWPM, payload.MinAccuracy,
+		`INSERT INTO typing_materials (material_id, content, typing_type) VALUES ($1, $2, $3)`,
+		materialID, payload.Content, payload.TypingType,
 	)
 	return err
 }
 
 func (r *typingMaterialRepo) GetByID(ctx context.Context, materialID string) (*models.TypingMaterial, error) {
 	var rec struct {
-		Content     string  `db:"content"`
-		MinAdjWPM   float64 `db:"min_adj_wpm"`
-		MinAccuracy float64 `db:"min_accuracy"`
+		Content    string `db:"content"`
+		TypingType string `db:"typing_type"`
 	}
 	err := r.db.QueryRowxContext(ctx,
-		`SELECT content, min_adj_wpm, min_accuracy FROM typing_materials WHERE material_id = $1`, materialID,
+		`SELECT content, typing_type FROM typing_materials WHERE material_id = $1`, materialID,
 	).StructScan(&rec)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -43,16 +42,15 @@ func (r *typingMaterialRepo) GetByID(ctx context.Context, materialID string) (*m
 		return nil, err
 	}
 	return &models.TypingMaterial{
-		Content:     rec.Content,
-		MinAdjWPM:   rec.MinAdjWPM,
-		MinAccuracy: rec.MinAccuracy,
+		Content:    rec.Content,
+		TypingType: rec.TypingType,
 	}, nil
 }
 
 func (r *typingMaterialRepo) UpdateByID(ctx context.Context, materialID string, payload *repositories.TypingMaterialPayload) error {
 	_, err := r.db.ExecContext(ctx,
-		`UPDATE typing_materials SET content = $2, min_adj_wpm = $3, min_accuracy = $4 WHERE material_id = $1`,
-		materialID, payload.Content, payload.MinAdjWPM, payload.MinAccuracy,
+		`UPDATE typing_materials SET content = $2, typing_type = $3 WHERE material_id = $1`,
+		materialID, payload.Content, payload.TypingType,
 	)
 	return err
 }

@@ -22,17 +22,47 @@ const (
 type TypingSubmission struct {
 	repo          repositories.TypingSubmissionRepository
 	typingMatRepo repositories.TypingMaterialRepository
-	materialRepo  repositories.MaterialRepository
 	secret        string
 }
 
-func NewTypingSubmission(repo repositories.TypingSubmissionRepository, typingMatRepo repositories.TypingMaterialRepository, materialRepo repositories.MaterialRepository, secret string) *TypingSubmission {
+func NewTypingSubmission(repo repositories.TypingSubmissionRepository, typingMatRepo repositories.TypingMaterialRepository, secret string) *TypingSubmission {
 	return &TypingSubmission{
 		repo:          repo,
 		typingMatRepo: typingMatRepo,
-		materialRepo:  materialRepo,
 		secret:        secret,
 	}
+}
+
+func evaluateTypingScore(adjWPM, errorRate float64) float64 {
+	const (
+		maxScore       = 100.0
+		adjWeight      = 0.7
+		errorWeight    = 0.3
+		adjThreshold   = 30.0
+		errorThreshold = 3.0
+		minAdj         = 10.0
+		maxError       = 12.0
+	)
+
+	if adjWPM >= adjThreshold && errorRate <= errorThreshold {
+		return maxScore
+	}
+
+	var adjScore float64
+	if adjWPM >= minAdj && adjWPM < adjThreshold {
+		adjScore = (adjWPM / adjThreshold) * (maxScore * adjWeight)
+	} else if adjWPM >= adjThreshold {
+		adjScore = maxScore * adjWeight
+	}
+
+	var errorScore float64
+	if errorRate <= errorThreshold {
+		errorScore = maxScore * errorWeight
+	} else if errorRate <= maxError {
+		errorScore = ((maxError - errorRate) / (maxError - errorThreshold)) * (maxScore * errorWeight)
+	}
+
+	return math.Round((adjScore+errorScore)*100) / 100
 }
 
 type keystroke struct {
@@ -164,23 +194,11 @@ func (t *TypingSubmission) Create(ctx context.Context, uow repositories.UoWInsta
 		return err
 	}
 
-	baseMat, err := t.materialRepo.GetByID(ctx, matID)
-	if err != nil {
-		return err
-	}
-
-	accuracy := 100.0 - errorRate
 	autoScore := 0
 	status := models.PASSED
 
-	if baseMat.AutoScore > 0 {
-		wpmOK := mat.MinAdjWPM == 0 || adjWPM >= mat.MinAdjWPM
-		accOK := mat.MinAccuracy == 0 || accuracy >= mat.MinAccuracy
-		if wpmOK && accOK {
-			autoScore = baseMat.AutoScore
-		} else {
-			status = models.FAILED
-		}
+	if mat.TypingType == "exam" {
+		autoScore = int(math.Round(evaluateTypingScore(adjWPM, errorRate)))
 	}
 
 	return uow.Submission().Update(ctx, &repositories.UpdateSubmissionRequest{

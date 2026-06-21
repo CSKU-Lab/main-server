@@ -1031,13 +1031,9 @@ table "typing_materials" {
   column "content" {
     type = text
   }
-  column "min_adj_wpm" {
-    type    = float8
-    default = 0
-  }
-  column "min_accuracy" {
-    type    = float8
-    default = 0
+  column "typing_type" {
+    type    = text
+    default = "practice"
   }
   primary_key {
     columns = [column.material_id]
