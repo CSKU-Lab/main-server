@@ -17,7 +17,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 )
 
-func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionService, semesterService services.SemesterService, labSectionService services.LabSectionService, sectionLogService services.SectionLogService, labService services.LabService, submissionService services.SubmissionService, gradebookExportService services.GradebookExportService, permService permission.Service) {
+func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionService, semesterService services.SemesterService, labSectionService services.LabSectionService, sectionLogService services.SectionLogService, labService services.LabService, submissionService services.SubmissionService, gradebookExportService services.GradebookExportService, typingExportService services.TypingExportService, permService permission.Service) {
 	cmsSectionRouter := router.Group("/sections")
 
 	// Create section - requires create permission
@@ -476,6 +476,19 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 		return c.Status(fiber.StatusOK).JSON(fiber.Map{
 			"data": submissions,
 		})
+	})
+
+	cmsSectionRouter.Get("/:sectionID/typing-submissions/export", middlewares.Permission(permService).ForSection("sectionID").CanView(), func(c fiber.Ctx) error {
+		sectionID := c.Params("sectionID")
+
+		data, err := typingExportService.ExportXLSX(c.RequestCtx(), sectionID)
+		if err != nil {
+			return err
+		}
+
+		c.Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+		c.Set("Content-Disposition", "attachment; filename=typing_submissions.xlsx")
+		return c.Status(http.StatusOK).Send(data)
 	})
 
 	cmsSectionRouter.Post("/:sectionID/labs/:labID/materials/:materialID/regrade", middlewares.Permission(permService).ForSection("sectionID").CanModify(), func(c fiber.Ctx) error {

@@ -106,6 +106,7 @@ func initializeApp(ctx context.Context, cfg *configs.Config, db *sqlx.DB, logger
 	submissionService := services.NewSubmissionService(submissionServiceArgs)
 	sidebarService := services.NewSidebarService(courseRepository, sectionStudentRepository, labSectionRepository, labMaterialRepository, submissionService)
 	gradebookExportService := services.NewGradebookExportService(submissionService)
+	typingExportService := services.NewTypingExportService(submissionService, labSectionRepository, labMaterialRepository, typingMaterialRepository)
 	materialService := services.NewMaterialService(materialRepository, submissionRepository, readMaterialTagRepository, uoWRepository, user, material, queue)
 	searchRepository := providers.NewSearchRepository(db)
 	searchService := services.NewSearchService(searchRepository)
@@ -123,7 +124,7 @@ func initializeApp(ctx context.Context, cfg *configs.Config, db *sqlx.DB, logger
 		return nil, nil, err
 	}
 	playgroundHandler := providers.NewPlaygroundHandler(graderServiceClient)
-	app := providers.NewFiberApp(cfg, logger, errorHandlerMiddleware, userService, refreshTokenService, userGroupService, courseService, courseEnrollmentService, semesterService, sectionLogService, sectionService, sectionStudentService, tagService, materialAssetService, labService, labSectionService, labMaterialService, defaultLabService, affectedEntitiesService, submissionService, sidebarService, gradebookExportService, materialService, searchService, service, systemSettingsService, configServiceClient, queue, pubSub, rateLimiter, playgroundHandler, typingSubmissionRepository)
+	app := providers.NewFiberApp(cfg, logger, errorHandlerMiddleware, userService, refreshTokenService, userGroupService, courseService, courseEnrollmentService, semesterService, sectionLogService, sectionService, sectionStudentService, tagService, materialAssetService, labService, labSectionService, labMaterialService, defaultLabService, affectedEntitiesService, submissionService, sidebarService, gradebookExportService, typingExportService, materialService, searchService, service, systemSettingsService, configServiceClient, queue, pubSub, rateLimiter, playgroundHandler, typingSubmissionRepository)
 	return app, func() {
 		cleanup3()
 		cleanup2()

@@ -67,6 +67,7 @@ var ServiceSet = wire.NewSet(
 	services.NewSubmissionService,
 	services.NewSidebarService,
 	services.NewGradebookExportService,
+	services.NewTypingExportService,
 	services.NewMaterialService,
 	permission.NewService,
 )

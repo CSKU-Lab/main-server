@@ -26,6 +26,7 @@ type CMSRouter struct {
 	ConfigGRPCClient        configPB.ConfigServiceClient
 	SubmissionService       services.SubmissionService
 	GradebookExportService  services.GradebookExportService
+	TypingExportService     services.TypingExportService
 	SearchService           services.SearchService
 	Queue                   queue.Queue
 	PermissionService       permission.Service
@@ -35,7 +36,7 @@ type CMSRouter struct {
 func NewCMSRouter(r *CMSRouter) {
 	cmsRouter := r.Router.Group("/cms")
 
-	routes.NewCmsSectionRoutes(cmsRouter, r.SectionService, r.SemesterService, r.LabSectionService, r.SectionLogService, r.LabService, r.SubmissionService, r.GradebookExportService, r.PermissionService)
+	routes.NewCmsSectionRoutes(cmsRouter, r.SectionService, r.SemesterService, r.LabSectionService, r.SectionLogService, r.LabService, r.SubmissionService, r.GradebookExportService, r.TypingExportService, r.PermissionService)
 	routes.NewAdminSemesterRoutes(cmsRouter, r.SemesterService, r.SectionService, r.CourseService)
 	routes.NewCMSMaterialRoutes(cmsRouter, r.MaterialService, r.MaterialAssetService, r.SubmissionService, r.PermissionService)
 	routes.NewCMSAffectedEntitiesRoutes(cmsRouter, r.AffectedEntitiesService)
