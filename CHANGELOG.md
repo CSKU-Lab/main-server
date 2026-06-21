@@ -1,3 +1,10 @@
+## [0.20.1](https://github.com/CSKU-Lab/main-server/compare/v0.20.0...v0.20.1) (2026-06-21)
+
+
+### Bug Fixes
+
+* prioritize admin role over instructor in permission checks ([a785649](https://github.com/CSKU-Lab/main-server/commit/a785649ac1cd787c8b4a09fd09b670b21560529f))
+
 # [0.20.0](https://github.com/CSKU-Lab/main-server/compare/v0.19.0...v0.20.0) (2026-06-21)
 
 
