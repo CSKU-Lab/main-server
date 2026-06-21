@@ -87,7 +87,7 @@ type submission struct {
 }
 
 func (s *submissionRepository) Get(ctx context.Context, id string) (*repositories.Submission, error) {
-	query := `SELECT id, user_id, lab_id, section_id, course_id, material_id, status, submission_order, created_at
+	query := `SELECT id, user_id, lab_id, section_id, course_id, material_id, status, submission_order, auto_score, created_at
               FROM submissions
               WHERE id = $1`
 
@@ -106,6 +106,7 @@ func (s *submissionRepository) Get(ctx context.Context, id string) (*repositorie
 		MaterialID: submission.MaterialID,
 		Status:     submission.Status,
 		Order:      submission.Order,
+		AutoScore:  submission.AutoScore,
 		CreatedAt:  submission.CreatedAt,
 	}
 

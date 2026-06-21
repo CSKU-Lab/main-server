@@ -353,10 +353,16 @@ func (s *submissionService) Get(ctx context.Context, submissionID string) (*mode
 		return nil, err
 	}
 
+	autoScore := 0
+	if mat.Type == "typing" {
+		autoScore = submission.AutoScore
+	}
+
 	return &models.Submission{
 		ID:        submission.ID,
 		Status:    submission.Status,
 		Order:     submission.Order,
+		AutoScore: autoScore,
 		CreatedAt: submission.CreatedAt,
 		Payload:   payload,
 	}, nil
@@ -446,12 +452,25 @@ func (s *submissionService) GetUserSubmissions(ctx context.Context, userID strin
 		return []models.Submission{}, count, nil
 	}
 
+	var matType string
+	if materialID != "" {
+		mat, err := s.materialRepo.GetByID(ctx, materialID)
+		if err == nil {
+			matType = mat.Type
+		}
+	}
+
 	result := make([]models.Submission, len(submissions))
 	for i, sub := range submissions {
+		autoScore := 0
+		if matType == "typing" {
+			autoScore = sub.AutoScore
+		}
 		result[i] = models.Submission{
 			ID:        sub.ID,
 			Status:    sub.Status,
 			Order:     sub.Order,
+			AutoScore: autoScore,
 			CreatedAt: sub.CreatedAt,
 		}
 	}
@@ -496,10 +515,15 @@ func (s *submissionService) GetUserSubmissionsWithMaterial(ctx context.Context, 
 
 	result := make([]models.Submission, len(submissions))
 	for i, sub := range submissions {
+		autoScore := 0
+		if mat.Type == "typing" {
+			autoScore = sub.AutoScore
+		}
 		result[i] = models.Submission{
 			ID:        sub.ID,
 			Status:    sub.Status,
 			Order:     sub.Order,
+			AutoScore: autoScore,
 			CreatedAt: sub.CreatedAt,
 			Payload:   payloads[sub.ID],
 		}
