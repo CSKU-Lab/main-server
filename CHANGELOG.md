@@ -1,3 +1,10 @@
+# [0.21.0](https://github.com/CSKU-Lab/main-server/compare/v0.20.1...v0.21.0) (2026-06-21)
+
+
+### Features
+
+* add multi-provider auth support per user ([dfa3f8a](https://github.com/CSKU-Lab/main-server/commit/dfa3f8a62d6f3c17078d89a3b95f6412c1877d85))
+
 ## [0.20.1](https://github.com/CSKU-Lab/main-server/compare/v0.20.0...v0.20.1) (2026-06-21)
 
 
