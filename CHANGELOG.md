@@ -1,3 +1,20 @@
+# [0.20.0](https://github.com/CSKU-Lab/main-server/compare/v0.19.0...v0.20.0) (2026-06-21)
+
+
+### Bug Fixes
+
+* allow course creators to create sections ([b244443](https://github.com/CSKU-Lab/main-server/commit/b2444438956c39274c2f15c01ac58f9989281998))
+* **CS-206:** add backend tag search and fix material type filter validation ([a1d1a2d](https://github.com/CSKU-Lab/main-server/commit/a1d1a2d033dfbc17535e37e4af6c116c5323ac43))
+* **CS-208:** fix section lab mutation permission and status transition ([7c9bbe5](https://github.com/CSKU-Lab/main-server/commit/7c9bbe5317fe1691b62d46b92fd9ff94dda63596))
+* support array fields in filter builder for roles filter ([80ad4e5](https://github.com/CSKU-Lab/main-server/commit/80ad4e528995463449b4f5036b752be765209f49))
+* use section banner instead of course banner for private sections in my-courses API ([3e9c674](https://github.com/CSKU-Lab/main-server/commit/3e9c67486fd819017d071d4700906fc50e268d3b))
+
+
+### Features
+
+* **CS-208:** enforce instructor role restrictions on CMS API ([2317da6](https://github.com/CSKU-Lab/main-server/commit/2317da6cb204f6e3b7dfaf523dcb10240809e6d8))
+* strip score and auto_score from core submission routes ([e757811](https://github.com/CSKU-Lab/main-server/commit/e7578117d2c36807088bca27fd3fb80d65c30720))
+
 # [0.19.0](https://github.com/CSKU-Lab/main-server/compare/v0.18.0...v0.19.0) (2026-06-20)
 
 
