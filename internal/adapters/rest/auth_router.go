@@ -77,6 +77,14 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 			return c.Redirect().To(appConfig.FRONTEND_URL + "/auth/sign-in?error=UNAUTHORIZED")
 		}
 
+		hasGoogle, err := userService.HasAuthProvider(ctx, user.ID, models.AuthProviderGoogle)
+		if err != nil || !hasGoogle {
+			if appConfig.DevMode {
+				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusUnauthorized, Message: "Google login not enabled for this user"})
+			}
+			return c.Redirect().To(appConfig.FRONTEND_URL + "/auth/sign-in?error=UNAUTHORIZED")
+		}
+
 		if user.ProfileImage == nil {
 			err = userService.Update(ctx, user.ID, &requests.UpdateUser{
 				ProfileImage: &userInfo.ProfileImage,
@@ -149,6 +157,11 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 
 		user, err := userService.GetByUsername(c.RequestCtx(), credential.Username)
 		if err != nil {
+			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusUnauthorized, Message: "Unauthorized"})
+		}
+
+		hasCredential, err := userService.HasAuthProvider(c.RequestCtx(), user.ID, models.AuthProviderCredential)
+		if err != nil || !hasCredential {
 			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusUnauthorized, Message: "Unauthorized"})
 		}
 

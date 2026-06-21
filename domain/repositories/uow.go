@@ -6,6 +6,7 @@ type UoWInstance interface {
 	User() User
 	UserPassword() UserPassword
 	UserGroup() UserGroup
+	UserAuthProvider() UserAuthProviderRepository
 
 	Section() SectionRepository
 	SectionInstructor() SectionInstructorRepository

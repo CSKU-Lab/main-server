@@ -76,8 +76,9 @@ func main() {
 	userRepo := sqlx.NewUserRepository(db)
 	userPasswordRepo := sqlx.NewUserPasswordRepository(db)
 	userGroupRepo := sqlx.NewUserGroupRepository(db)
+	userAuthProviderRepo := sqlx.NewUserAuthProviderRepository(db)
 	uowRepo := sqlx.NewUoWRepository(context.Background(), db)
-	userService := services.NewUserService(userRepo, userPasswordRepo, userGroupRepo, uowRepo)
+	userService := services.NewUserService(userRepo, userPasswordRepo, userGroupRepo, uowRepo, userAuthProviderRepo)
 	userGroupService := services.NewUserGroupService(userGroupRepo)
 
 	result, err := runSeed(context.Background(), userService, userGroupService, userGroupRepo)

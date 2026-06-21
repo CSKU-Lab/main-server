@@ -16,6 +16,10 @@ func NewUserPasswordRepository(db *sqlx.DB) repositories.UserPassword {
 	return sqlxAdapter.NewUserPasswordRepository(db)
 }
 
+func NewUserAuthProviderRepository(db *sqlx.DB) repositories.UserAuthProviderRepository {
+	return sqlxAdapter.NewUserAuthProviderRepository(db)
+}
+
 func NewUserGroupRepository(db *sqlx.DB) repositories.UserGroup {
 	return sqlxAdapter.NewUserGroupRepository(db)
 }
@@ -97,6 +101,7 @@ var RepositorySet = wire.NewSet(
 	NewUserRepository,
 	NewUserPasswordRepository,
 	NewUserGroupRepository,
+	NewUserAuthProviderRepository,
 	sqlxAdapter.NewSQLxRefreshTokenRepository,
 	NewCourseRepository,
 	NewCourseCreatorRepository,

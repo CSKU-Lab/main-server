@@ -31,22 +31,28 @@ type UserService interface {
 	Update(ctx context.Context, ID string, user *requests.UpdateUser) error
 	Delete(ctx context.Context, ID string) error
 	DeleteMany(ctx context.Context, IDs []string) error
+	GetAuthProviders(ctx context.Context, userID string) ([]models.AuthProvider, error)
+	HasAuthProvider(ctx context.Context, userID string, provider models.AuthProvider) (bool, error)
+	AddAuthProvider(ctx context.Context, userID string, provider models.AuthProvider, password *string) error
+	RemoveAuthProvider(ctx context.Context, userID string, provider models.AuthProvider) error
 }
 
 type userService struct {
-	userRepository         repositories.User
-	userPasswordRepository repositories.UserPassword
-	userGroupRepository    repositories.UserGroup
-	uowRepository          repositories.UoWRepository
-	allowedFilterFields    map[string]bool
+	userRepository             repositories.User
+	userPasswordRepository     repositories.UserPassword
+	userGroupRepository        repositories.UserGroup
+	userAuthProviderRepository repositories.UserAuthProviderRepository
+	uowRepository              repositories.UoWRepository
+	allowedFilterFields        map[string]bool
 }
 
-func NewUserService(user repositories.User, userPassword repositories.UserPassword, userGroup repositories.UserGroup, uow repositories.UoWRepository) UserService {
+func NewUserService(user repositories.User, userPassword repositories.UserPassword, userGroup repositories.UserGroup, uow repositories.UoWRepository, userAuthProvider repositories.UserAuthProviderRepository) UserService {
 	return &userService{
-		userRepository:         user,
-		userPasswordRepository: userPassword,
-		uowRepository:          uow,
-		userGroupRepository:    userGroup,
+		userRepository:             user,
+		userPasswordRepository:     userPassword,
+		uowRepository:              uow,
+		userGroupRepository:        userGroup,
+		userAuthProviderRepository: userAuthProvider,
 		allowedFilterFields: map[string]bool{
 			"type":         true,
 			"username":     true,
@@ -101,6 +107,8 @@ func (s *userService) GetByEmail(ctx context.Context, email string) (*models.Use
 		user.Group = group
 	}
 
+	user.AuthProviders, _ = s.userAuthProviderRepository.GetProviders(ctx, user.ID)
+
 	return user, nil
 }
 
@@ -123,6 +131,8 @@ func (s *userService) GetByUsername(ctx context.Context, username string) (*mode
 		user.Group = group
 	}
 
+	user.AuthProviders, _ = s.userAuthProviderRepository.GetProviders(ctx, user.ID)
+
 	return user, nil
 }
 
@@ -144,6 +154,8 @@ func (s *userService) GetByID(ctx context.Context, ID string) (*models.User, err
 		}
 		user.Group = group
 	}
+
+	user.AuthProviders, _ = s.userAuthProviderRepository.GetProviders(ctx, user.ID)
 
 	return user, nil
 }
@@ -220,6 +232,12 @@ func (s *userService) GetPagination(ctx context.Context, page int, limit int, se
 		return nil, err
 	}
 
+	userIDs := make([]string, len(dbUsers))
+	for i, dbUser := range dbUsers {
+		userIDs[i] = dbUser.ID
+	}
+	providerMap, _ := s.userAuthProviderRepository.GetProvidersByUserIDs(ctx, userIDs)
+
 	users := make([]models.User, len(dbUsers))
 	for i, dbUser := range dbUsers {
 		user, err := dbUser.Model()
@@ -234,6 +252,7 @@ func (s *userService) GetPagination(ctx context.Context, page int, limit int, se
 			}
 			user.Group = group
 		}
+		user.AuthProviders = providerMap[dbUser.ID]
 		users[i] = *user
 	}
 	return users, nil
@@ -341,6 +360,11 @@ func (s *userService) Create(ctx context.Context, req *requests.CreateMultiTypeU
 			}
 		}
 
+		provider := typeToAuthProvider(models.UserType(req.Type))
+		if err := u.UserAuthProvider().AddProvider(ctx, id.String(), provider, nil); err != nil {
+			return err
+		}
+
 		return nil
 	})
 	if err != nil {
@@ -436,16 +460,21 @@ func (s *userService) upsert(ctx context.Context, req *requests.CreateMultiTypeU
 			}
 		}
 
-		err := u.User().Upsert(ctx, repoUser)
+		resolvedID, err := u.User().Upsert(ctx, repoUser)
 		if err != nil {
 			return err
 		}
 
 		if req.Password != nil {
-			err := u.UserPassword().SetPassword(ctx, repoUser.ID, *req.Password)
+			err := u.UserPassword().SetPassword(ctx, resolvedID, *req.Password)
 			if err != nil {
 				return err
 			}
+		}
+
+		provider := typeToAuthProvider(models.UserType(req.Type))
+		if err := u.UserAuthProvider().AddProvider(ctx, resolvedID, provider, nil); err != nil {
+			return err
 		}
 
 		return nil
@@ -462,21 +491,8 @@ func (s *userService) SetPassword(ctx context.Context, ID string, password strin
 }
 
 func (s *userService) Update(ctx context.Context, ID string, req *requests.UpdateUser) error {
-	dbUser, err := s.GetByID(ctx, ID)
-	if err != nil {
+	if _, err := s.GetByID(ctx, ID); err != nil {
 		return err
-	}
-
-	if dbUser.Type == string(models.UserTypeCredential) {
-		if req.Email != nil {
-			return errors.New("credential user cannot update email")
-		}
-	}
-
-	if dbUser.Type == string(models.UserTypeOauth) {
-		if req.Password != nil {
-			return errors.New("oauth user cannot update password")
-		}
 	}
 
 	if req.Password != nil {
@@ -499,4 +515,57 @@ func (s *userService) DeleteMany(ctx context.Context, IDs []string) error {
 	}
 
 	return s.userRepository.DeleteMany(ctx, IDs)
+}
+
+func (s *userService) GetAuthProviders(ctx context.Context, userID string) ([]models.AuthProvider, error) {
+	return s.userAuthProviderRepository.GetProviders(ctx, userID)
+}
+
+func (s *userService) HasAuthProvider(ctx context.Context, userID string, provider models.AuthProvider) (bool, error) {
+	return s.userAuthProviderRepository.HasProvider(ctx, userID, provider)
+}
+
+func (s *userService) AddAuthProvider(ctx context.Context, userID string, provider models.AuthProvider, password *string) error {
+	_, err := s.GetByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	if provider == models.AuthProviderCredential {
+		existing, _ := s.userPasswordRepository.GetPasswordByID(ctx, userID)
+		if existing == "" {
+			if password == nil || *password == "" {
+				return cserrors.New(&cserrors.Option{
+					HttpStatus: http.StatusBadRequest,
+					Message:    "Password is required when enabling credential login",
+				})
+			}
+			if err := s.SetPassword(ctx, userID, *password); err != nil {
+				return err
+			}
+		}
+	}
+
+	return s.userAuthProviderRepository.AddProvider(ctx, userID, provider, nil)
+}
+
+func (s *userService) RemoveAuthProvider(ctx context.Context, userID string, provider models.AuthProvider) error {
+	providers, err := s.userAuthProviderRepository.GetProviders(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if len(providers) <= 1 {
+		return cserrors.New(&cserrors.Option{
+			HttpStatus: http.StatusBadRequest,
+			Message:    "Cannot remove the last login method",
+		})
+	}
+	return s.userAuthProviderRepository.RemoveProvider(ctx, userID, provider)
+}
+
+func typeToAuthProvider(t models.UserType) models.AuthProvider {
+	if t == models.UserTypeOauth {
+		return models.AuthProviderGoogle
+	}
+	return models.AuthProviderCredential
 }

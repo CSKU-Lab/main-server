@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
+	"github.com/CSKU-Lab/main-server/domain/models"
 	"github.com/CSKU-Lab/main-server/domain/services"
 	"github.com/CSKU-Lab/main-server/internal/adapters/middlewares"
 	"github.com/CSKU-Lab/main-server/internal/requests"
@@ -149,6 +150,50 @@ func NewAdminUserRoutes(router fiber.Router, userService services.UserService) {
 			return cserrors.New(&cserrors.Option{
 				HttpStatus: http.StatusInternalServerError,
 				Message:    "Error deleting uesr",
+			})
+		}
+
+		return c.SendStatus(fiber.StatusNoContent)
+	})
+
+	adminUserRouter.Post("/:userID/auth-providers", middlewares.RequireAdmin(), middlewares.ValidateMiddleware[requests.AddAuthProvider](), func(c fiber.Ctx) error {
+		req := c.Locals("body").(*requests.AddAuthProvider)
+		userID := c.Params("userID")
+
+		err := userService.AddAuthProvider(c.RequestCtx(), userID, models.AuthProvider(req.Provider), req.Password)
+		if err != nil {
+			var e *cserrors.Error
+			if errors.As(err, &e) {
+				return e
+			}
+			return cserrors.New(&cserrors.Option{
+				HttpStatus: http.StatusInternalServerError,
+				Message:    "Error adding auth provider",
+			})
+		}
+
+		return c.SendStatus(fiber.StatusCreated)
+	})
+
+	adminUserRouter.Delete("/:userID/auth-providers/:provider", middlewares.RequireAdmin(), func(c fiber.Ctx) error {
+		userID := c.Params("userID")
+		provider := models.AuthProvider(c.Params("provider"))
+		if provider != models.AuthProviderCredential && provider != models.AuthProviderGoogle {
+			return cserrors.New(&cserrors.Option{
+				HttpStatus: http.StatusBadRequest,
+				Message:    "Invalid provider",
+			})
+		}
+
+		err := userService.RemoveAuthProvider(c.RequestCtx(), userID, provider)
+		if err != nil {
+			var e *cserrors.Error
+			if errors.As(err, &e) {
+				return e
+			}
+			return cserrors.New(&cserrors.Option{
+				HttpStatus: http.StatusInternalServerError,
+				Message:    "Error removing auth provider",
 			})
 		}
 

@@ -37,10 +37,10 @@ func (c *CreateMultiTypeUser) Validate() error {
 		validation.Field(&c.DisplayName, validation.Required),
 		validation.Field(&c.Roles, validation.Required, validation.Each(validation.In("admin", "instructor", "student").Error("must be one of 'admin', 'instructor', 'student'"))),
 		validation.Field(&c.Type),
-		validation.Field(&c.Password, validation.When(c.Type == "credential", validation.Required).Else(validation.Nil), validation.Length(8, 0)),
-		validation.Field(&c.Email, validation.When(c.Type == "oauth", validation.Required.Error("required for oauth user"), is.Email).Else(validation.Nil.Error("field must be null when user type is credential"))),
-		validation.Field(&c.GroupID, validation.When(c.Type == "credential" && c.Group == nil, validation.Required).Else(validation.Nil.Error("exact one required for credential")), is.UUID),
-		validation.Field(&c.Group, validation.When(c.Type == "credential" && c.GroupID == nil, validation.Required).Else(validation.Nil.Error("exact one required for credentail"))),
+		validation.Field(&c.Password, validation.When(c.Type == "credential", validation.Required, validation.Length(8, 0)).Else(validation.Nil)),
+		validation.Field(&c.Email, validation.When(c.Type == "oauth", validation.Required.Error("required for oauth user")), validation.When(c.Email != nil, is.Email)),
+		validation.Field(&c.GroupID, validation.NilOrNotEmpty, is.UUID),
+		validation.Field(&c.Group, validation.NilOrNotEmpty),
 	)
 }
 
@@ -63,6 +63,17 @@ func (u *UpdateUser) Validate() error {
 		validation.Field(&u.Password, validation.NilOrNotEmpty, validation.Length(8, 0)),
 		validation.Field(&u.ProfileImage, validation.NilOrNotEmpty, is.URL),
 		validation.Field(&u.GroupID, validation.NilOrNotEmpty, is.UUID),
+	)
+}
+
+type AddAuthProvider struct {
+	Provider string  `json:"provider"`
+	Password *string `json:"password"`
+}
+
+func (a *AddAuthProvider) Validate() error {
+	return validation.ValidateStruct(a,
+		validation.Field(&a.Provider, validation.Required, validation.In("credential", "google").Error("must be one of 'credential', 'google'")),
 	)
 }
 

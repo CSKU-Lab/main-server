@@ -312,7 +312,7 @@ func (r *userRepository) Create(ctx context.Context, req repositories.CreateMult
 	return nil
 }
 
-func (r *userRepository) Upsert(ctx context.Context, req repositories.CreateMultiTypeUser) error {
+func (r *userRepository) Upsert(ctx context.Context, req repositories.CreateMultiTypeUser) (string, error) {
 	pgUser := user{
 		ID:          req.ID,
 		Username:    req.Username,
@@ -335,18 +335,20 @@ func (r *userRepository) Upsert(ctx context.Context, req repositories.CreateMult
 			ON CONFLICT (username) WHERE is_deleted = false
 			DO UPDATE SET
 				display_name = EXCLUDED.display_name,
-				email = EXCLUDED.email,
+				email = COALESCE(EXCLUDED.email, users.email),
 				roles = EXCLUDED.roles,
-				group_id = EXCLUDED.group_id,
-				updated_at = CURRENT_TIMESTAMP`, pgUser)
+				group_id = COALESCE(EXCLUDED.group_id, users.group_id),
+				updated_at = CURRENT_TIMESTAMP
+			RETURNING id`, pgUser)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	query = r.db.Rebind(query)
 
-	_, err = r.db.ExecContext(ctx, query, args...)
-	return err
+	var resolvedID string
+	err = r.db.QueryRowxContext(ctx, query, args...).Scan(&resolvedID)
+	return resolvedID, err
 }
 
 func (r *userRepository) Update(ctx context.Context, ID string, req *requests.UpdateUser) error {

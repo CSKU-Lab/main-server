@@ -12,6 +12,11 @@ enum "user_type" {
   values = ["oauth", "credential"]
 }
 
+enum "auth_provider" {
+  schema = schema.public
+  values = ["credential", "google"]
+}
+
 enum "course_visibility" {
   schema = schema.public
   values = ["public", "private"]
@@ -79,6 +84,32 @@ table "users" {
     columns = [column.email]
     where   = "is_deleted = false AND email IS NOT NULL"
     unique  = true
+  }
+}
+
+table "user_auth_providers" {
+  schema = schema.public
+  column "user_id" {
+    type = uuid
+  }
+  column "provider" {
+    type = enum.auth_provider
+  }
+  column "provider_id" {
+    type = text
+    null = true
+  }
+  column "created_at" {
+    type    = timestamptz
+    default = sql("CURRENT_TIMESTAMP")
+  }
+  primary_key {
+    columns = [column.user_id, column.provider]
+  }
+  foreign_key "fk_user_id" {
+    columns     = [column.user_id]
+    ref_columns = [table.users.column.id]
+    on_delete   = CASCADE
   }
 }
 

@@ -7,7 +7,8 @@ RUN go mod download
 
 COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -o /out/app ./cmd/app && \
-    CGO_ENABLED=0 GOOS=linux go build -o /out/seed ./cmd/seed
+    CGO_ENABLED=0 GOOS=linux go build -o /out/seed ./cmd/seed && \
+    CGO_ENABLED=0 GOOS=linux go build -o /out/backfill ./cmd/backfill
 
 FROM arigaio/atlas:latest AS atlas
 
@@ -18,6 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 WORKDIR /app
 COPY --from=builder /out/app ./app
 COPY --from=builder /out/seed ./seed
+COPY --from=builder /out/backfill ./backfill
 COPY --from=atlas /atlas /usr/local/bin/atlas
 COPY atlas/schema.hcl ./atlas/schema.hcl
 

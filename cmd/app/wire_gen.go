@@ -28,7 +28,8 @@ func initializeApp(ctx context.Context, cfg *configs.Config, db *sqlx.DB, logger
 	userPassword := providers.NewUserPasswordRepository(db)
 	userGroup := providers.NewUserGroupRepository(db)
 	uoWRepository := sqlx2.NewUoWRepository(ctx, db)
-	userService := services.NewUserService(user, userPassword, userGroup, uoWRepository)
+	userAuthProviderRepository := providers.NewUserAuthProviderRepository(db)
+	userService := services.NewUserService(user, userPassword, userGroup, uoWRepository, userAuthProviderRepository)
 	refreshTokenRepository := sqlx2.NewSQLxRefreshTokenRepository(db)
 	refreshTokenService := services.NewRefreshTokenService(refreshTokenRepository)
 	userGroupService := services.NewUserGroupService(userGroup)
@@ -72,14 +73,13 @@ func initializeApp(ctx context.Context, cfg *configs.Config, db *sqlx.DB, logger
 	affectedEntitiesFactory := providers.NewPopulatedAffectedEntityFactory(deletedCourseAffected, deletedSemesterAffected, deletedSectionAffected, deletedLabAffected, deletedLabSectionAffected)
 	affectedEntitiesService := services.NewAffectedEntitiesService(affectedEntitiesFactory)
 	submissionRepository := providers.NewSubmissionRepository(db)
-	systemSettingsRepository := providers.NewSystemSettingsRepository(db)
-	systemSettingsService := services.NewSystemSettingsService(systemSettingsRepository)
 	codeSubmissionRepository := providers.NewCodeSubmissionRepository(db)
 	codeMaterialRepository := sqlx2.NewCodeMaterialRepository(db)
 	taskServiceClient, cleanup, err := providers.ProvideTaskClient(cfg)
 	if err != nil {
 		return nil, nil, err
 	}
+	systemSettingsRepository := providers.NewSystemSettingsRepository(db)
 	codeSubmission := registrables.NewCodeSubmission(codeSubmissionRepository, codeMaterialRepository, submissionRepository, taskServiceClient, systemSettingsRepository)
 	typingSubmissionRepository := providers.NewTypingSubmissionRepository(db)
 	typingMaterialRepository := sqlx2.NewTypingMaterialRepository(db)
@@ -101,6 +101,7 @@ func initializeApp(ctx context.Context, cfg *configs.Config, db *sqlx.DB, logger
 		cleanup()
 		return nil, nil, err
 	}
+	systemSettingsService := services.NewSystemSettingsService(systemSettingsRepository)
 	submissionServiceArgs := providers.NewSubmissionServiceArgs(submissionRepository, materialRepository, uoWRepository, submissionRegistry, sectionStudentRepository, user, material, sectionRepository, labSectionRepository, labMaterialRepository, codeSubmissionRepository, codeMaterialRepository, pubSub, systemSettingsService)
 	submissionService := services.NewSubmissionService(submissionServiceArgs)
 	sidebarService := services.NewSidebarService(courseRepository, sectionStudentRepository, labSectionRepository, labMaterialRepository, submissionService)

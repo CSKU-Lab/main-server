@@ -38,6 +38,10 @@ func (u *uowInstance) UserGroup() repositories.UserGroup {
 	return NewUserGroupRepository(u.tx)
 }
 
+func (u *uowInstance) UserAuthProvider() repositories.UserAuthProviderRepository {
+	return NewUserAuthProviderRepository(u.tx)
+}
+
 func (u *uowInstance) Section() repositories.SectionRepository {
 	return NewSectionRepository(u.tx)
 }
