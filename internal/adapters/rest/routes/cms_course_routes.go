@@ -68,11 +68,20 @@ func NewCMSCourseRoutes(router fiber.Router, courseService services.CourseServic
 		}
 
 		user := c.Locals("user").(*models.User)
-		isInstructor := false
+		isAdmin := false
 		for _, r := range user.Roles {
-			if r == models.INSTRUCTOR {
-				isInstructor = true
+			if r == models.ADMIN {
+				isAdmin = true
 				break
+			}
+		}
+		isInstructor := false
+		if !isAdmin {
+			for _, r := range user.Roles {
+				if r == models.INSTRUCTOR {
+					isInstructor = true
+					break
+				}
 			}
 		}
 
@@ -172,11 +181,20 @@ func NewCMSCourseRoutes(router fiber.Router, courseService services.CourseServic
 		}
 
 		user := c.Locals("user").(*models.User)
-		isInstructor := false
+		isAdmin := false
 		for _, r := range user.Roles {
-			if r == models.INSTRUCTOR {
-				isInstructor = true
+			if r == models.ADMIN {
+				isAdmin = true
 				break
+			}
+		}
+		isInstructor := false
+		if !isAdmin {
+			for _, r := range user.Roles {
+				if r == models.INSTRUCTOR {
+					isInstructor = true
+					break
+				}
 			}
 		}
 

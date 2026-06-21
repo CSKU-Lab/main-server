@@ -285,10 +285,24 @@ func (s *sectionService) UpdateByID(ctx context.Context, ID string, req *request
 		return err
 	}
 
-	isAuthor := false
-	for _, i := range sectionInstructors {
-		if userID == i.ID {
-			isAuthor = true
+	userData, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+	isAdmin := false
+	for _, role := range userData.Roles {
+		if role == string(models.ADMIN) {
+			isAdmin = true
+			break
+		}
+	}
+
+	isAuthor := isAdmin
+	if !isAdmin {
+		for _, i := range sectionInstructors {
+			if userID == i.ID {
+				isAuthor = true
+			}
 		}
 	}
 	if !isAuthor {
@@ -457,10 +471,24 @@ func (s *sectionService) DeleteByID(ctx context.Context, ID string, userID strin
 		return err
 	}
 
-	isAuthor := false
-	for _, instructor := range instructors {
-		if userID == instructor.ID {
-			isAuthor = true
+	userData, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+	isAdmin := false
+	for _, role := range userData.Roles {
+		if role == string(models.ADMIN) {
+			isAdmin = true
+			break
+		}
+	}
+
+	isAuthor := isAdmin
+	if !isAdmin {
+		for _, instructor := range instructors {
+			if userID == instructor.ID {
+				isAuthor = true
+			}
 		}
 	}
 	if !isAuthor {

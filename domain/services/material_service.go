@@ -409,10 +409,23 @@ func (s *materialService) UpdateByID(ctx context.Context, courseID string, ID st
 		return cserrors.New(&cserrors.Option{HttpStatus: http.StatusNotFound, Message: "Material not found"})
 	}
 	if mat.CreatedBy != userID {
-		return cserrors.New(&cserrors.Option{
-			HttpStatus: http.StatusForbidden,
-			Message:    "No Permission",
-		})
+		userData, err := s.userRepo.GetByID(ctx, userID)
+		if err != nil {
+			return err
+		}
+		isAdmin := false
+		for _, role := range userData.Roles {
+			if role == string(models.ADMIN) {
+				isAdmin = true
+				break
+			}
+		}
+		if !isAdmin {
+			return cserrors.New(&cserrors.Option{
+				HttpStatus: http.StatusForbidden,
+				Message:    "No Permission",
+			})
+		}
 	}
 
 	materialHandler, exists := s.materialRegistry.GetHandler(mat.Type)
@@ -484,10 +497,23 @@ func (s *materialService) DeleteByID(ctx context.Context, courseID string, ID st
 		return cserrors.New(&cserrors.Option{HttpStatus: http.StatusNotFound, Message: "Material not found"})
 	}
 	if mat.CreatedBy != userID {
-		return cserrors.New(&cserrors.Option{
-			HttpStatus: http.StatusForbidden,
-			Message:    "No Permission",
-		})
+		userData, err := s.userRepo.GetByID(ctx, userID)
+		if err != nil {
+			return err
+		}
+		isAdmin := false
+		for _, role := range userData.Roles {
+			if role == string(models.ADMIN) {
+				isAdmin = true
+				break
+			}
+		}
+		if !isAdmin {
+			return cserrors.New(&cserrors.Option{
+				HttpStatus: http.StatusForbidden,
+				Message:    "No Permission",
+			})
+		}
 	}
 	return s.repo.DeleteByID(ctx, ID)
 }
