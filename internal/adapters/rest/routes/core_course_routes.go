@@ -18,6 +18,11 @@ type myCourseInstructor struct {
 	ProfileImage *string `json:"profile_image"`
 }
 
+type myCourseSemester struct {
+	Name string `json:"name"`
+	Type string `json:"type"`
+}
+
 type myCourseResponse struct {
 	ID            string               `json:"id"`
 	Name          string               `json:"name"`
@@ -26,6 +31,8 @@ type myCourseResponse struct {
 	Visibility    string               `json:"visibility"`
 	TotalStudents int                  `json:"total_students"`
 	Instructors   []myCourseInstructor `json:"instructors"`
+	SectionName   *string              `json:"section_name,omitempty"`
+	Semester      *myCourseSemester    `json:"semester,omitempty"`
 }
 
 func NewCoreCourseRoute(
@@ -152,6 +159,11 @@ func NewCoreCourseRoute(
 					return err
 				}
 				resp.Banner = section.Banner
+				resp.SectionName = &section.Name
+				resp.Semester = &myCourseSemester{
+					Name: section.Semester.Name,
+					Type: string(section.Semester.Type),
+				}
 				for _, inst := range section.Instructors {
 					resp.Instructors = append(resp.Instructors, myCourseInstructor{
 						ID:           inst.ID,
