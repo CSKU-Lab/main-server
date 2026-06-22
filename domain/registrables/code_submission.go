@@ -30,9 +30,19 @@ func NewCodeSubmission(repo repositories.CodeSubmissionRepository, codeMatRepo r
 	}
 }
 
+type editableSegment struct {
+	Index   int    `json:"index"`
+	Content string `json:"content"`
+}
+
+type submittedFile struct {
+	Name             string            `json:"name"`
+	EditableSegments []editableSegment `json:"editable_segments"`
+}
+
 type createCodeSubmissionPayload struct {
-	Files    models.SubmissionFiles `json:"files"`
-	RunnerID string                 `json:"runner_id"`
+	Files    []submittedFile `json:"files"`
+	RunnerID string          `json:"runner_id"`
 }
 
 type updateCodeSubmissionPayload struct {
@@ -94,9 +104,24 @@ func (c *CodeSubmission) Create(ctx context.Context, uowRepo repositories.UoWIns
 		return errors.New("invalid payload type")
 	}
 
+	codeMat, err := c.codeMatRepo.GetByID(ctx, matId)
+	if err != nil {
+		return err
+	}
+
+	task, err := c.taskGRPCClient.GetTask(ctx, &taskPB.GetTaskRequest{Id: codeMat.TaskID})
+	if err != nil {
+		return err
+	}
+
+	assembledFiles, err := assembleGraderFiles(parsedPayload.Files, parsedPayload.RunnerID, task)
+	if err != nil {
+		return err
+	}
+
 	createPayload := &repositories.CreateCodeSubmissionPayload{
 		SubmissionID: submissionID,
-		Files:        parsedPayload.Files,
+		Files:        assembledFiles,
 		RunnerID:     parsedPayload.RunnerID,
 	}
 
@@ -110,20 +135,78 @@ func (c *CodeSubmission) Create(ctx context.Context, uowRepo repositories.UoWIns
 		return err
 	}
 
-	codeMat, err := c.codeMatRepo.GetByID(ctx, matId)
-	if err != nil {
-		return err
-	}
-
 	gradePayload := &models.GradeExecution{
 		ID:              id.String(),
-		Files:           parsedPayload.Files,
+		Files:           assembledFiles,
 		RunnerID:        parsedPayload.RunnerID,
 		TaskID:          codeMat.TaskID,
 		CompareScriptID: c.resolveDefaultCompareScriptID(ctx),
 	}
 
 	return uowRepo.CodeSubmissionOutbox().Create(ctx, id.String(), submissionID, gradePayload)
+}
+
+// assembleGraderFiles builds the final grader files from student editable segments
+// and the original task segments (readonly, hidden). Exclude segments are dropped.
+// Backward compat: if a task file has no segments, editable_segments[0].content is used as full content.
+func assembleGraderFiles(submitted []submittedFile, runnerID string, task *taskPB.TaskResponse) (models.SubmissionFiles, error) {
+	// Find the task file map for the submitted runner.
+	var taskFiles []*taskPB.File
+	for _, ar := range task.GetAllowedRunners() {
+		if ar.GetRunnerId() == runnerID {
+			taskFiles = ar.GetFiles()
+			break
+		}
+	}
+
+	taskFileByName := make(map[string]*taskPB.File, len(taskFiles))
+	for _, f := range taskFiles {
+		taskFileByName[f.GetName()] = f
+	}
+
+	result := make(models.SubmissionFiles, 0, len(submitted))
+	for _, sf := range submitted {
+		taskFile, exists := taskFileByName[sf.Name]
+
+		if !exists || len(taskFile.GetSegments()) == 0 {
+			// Backward compat: no segments → use full content from first editable segment.
+			content := ""
+			if len(sf.EditableSegments) > 0 {
+				content = sf.EditableSegments[0].Content
+			}
+			result = append(result, models.SubmissionFile{
+				Name:    sf.Name,
+				Content: content,
+			})
+			continue
+		}
+
+		// Build editable content map keyed by segment index.
+		editableByIndex := make(map[int]string, len(sf.EditableSegments))
+		for _, es := range sf.EditableSegments {
+			editableByIndex[es.Index] = es.Content
+		}
+
+		// Assemble: iterate segments in order.
+		assembled := ""
+		for i, seg := range taskFile.GetSegments() {
+			switch seg.GetType() {
+			case "editable":
+				assembled += editableByIndex[i]
+			case "readonly", "hidden":
+				assembled += seg.GetContent()
+			case "exclude":
+				// omit
+			}
+		}
+
+		result = append(result, models.SubmissionFile{
+			Name:    sf.Name,
+			Content: assembled,
+		})
+	}
+
+	return result, nil
 }
 
 func (c *CodeSubmission) resolveDefaultCompareScriptID(ctx context.Context) string {

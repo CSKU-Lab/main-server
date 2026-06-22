@@ -34,9 +34,15 @@ type TestCaseGroup struct {
 	TestCases []TestCase `json:"test_cases"`
 }
 
-type File struct {
-	Name    string `json:"name"`
+type FileSegment struct {
 	Content string `json:"content"`
+	Type    string `json:"type"`
+}
+
+type File struct {
+	Name     string        `json:"name"`
+	Content  string        `json:"content"`
+	Segments []FileSegment `json:"segments,omitempty"`
 }
 
 type Limits struct {
@@ -162,10 +168,7 @@ func (c *CodeMaterial) GetByID(ctx context.Context, ID string) (any, error) {
 	// Build resource files
 	resourceFiles := make([]File, 0, len(task.GetResourceFiles()))
 	for _, f := range task.GetResourceFiles() {
-		resourceFiles = append(resourceFiles, File{
-			Name:    f.GetName(),
-			Content: f.GetContent(),
-		})
+		resourceFiles = append(resourceFiles, pbToFile(f))
 	}
 
 	// Build limit
@@ -196,10 +199,7 @@ func (c *CodeMaterial) GetByID(ctx context.Context, ID string) (any, error) {
 
 		solutionFiles := make([]File, 0, len(pbSolution.GetFiles()))
 		for _, f := range pbSolution.GetFiles() {
-			solutionFiles = append(solutionFiles, File{
-				Name:    f.GetName(),
-				Content: f.GetContent(),
-			})
+			solutionFiles = append(solutionFiles, pbToFile(f))
 		}
 
 		solution = &SolutionResponse{
@@ -231,10 +231,7 @@ func (c *CodeMaterial) GetByID(ctx context.Context, ID string) (any, error) {
 
 		runnerFiles := make([]File, 0, len(pbRunner.GetFiles()))
 		for _, f := range pbRunner.GetFiles() {
-			runnerFiles = append(runnerFiles, File{
-				Name:    f.GetName(),
-				Content: f.GetContent(),
-			})
+			runnerFiles = append(runnerFiles, pbToFile(f))
 		}
 
 		allowedRunners[i] = AllowedRunnerResponse{
@@ -365,10 +362,7 @@ func (c *CodeMaterial) UpdateByID(ctx context.Context, ID string, req *requests.
 	for _, ar := range payload.AllowedRunners {
 		pbFiles := make([]*taskPB.File, 0, len(ar.Files))
 		for _, f := range ar.Files {
-			pbFiles = append(pbFiles, &taskPB.File{
-				Name:    f.Name,
-				Content: f.Content,
-			})
+			pbFiles = append(pbFiles, fileToPB(f))
 		}
 		pbAllowedRunners = append(pbAllowedRunners, &taskPB.AllowedRunner{
 			RunnerId: ar.RunnerID,
@@ -381,10 +375,7 @@ func (c *CodeMaterial) UpdateByID(ctx context.Context, ID string, req *requests.
 	if payload.Solution != nil {
 		pbSolutionFiles := make([]*taskPB.File, 0, len(payload.Solution.Files))
 		for _, f := range payload.Solution.Files {
-			pbSolutionFiles = append(pbSolutionFiles, &taskPB.File{
-				Name:    f.Name,
-				Content: f.Content,
-			})
+			pbSolutionFiles = append(pbSolutionFiles, fileToPB(f))
 		}
 		pbSolution = &taskPB.Solution{
 			RunnerId: payload.Solution.RunnerID,
@@ -395,10 +386,7 @@ func (c *CodeMaterial) UpdateByID(ctx context.Context, ID string, req *requests.
 	// Build resource files
 	pbResourceFiles := make([]*taskPB.File, 0, len(payload.ResourceFiles))
 	for _, f := range payload.ResourceFiles {
-		pbResourceFiles = append(pbResourceFiles, &taskPB.File{
-			Name:    f.Name,
-			Content: f.Content,
-		})
+		pbResourceFiles = append(pbResourceFiles, fileToPB(f))
 	}
 
 	// Build limit
@@ -481,4 +469,36 @@ func (c *CodeMaterial) Clone(ctx context.Context, sourceID string, targetID stri
 	}
 
 	return c.UpdateByID(ctx, targetID, &requests.BaseUpdateMaterial{}, rawReq)
+}
+
+// fileToPB converts a File to its proto representation.
+func fileToPB(f File) *taskPB.File {
+	pbSegments := make([]*taskPB.Segment, len(f.Segments))
+	for i, s := range f.Segments {
+		pbSegments[i] = &taskPB.Segment{
+			Content: s.Content,
+			Type:    s.Type,
+		}
+	}
+	return &taskPB.File{
+		Name:     f.Name,
+		Content:  f.Content,
+		Segments: pbSegments,
+	}
+}
+
+// pbToFile converts a proto File to a File.
+func pbToFile(f *taskPB.File) File {
+	segments := make([]FileSegment, len(f.GetSegments()))
+	for i, s := range f.GetSegments() {
+		segments[i] = FileSegment{
+			Content: s.GetContent(),
+			Type:    s.GetType(),
+		}
+	}
+	return File{
+		Name:     f.GetName(),
+		Content:  f.GetContent(),
+		Segments: segments,
+	}
 }
