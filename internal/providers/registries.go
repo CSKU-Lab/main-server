@@ -25,6 +25,7 @@ func NewPopulatedMaterialRegistry(
 	r := registries.NewMaterialRegistry()
 	r.Register("code", codeMat)
 	r.Register("typing", typingMat)
+	r.Register("type", typingMat) // legacy alias: old rows may have type="type" instead of "typing"
 	r.Register("document", docMat)
 	return r
 }
@@ -36,6 +37,7 @@ func NewPopulatedSubmissionRegistry(
 	r := registries.NewSubmission()
 	r.Register("code", code)
 	r.Register("typing", typing)
+	r.Register("type", typing) // legacy alias: old rows may have type="type" instead of "typing"
 	return r
 }
 

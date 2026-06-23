@@ -93,6 +93,8 @@ func (s *materialService) Create(ctx context.Context, courseID string, createdBy
 
 	err = materialHandler.Create(ctx, matID, req, nil)
 	if err != nil {
+		// Best-effort cleanup: soft-delete the base material row to prevent orphan
+		_ = s.repo.DeleteByID(ctx, matID)
 		return "", err
 	}
 
