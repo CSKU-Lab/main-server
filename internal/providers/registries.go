@@ -32,10 +32,12 @@ func NewPopulatedMaterialRegistry(
 func NewPopulatedSubmissionRegistry(
 	code *registrables.CodeSubmission,
 	typing *registrables.TypingSubmission,
+	document *registrables.DocumentSubmission,
 ) registries.SubmissionRegistry {
 	r := registries.NewSubmission()
 	r.Register("code", code)
 	r.Register("typing", typing)
+	r.Register("document", document)
 	return r
 }
 
@@ -64,6 +66,7 @@ var RegistrySet = wire.NewSet(
 	registrables.NewDocumentMaterial,
 	registrables.NewCodeSubmission,
 	ProvideTypingSubmission,
+	registrables.NewDocumentSubmission,
 	registrables.NewDeletedCourseAffected,
 	registrables.NewDeletedSemesterAffected,
 	registrables.NewDeletedSectionAffected,

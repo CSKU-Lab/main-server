@@ -84,7 +84,8 @@ func initializeApp(ctx context.Context, cfg *configs.Config, db *sqlx.DB, logger
 	typingSubmissionRepository := providers.NewTypingSubmissionRepository(db)
 	typingMaterialRepository := sqlx2.NewTypingMaterialRepository(db)
 	typingSubmission := providers.ProvideTypingSubmission(typingSubmissionRepository, typingMaterialRepository, cfg)
-	submissionRegistry := providers.NewPopulatedSubmissionRegistry(codeSubmission, typingSubmission)
+	documentSubmission := registrables.NewDocumentSubmission()
+	submissionRegistry := providers.NewPopulatedSubmissionRegistry(codeSubmission, typingSubmission, documentSubmission)
 	configServiceClient, cleanup2, err := providers.ProvideConfigClient(cfg)
 	if err != nil {
 		cleanup()
