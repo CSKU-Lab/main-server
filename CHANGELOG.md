@@ -1,3 +1,24 @@
+# [0.22.0](https://github.com/CSKU-Lab/main-server/compare/v0.21.0...v0.22.0) (2026-06-23)
+
+
+### Bug Fixes
+
+* **CS-189:** expose auto_score in submission responses for typing materials ([50d2854](https://github.com/CSKU-Lab/main-server/commit/50d2854a1f665c80351f6e8f92c5d57ca3be22ca))
+* **CS-214:** register legacy "type" alias and cleanup orphan materials ([92f4d9f](https://github.com/CSKU-Lab/main-server/commit/92f4d9f2427dd07585f5a724141a9a9a1748a42b))
+* **CS-215:** register DocumentSubmission handler in submission registry ([e4ad202](https://github.com/CSKU-Lab/main-server/commit/e4ad202189fa9b7ae5781aafafbdedd8173bb299))
+* **CS-216:** double core API rate limit to reduce false 429s on material switch ([622e75f](https://github.com/CSKU-Lab/main-server/commit/622e75f6141b05981dbc7d746f6b85a028aee14b))
+* merge CS-214 and CS-215 registry changes ([fd9ae96](https://github.com/CSKU-Lab/main-server/commit/fd9ae96158935bbaa2f399d4b5216e430ce44cc2))
+
+
+### Features
+
+* **CS-189:** replace typing thresholds with practice/exam mode and evaluate formula ([bf41072](https://github.com/CSKU-Lab/main-server/commit/bf41072cc298c357dc7f4f738dcb707b3134a0c5))
+* **CS-191:** add section-scoped typing submissions export endpoint ([35d8c9f](https://github.com/CSKU-Lab/main-server/commit/35d8c9fddc024dd620288f8a0f849aa7f4d71f94))
+* **CS-210:** score propagation for document materials with embedded code problems ([306dc63](https://github.com/CSKU-Lab/main-server/commit/306dc63989cb446058266624857e108a435d333b))
+* **CS-211:** add segment support to code material and submission assembly ([37bb5c3](https://github.com/CSKU-Lab/main-server/commit/37bb5c3270bee369e5b73c5bda52eab44e6e6285))
+* **CS-211:** regenerate genproto with Segment message in File ([ae47032](https://github.com/CSKU-Lab/main-server/commit/ae4703281818ff6f6cdcad58a18ff8dee0356b4a))
+* expose section name and semester in my courses response ([53b0e40](https://github.com/CSKU-Lab/main-server/commit/53b0e40f17824b4b9cc711fbd302a6ebfe66e2cc))
+
 # [0.21.0](https://github.com/CSKU-Lab/main-server/compare/v0.20.1...v0.21.0) (2026-06-21)
 
 
