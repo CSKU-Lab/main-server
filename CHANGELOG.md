@@ -1,3 +1,10 @@
+## [0.22.4](https://github.com/CSKU-Lab/main-server/compare/v0.22.3...v0.22.4) (2026-06-24)
+
+
+### Bug Fixes
+
+* evaluate typing submission status on pass criteria for practice and exam modes ([be7b0ee](https://github.com/CSKU-Lab/main-server/commit/be7b0eed5382222cc639ce86f6b2c8ab56e2f9cb))
+
 # [0.22.0](https://github.com/CSKU-Lab/main-server/compare/v0.21.0...v0.22.0) (2026-06-23)
 
 
