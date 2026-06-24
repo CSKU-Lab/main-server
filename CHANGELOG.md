@@ -1,3 +1,10 @@
+# [0.23.0](https://github.com/CSKU-Lab/main-server/compare/v0.22.4...v0.23.0) (2026-06-24)
+
+
+### Features
+
+* show best typing submissions in CMS material submissions view ([8059cf4](https://github.com/CSKU-Lab/main-server/commit/8059cf4bb96987bac2270fa84337bcd6cb000a45))
+
 ## [0.22.4](https://github.com/CSKU-Lab/main-server/compare/v0.22.3...v0.22.4) (2026-06-24)
 
 
