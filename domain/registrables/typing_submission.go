@@ -194,9 +194,14 @@ func (t *TypingSubmission) Create(ctx context.Context, uow repositories.UoWInsta
 		return err
 	}
 
-	autoScore := 0
-	status := models.PASSED
+	var status models.SubmissionStatus
+	if adjWPM >= 30.0 && errorRate <= 3.0 {
+		status = models.PASSED
+	} else {
+		status = models.FAILED
+	}
 
+	autoScore := 0
 	if mat.TypingType == "exam" {
 		autoScore = int(math.Round(evaluateTypingScore(adjWPM, errorRate)))
 	}
