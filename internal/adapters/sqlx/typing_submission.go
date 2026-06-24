@@ -97,3 +97,52 @@ func (r *typingSubmissionRepo) GetByIDs(ctx context.Context, submissionIDs []str
 	}
 	return result, nil
 }
+
+func (r *typingSubmissionRepo) GetBestByMaterial(ctx context.Context, materialID, labID, sectionID string) ([]map[string]interface{}, error) {
+	var results []map[string]interface{}
+	rows, err := r.db.QueryxContext(ctx, `
+		SELECT
+			s.id,
+			s.user_id,
+			s.lab_id,
+			s.section_id,
+			s.course_id,
+			s.material_id,
+			s.status,
+			s.submission_order,
+			s.created_at,
+			s.updated_at,
+			s.ip_address,
+			s.manual_score,
+			s.auto_score,
+			ts.raw_wpm,
+			ts.adjusted_wpm,
+			ts.error_rate,
+			ts.duration
+		FROM submissions s
+		JOIN typing_submissions ts ON s.id = ts.submission_id
+		WHERE s.material_id = $1 AND s.lab_id = $2 AND s.section_id = $3
+		AND (s.user_id, ts.adjusted_wpm) IN (
+			SELECT s2.user_id, MAX(ts2.adjusted_wpm)
+			FROM submissions s2
+			JOIN typing_submissions ts2 ON s2.id = ts2.submission_id
+			WHERE s2.material_id = $1 AND s2.lab_id = $2 AND s2.section_id = $3
+			GROUP BY s2.user_id
+		)
+		ORDER BY ts.adjusted_wpm DESC
+	`, materialID, labID, sectionID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		result := make(map[string]interface{})
+		if err := rows.MapScan(result); err != nil {
+			return nil, err
+		}
+		results = append(results, result)
+	}
+
+	return results, rows.Err()
+}

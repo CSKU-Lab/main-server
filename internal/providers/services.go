@@ -23,6 +23,7 @@ func NewSubmissionServiceArgs(
 	labMaterialRepo repositories.LabMaterialRepository,
 	codeSubmissionRepo repositories.CodeSubmissionRepository,
 	codeMatRepo repositories.CodeMaterialRepository,
+	typingSubmissionRepo repositories.TypingSubmissionRepository,
 	pubSub pubsub.PubSub,
 	systemSettingsService services.SystemSettingsService,
 ) *services.SubmissionServiceArgs {
@@ -39,6 +40,7 @@ func NewSubmissionServiceArgs(
 		LabMaterialRepository:    labMaterialRepo,
 		CodeSubmissionRepository: codeSubmissionRepo,
 		CodeMaterialRepository:   codeMatRepo,
+		TypingSubmissionRepository: typingSubmissionRepo,
 		PubSub:                   pubSub,
 		SystemSettingsService:    systemSettingsService,
 	}

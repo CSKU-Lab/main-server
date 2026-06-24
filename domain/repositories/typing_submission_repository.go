@@ -24,4 +24,5 @@ type TypingSubmissionRepository interface {
 	Get(ctx context.Context, submissionID string) (*models.TypingSubmission, error)
 	GetByIDs(ctx context.Context, submissionIDs []string) (map[string]*models.TypingSubmission, error)
 	GetBestByUserID(ctx context.Context, userID, materialID, labID, sectionID string) (*BestTypingSubmission, error)
+	GetBestByMaterial(ctx context.Context, materialID, labID, sectionID string) ([]map[string]interface{}, error)
 }

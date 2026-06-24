@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	contextkeys "github.com/CSKU-Lab/main-server/context_keys"
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
@@ -55,6 +56,7 @@ type submissionService struct {
 	labMatRepo            repositories.LabMaterialRepository
 	codeSubmissionRepo    repositories.CodeSubmissionRepository
 	codeMatRepo           repositories.CodeMaterialRepository
+	typingSubmissionRepo  repositories.TypingSubmissionRepository
 	ps                    pubsub.PubSub
 	systemSettingsService SystemSettingsService
 	allowedSortFields     map[string]bool
@@ -73,6 +75,7 @@ type SubmissionServiceArgs struct {
 	LabMaterialRepository    repositories.LabMaterialRepository
 	CodeSubmissionRepository repositories.CodeSubmissionRepository
 	CodeMaterialRepository   repositories.CodeMaterialRepository
+	TypingSubmissionRepository repositories.TypingSubmissionRepository
 	PubSub                   pubsub.PubSub
 	SystemSettingsService    SystemSettingsService
 }
@@ -91,6 +94,7 @@ func NewSubmissionService(args *SubmissionServiceArgs) SubmissionService {
 		materialReigstry:      args.MaterialRegistry,
 		codeSubmissionRepo:    args.CodeSubmissionRepository,
 		codeMatRepo:           args.CodeMaterialRepository,
+		typingSubmissionRepo:  args.TypingSubmissionRepository,
 		ps:                    args.PubSub,
 		systemSettingsService: args.SystemSettingsService,
 		allowedSortFields: map[string]bool{
@@ -585,11 +589,6 @@ func (s *submissionService) GetSectionLabMaterialSubmissions(ctx context.Context
 		return nil, err
 	}
 
-	rawSubmissions, err := s.repo.GetLatestByMaterialSectionAndLabID(ctx, materialID, sectionID, labID)
-	if err != nil {
-		return nil, err
-	}
-
 	mat, err := s.materialRepo.GetByID(ctx, materialID)
 	if err != nil {
 		return nil, err
@@ -598,6 +597,41 @@ func (s *submissionService) GetSectionLabMaterialSubmissions(ctx context.Context
 	handler, err := s.registry.GetHandler(mat.Type)
 	if err != nil {
 		return nil, err
+	}
+
+	var rawSubmissions []models.RawSubmission
+
+	// For typing materials, get best submissions; for others, get latest
+	if mat.Type == "typing" {
+		bestSubs, err := s.typingSubmissionRepo.GetBestByMaterial(ctx, materialID, labID, sectionID)
+		if err != nil {
+			return nil, err
+		}
+
+		// Convert map data to RawSubmission structs
+		for _, best := range bestSubs {
+			rawSubmissions = append(rawSubmissions, models.RawSubmission{
+				ID:          best["id"].(string),
+				UserID:      best["user_id"].(string),
+				MaterialID:  best["material_id"].(string),
+				LabID:       best["lab_id"].(string),
+				SectionID:   best["section_id"].(*string),
+				CourseID:    best["course_id"].(*string),
+				Status:      models.SubmissionStatus(best["status"].(string)),
+				Order:       best["submission_order"].(int),
+				CreatedAt:   best["created_at"].(time.Time),
+				UpdatedAt:   best["updated_at"].(time.Time),
+				IPAddress:   best["ip_address"].(string),
+				ManualScore: best["manual_score"].(int),
+				AutoScore:   best["auto_score"].(int),
+			})
+		}
+	} else {
+		var err error
+		rawSubmissions, err = s.repo.GetLatestByMaterialSectionAndLabID(ctx, materialID, sectionID, labID)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	submissionMap := make(map[string]models.RawSubmission)
