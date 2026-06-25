@@ -1,3 +1,10 @@
+# [0.24.0](https://github.com/CSKU-Lab/main-server/compare/v0.23.2...v0.24.0) (2026-06-25)
+
+
+### Features
+
+* **submissions:** hide hidden segments from student submission view ([cf3bba9](https://github.com/CSKU-Lab/main-server/commit/cf3bba9d01e285f82983d846e3400b1c957ecbd9))
+
 ## [0.23.2](https://github.com/CSKU-Lab/main-server/compare/v0.23.1...v0.23.2) (2026-06-25)
 
 
