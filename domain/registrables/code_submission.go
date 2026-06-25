@@ -3,12 +3,47 @@ package registrables
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"github.com/CSKU-Lab/main-server/domain/models"
 	"github.com/CSKU-Lab/main-server/domain/repositories"
 	taskPB "github.com/CSKU-Lab/main-server/genproto/task/v1"
 	"github.com/google/uuid"
 )
+
+// stripHiddenSegmentText removes every hidden segment's content from the given
+// files. Used as a fail-closed fallback for submissions saved before
+// StudentFiles existed: we cannot reconstruct the exact student view, but we can
+// guarantee hidden grader code is never served by deleting any known hidden text.
+// It collects hidden contents across all allowed runners (the submission's runner
+// may be unknown on old rows) and removes every occurrence — over-removal is
+// acceptable for legacy rows; a leak is not. Tasks with no hidden segments are
+// returned unchanged.
+func stripHiddenSegmentText(files models.SubmissionFiles, task *taskPB.TaskResponse) models.SubmissionFiles {
+	var hidden []string
+	for _, ar := range task.GetAllowedRunners() {
+		for _, f := range ar.GetFiles() {
+			for _, s := range f.GetSegments() {
+				if s.GetType() == "hidden" && s.GetContent() != "" {
+					hidden = append(hidden, s.GetContent())
+				}
+			}
+		}
+	}
+	if len(hidden) == 0 {
+		return files
+	}
+
+	out := make(models.SubmissionFiles, 0, len(files))
+	for _, f := range files {
+		content := f.Content
+		for _, h := range hidden {
+			content = strings.ReplaceAll(content, h, "")
+		}
+		out = append(out, models.SubmissionFile{Name: f.Name, Content: content})
+	}
+	return out
+}
 
 const defaultCompareScriptIDKey = "default_compare_script_id"
 
@@ -119,9 +154,18 @@ func (c *CodeSubmission) Create(ctx context.Context, uowRepo repositories.UoWIns
 		return err
 	}
 
+	// Student-facing files: same assembly minus hidden segments. Stored so the
+	// student submission view never exposes hidden grader code (filtered in the
+	// backend, deterministically, not reconstructed at read time).
+	studentFiles, err := assembleStudentFiles(parsedPayload.Files, parsedPayload.RunnerID, task)
+	if err != nil {
+		return err
+	}
+
 	createPayload := &repositories.CreateCodeSubmissionPayload{
 		SubmissionID: submissionID,
 		Files:        assembledFiles,
+		StudentFiles: studentFiles,
 		RunnerID:     parsedPayload.RunnerID,
 	}
 
@@ -146,10 +190,24 @@ func (c *CodeSubmission) Create(ctx context.Context, uowRepo repositories.UoWIns
 	return uowRepo.CodeSubmissionOutbox().Create(ctx, id.String(), submissionID, gradePayload)
 }
 
-// assembleGraderFiles builds the final grader files from student editable segments
-// and the original task segments (readonly, hidden). Exclude segments are dropped.
-// Backward compat: if a task file has no segments, editable_segments[0].content is used as full content.
+// assembleGraderFiles builds the files the grader compiles and runs: editable
+// (student) + readonly + hidden, in order. Exclude segments are dropped.
+// Backward compat: if a task file has no segments, editable_segments[0].content
+// is used as the full content.
 func assembleGraderFiles(submitted []submittedFile, runnerID string, task *taskPB.TaskResponse) (models.SubmissionFiles, error) {
+	return assembleFiles(submitted, runnerID, task, true /* includeHidden */, false /* includeExclude */)
+}
+
+// assembleStudentFiles builds the student-facing view of a submission: editable
+// (student) + readonly + exclude, in order. Hidden segments are dropped so the
+// student never sees the hidden grader code. Mirrors the editor display.
+func assembleStudentFiles(submitted []submittedFile, runnerID string, task *taskPB.TaskResponse) (models.SubmissionFiles, error) {
+	return assembleFiles(submitted, runnerID, task, false /* includeHidden */, true /* includeExclude */)
+}
+
+// assembleFiles assembles submission files from student editable segments and the
+// task's segments. readonly is always kept; hidden/exclude are kept per the flags.
+func assembleFiles(submitted []submittedFile, runnerID string, task *taskPB.TaskResponse, includeHidden, includeExclude bool) (models.SubmissionFiles, error) {
 	// Find the task file map for the submitted runner.
 	var taskFiles []*taskPB.File
 	for _, ar := range task.GetAllowedRunners() {
@@ -193,10 +251,16 @@ func assembleGraderFiles(submitted []submittedFile, runnerID string, task *taskP
 			switch seg.GetType() {
 			case "editable":
 				assembled += editableByIndex[i]
-			case "readonly", "hidden":
+			case "readonly":
 				assembled += seg.GetContent()
+			case "hidden":
+				if includeHidden {
+					assembled += seg.GetContent()
+				}
 			case "exclude":
-				// omit
+				if includeExclude {
+					assembled += seg.GetContent()
+				}
 			}
 		}
 
@@ -272,6 +336,15 @@ func (c *CodeSubmission) Get(ctx context.Context, submissionID string, viewBy st
 	}
 
 	if viewBy != "instructor" {
+		// Students must not see hidden grader code. Serve the stored student-facing
+		// files (hidden dropped). For submissions saved before StudentFiles existed,
+		// fail closed: strip any known hidden text from the full files rather than
+		// risk leaking it.
+		studentFiles := codeSubmission.StudentFiles
+		if len(studentFiles) == 0 {
+			studentFiles = stripHiddenSegmentText(codeSubmission.Files, task)
+		}
+
 		coreGroups := make([]coreTestCaseGroupResult, 0, len(testCaseGroups))
 		for _, tg := range testCaseGroups {
 			cg := coreTestCaseGroupResult{
@@ -296,7 +369,7 @@ func (c *CodeSubmission) Get(ctx context.Context, submissionID string, viewBy st
 		}
 		return &coreCodeSubmission{
 			SubmissionID:   cleanedCodeSubmission.SubmissionID,
-			Files:          cleanedCodeSubmission.Files,
+			Files:          studentFiles,
 			Status:         cleanedCodeSubmission.Status,
 			AvgWallTime:    cleanedCodeSubmission.AvgWallTime,
 			AvgMemory:      cleanedCodeSubmission.AvgMemory,
@@ -347,6 +420,13 @@ func (c *CodeSubmission) GetByIDs(ctx context.Context, submissionIDs []string, v
 		}
 
 		if viewBy != "instructor" {
+			// Students must not see hidden grader code — serve student-facing files.
+			// Pre-StudentFiles submissions: fail closed by stripping known hidden text.
+			studentFiles := codeSubmission.StudentFiles
+			if len(studentFiles) == 0 {
+				studentFiles = stripHiddenSegmentText(codeSubmission.Files, task)
+			}
+
 			coreGroups := make([]coreTestCaseGroupResult, 0, len(testCaseGroups))
 			for _, tg := range testCaseGroups {
 				cg := coreTestCaseGroupResult{
@@ -371,7 +451,7 @@ func (c *CodeSubmission) GetByIDs(ctx context.Context, submissionIDs []string, v
 			}
 			submissions[subID] = &coreCodeSubmission{
 				SubmissionID:   cleanedCodeSubmission.SubmissionID,
-				Files:          cleanedCodeSubmission.Files,
+				Files:          studentFiles,
 				Status:         cleanedCodeSubmission.Status,
 				AvgWallTime:    cleanedCodeSubmission.AvgWallTime,
 				AvgMemory:      cleanedCodeSubmission.AvgMemory,

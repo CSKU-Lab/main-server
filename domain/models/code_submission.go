@@ -9,6 +9,7 @@ import (
 type CodeSubmission struct {
 	SubmissionID   string                `json:"submission_id"`
 	Files          SubmissionFiles       `json:"files"`
+	StudentFiles   SubmissionFiles       `json:"student_files"`
 	Status         *string               `json:"status"`
 	AvgWallTime    *float32              `json:"avg_wall_time"`
 	AvgMemory      *int32                `json:"avg_memory"`

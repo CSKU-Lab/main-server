@@ -19,9 +19,9 @@ func NewCodeSubmission(db instance) repositories.CodeSubmissionRepository {
 }
 
 func (c *codeSubmissionRepository) Create(ctx context.Context, payload *repositories.CreateCodeSubmissionPayload) error {
-	query := `INSERT INTO code_submissions (submission_id, files, runner_id) VALUES ($1, $2, $3)`
+	query := `INSERT INTO code_submissions (submission_id, files, student_files, runner_id) VALUES ($1, $2, $3, $4)`
 
-	_, err := c.db.ExecContext(ctx, query, payload.SubmissionID, payload.Files, payload.RunnerID)
+	_, err := c.db.ExecContext(ctx, query, payload.SubmissionID, payload.Files, payload.StudentFiles, payload.RunnerID)
 	if err != nil {
 		return err
 	}
@@ -49,6 +49,7 @@ func (c *codeSubmissionRepository) Update(ctx context.Context, payload *reposito
 type codeSubmission struct {
 	SubmissionID   string                      `db:"submission_id"`
 	Files          models.SubmissionFiles      `db:"files"`
+	StudentFiles   models.SubmissionFiles      `db:"student_files"`
 	Status         *string                     `db:"status"`
 	AvgWallTime    *float32                    `db:"avg_wall_time"`
 	AvgMemory      *int32                      `db:"avg_memory"`
@@ -57,7 +58,7 @@ type codeSubmission struct {
 }
 
 func (c *codeSubmissionRepository) Get(ctx context.Context, submissionId string) (*models.CodeSubmission, error) {
-	query := `SELECT submission_id, files, status, avg_wall_time, avg_memory, test_case_groups, runner_id FROM code_submissions WHERE submission_id = $1`
+	query := `SELECT submission_id, files, student_files, status, avg_wall_time, avg_memory, test_case_groups, runner_id FROM code_submissions WHERE submission_id = $1`
 
 	submission := codeSubmission{}
 	err := c.db.GetContext(ctx, &submission, query, submissionId)
@@ -68,6 +69,7 @@ func (c *codeSubmissionRepository) Get(ctx context.Context, submissionId string)
 	return &models.CodeSubmission{
 		SubmissionID:   submission.SubmissionID,
 		Files:          submission.Files,
+		StudentFiles:   submission.StudentFiles,
 		Status:         submission.Status,
 		AvgWallTime:    submission.AvgWallTime,
 		AvgMemory:      submission.AvgMemory,

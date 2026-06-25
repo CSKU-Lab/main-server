@@ -16,6 +16,7 @@ type CodeSubmissionRepository interface {
 type CreateCodeSubmissionPayload struct {
 	SubmissionID string
 	Files        models.SubmissionFiles
+	StudentFiles models.SubmissionFiles
 	RunnerID     string
 }
 

@@ -231,3 +231,106 @@ func TestAssembleGraderFiles(t *testing.T) {
 		})
 	}
 }
+
+func TestAssembleStudentFiles(t *testing.T) {
+	tests := []struct {
+		name      string
+		submitted []submittedFile
+		runnerID  string
+		task      *taskPB.TaskResponse
+		want      models.SubmissionFiles
+	}{
+		{
+			// Student view: hidden dropped, editable + readonly + exclude kept.
+			name:     "drops hidden, keeps editable+readonly+exclude",
+			runnerID: "py",
+			submitted: []submittedFile{
+				{Name: "main.py", EditableSegments: []editableSegment{{Index: 1, Content: "26.0\n"}}},
+			},
+			task: task("py", &taskPB.File{
+				Name: "main.py",
+				Segments: []*taskPB.Segment{
+					seg("C = ", "readonly"),
+					seg("placeholder", "editable"),       // index 1 -> student value
+					seg("C = float(input())\n", "hidden"), // dropped from student view
+					seg("# example\n", "exclude"),         // kept (example)
+					seg("print(C)\n", "readonly"),
+				},
+			}),
+			want: models.SubmissionFiles{
+				{Name: "main.py", Content: "C = 26.0\n# example\nprint(C)\n"},
+			},
+		},
+		{
+			// Grader keeps hidden + drops exclude; student does the opposite —
+			// verify the same task yields different assemblies.
+			name:     "hidden-only segment vanishes for student",
+			runnerID: "py",
+			submitted: []submittedFile{
+				{Name: "main.py", EditableSegments: []editableSegment{}},
+			},
+			task: task("py", &taskPB.File{
+				Name:     "main.py",
+				Segments: []*taskPB.Segment{seg("visible\n", "readonly"), seg("secret\n", "hidden")},
+			}),
+			want: models.SubmissionFiles{
+				{Name: "main.py", Content: "visible\n"},
+			},
+		},
+		{
+			// Backward compat: no segments -> first editable content.
+			name:     "no segments uses first editable content",
+			runnerID: "py",
+			submitted: []submittedFile{
+				{Name: "main.py", EditableSegments: []editableSegment{{Index: 0, Content: "print('hi')"}}},
+			},
+			task: task("py", &taskPB.File{Name: "main.py"}),
+			want: models.SubmissionFiles{
+				{Name: "main.py", Content: "print('hi')"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := assembleStudentFiles(tt.submitted, tt.runnerID, tt.task)
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Fatalf("assembled mismatch\n got: %#v\nwant: %#v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestStripHiddenSegmentText(t *testing.T) {
+	// Fail-closed fallback for pre-StudentFiles rows: known hidden text must be
+	// removed from the served files; tasks without hidden are unchanged.
+	tk := task("py", &taskPB.File{
+		Name: "main.py",
+		Segments: []*taskPB.Segment{
+			seg("C = 26.0\n", "readonly"),
+			seg("C = float(input())\n", "hidden"),
+			seg("print(C)\n", "readonly"),
+		},
+	})
+
+	got := stripHiddenSegmentText(models.SubmissionFiles{
+		{Name: "main.py", Content: "C = 26.0\nC = float(input())\nprint(C)\n"},
+	}, tk)
+	want := models.SubmissionFiles{{Name: "main.py", Content: "C = 26.0\nprint(C)\n"}}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("hidden not stripped\n got: %#v\nwant: %#v", got, want)
+	}
+
+	// No hidden segments -> unchanged.
+	noHidden := task("py", &taskPB.File{
+		Name:     "main.py",
+		Segments: []*taskPB.Segment{seg("print(1)\n", "readonly")},
+	})
+	files := models.SubmissionFiles{{Name: "main.py", Content: "print(1)\n"}}
+	if got := stripHiddenSegmentText(files, noHidden); !reflect.DeepEqual(got, files) {
+		t.Fatalf("expected unchanged, got: %#v", got)
+	}
+}

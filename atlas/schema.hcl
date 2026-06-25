@@ -956,6 +956,10 @@ table "code_submissions" {
   column "files" {
     type = jsonb
   }
+  column "student_files" {
+    type = jsonb
+    null = true
+  }
   column "status" {
     type = text
     null = true
