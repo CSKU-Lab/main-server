@@ -19,7 +19,6 @@ type LabMaterialService interface {
 	GetByLabID(ctx context.Context, labID string) ([]models.LabMaterial, error)
 	GetByLabAndMaterialID(ctx context.Context, labID string, materialID string) (*models.LabMaterial, error)
 	Count(ctx context.Context, filterParams map[string]string) (int, error)
-	UpdatePosition(ctx context.Context, labID string, materialID string, userID string, position int) error
 	ReorderMaterials(ctx context.Context, labID string, userID string, materialIDs []string) error
 }
 
@@ -151,52 +150,6 @@ func (lm *labMaterialService) Create(ctx context.Context, req *requests.SetLabMa
 	}
 
 	return lm.labMaterialRepo.Create(ctx, req, ID.String(), labID, maxPos+1)
-}
-
-func (lm *labMaterialService) UpdatePosition(ctx context.Context, labID string, materialID string, userID string, newPos int) error {
-	err := lm.mutationPermission(ctx, userID, labID)
-	if err != nil {
-		return err
-	}
-
-	labMaterial, err := lm.labMaterialRepo.GetByID(ctx, labID, materialID)
-	if err != nil {
-		return err
-	}
-
-	oldPos := labMaterial.Position
-	if newPos == oldPos {
-		return nil
-	}
-
-	err = lm.uowRepo.Execute(ctx, func(u repositories.UoWInstance) error {
-		maxPos, err := lm.labMaterialRepo.MaxPositionByLabID(ctx, labID)
-		if err != nil {
-			return err
-		}
-
-		if newPos >= maxPos {
-			newPos = maxPos
-		}
-		if newPos < 1 {
-			newPos = 1
-		}
-
-		if newPos < oldPos {
-			err = lm.labMaterialRepo.ShiftRangeDown(ctx, labID, newPos, oldPos-1)
-		} else {
-			err = lm.labMaterialRepo.ShiftRangeUp(ctx, labID, oldPos+1, newPos)
-		}
-		if err != nil {
-			return err
-		}
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-
-	return lm.labMaterialRepo.UpdatePosition(ctx, labMaterial.ID, newPos)
 }
 
 func (lm *labMaterialService) ReorderMaterials(ctx context.Context, labID string, userID string, materialIDs []string) error {

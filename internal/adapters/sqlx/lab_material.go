@@ -64,36 +64,6 @@ func (lm *sqlxLabMaterialRepository) MaxPositionByLabID(ctx context.Context, lab
 	return max, nil
 }
 
-func (lm *sqlxLabMaterialRepository) UpdatePosition(ctx context.Context, labMaterialID string, position int) error {
-	query := `UPDATE lab_materials SET position = $2, updated_at = NOW() WHERE id = $1 AND is_deleted = false`
-	_, err := lm.db.ExecContext(ctx, query, labMaterialID, position)
-	return err
-}
-
-func (lm *sqlxLabMaterialRepository) ShiftRangeDown(ctx context.Context, labID string, startPos int, endPos int) error {
-	_, err := lm.db.ExecContext(ctx, `
-		UPDATE lab_materials
-		SET position = position + 1
-		WHERE lab_id = $1
-		  AND position >= $2
-		  AND position <= $3
-		  AND is_deleted = false
-	`, labID, startPos, endPos)
-	return err
-}
-
-func (lm *sqlxLabMaterialRepository) ShiftRangeUp(ctx context.Context, labID string, startPos int, endPos int) error {
-	_, err := lm.db.ExecContext(ctx, `
-		UPDATE lab_materials
-		SET position = position - 1
-		WHERE lab_id = $1
-		  AND position >= $2
-		  AND position <= $3
-		  AND is_deleted = false
-	`, labID, startPos, endPos)
-	return err
-}
-
 func (lm *sqlxLabMaterialRepository) ReorderByLabID(ctx context.Context, labID string, orderedMaterialIDs []string) error {
 	query := `
 		UPDATE lab_materials

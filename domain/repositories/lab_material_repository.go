@@ -16,8 +16,5 @@ type LabMaterialRepository interface {
 	GetByLabID(ctx context.Context, labID string) ([]models.LabMaterial, error)
 	Count(ctx context.Context, filterParams []sanitize.Filter) (int, error)
 	MaxPositionByLabID(ctx context.Context, labID string) (int, error)
-	UpdatePosition(ctx context.Context, labMaterialID string, position int) error
-	ShiftRangeDown(ctx context.Context, labID string, startPos int, endPos int) error
-	ShiftRangeUp(ctx context.Context, labID string, startPos int, endPos int) error
 	ReorderByLabID(ctx context.Context, labID string, orderedMaterialIDs []string) error
 }
