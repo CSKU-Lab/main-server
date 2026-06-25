@@ -302,6 +302,28 @@ func NewCMSLabRoutes(router fiber.Router, labService services.LabService, labSec
 		req := c.Locals("body").(*requests.UpdateLabMaterialPosition)
 		return labMaterialService.UpdatePosition(c.RequestCtx(), labID, materialID, user.ID, req.Position)
 	})
+
+	labRouter.Patch("/:labID/materials/positions", middlewares.ValidateMiddleware[requests.ReorderLabMaterials](), func(c fiber.Ctx) error {
+		user := c.Locals("user").(*models.User)
+		labID := c.Params("labID")
+
+		if !isAdminUser(user) {
+			lab, err := labService.GetByID(c.RequestCtx(), labID)
+			if err != nil {
+				return err
+			}
+			ok, err := permService.IsCourseCreator(c.RequestCtx(), user.ID, lab.CourseID)
+			if err != nil {
+				return err
+			}
+			if !ok {
+				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusForbidden, Code: cserrors.Forbidden, Message: "Permission denied: only admin or course creator can reorder materials"})
+			}
+		}
+
+		req := c.Locals("body").(*requests.ReorderLabMaterials)
+		return labMaterialService.ReorderMaterials(c.RequestCtx(), labID, user.ID, req.MaterialIDs)
+	})
 }
 
 func isAdminUser(user *models.User) bool {

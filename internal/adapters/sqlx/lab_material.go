@@ -94,6 +94,20 @@ func (lm *sqlxLabMaterialRepository) ShiftRangeUp(ctx context.Context, labID str
 	return err
 }
 
+func (lm *sqlxLabMaterialRepository) ReorderByLabID(ctx context.Context, labID string, orderedMaterialIDs []string) error {
+	query := `
+		UPDATE lab_materials
+		SET position = $3, updated_at = NOW()
+		WHERE lab_id = $1 AND material_id = $2 AND is_deleted = false
+	`
+	for i, materialID := range orderedMaterialIDs {
+		if _, err := lm.db.ExecContext(ctx, query, labID, materialID, i+1); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (lm *sqlxLabMaterialRepository) GetByID(ctx context.Context, labID string, materilaID string) (*models.LabMaterial, error) {
 	query := `SELECT id, lab_id, material_id, position, created_at, updated_at FROM lab_materials WHERE lab_id = $1 AND material_id = $2 AND is_deleted = false`
 

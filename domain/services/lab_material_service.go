@@ -20,6 +20,7 @@ type LabMaterialService interface {
 	GetByLabAndMaterialID(ctx context.Context, labID string, materialID string) (*models.LabMaterial, error)
 	Count(ctx context.Context, filterParams map[string]string) (int, error)
 	UpdatePosition(ctx context.Context, labID string, materialID string, userID string, position int) error
+	ReorderMaterials(ctx context.Context, labID string, userID string, materialIDs []string) error
 }
 
 type labMaterialService struct {
@@ -196,6 +197,51 @@ func (lm *labMaterialService) UpdatePosition(ctx context.Context, labID string, 
 	}
 
 	return lm.labMaterialRepo.UpdatePosition(ctx, labMaterial.ID, newPos)
+}
+
+func (lm *labMaterialService) ReorderMaterials(ctx context.Context, labID string, userID string, materialIDs []string) error {
+	err := lm.mutationPermission(ctx, userID, labID)
+	if err != nil {
+		return err
+	}
+
+	existing, err := lm.labMaterialRepo.GetByLabID(ctx, labID)
+	if err != nil {
+		return err
+	}
+
+	existingIDs := make(map[string]bool, len(existing))
+	for _, m := range existing {
+		existingIDs[m.MaterialID] = true
+	}
+
+	if len(materialIDs) != len(existing) {
+		return cserrors.New(&cserrors.Option{
+			HttpStatus: http.StatusBadRequest,
+			Message:    "material_ids must contain exactly all materials in the lab",
+		})
+	}
+
+	seen := make(map[string]bool, len(materialIDs))
+	for _, id := range materialIDs {
+		if !existingIDs[id] {
+			return cserrors.New(&cserrors.Option{
+				HttpStatus: http.StatusBadRequest,
+				Message:    "material_ids contains a material that does not belong to this lab",
+			})
+		}
+		if seen[id] {
+			return cserrors.New(&cserrors.Option{
+				HttpStatus: http.StatusBadRequest,
+				Message:    "material_ids contains duplicates",
+			})
+		}
+		seen[id] = true
+	}
+
+	return lm.uowRepo.Execute(ctx, func(u repositories.UoWInstance) error {
+		return u.LabMaterial().ReorderByLabID(ctx, labID, materialIDs)
+	})
 }
 
 func (lm *labMaterialService) GetByLabAndMaterialID(ctx context.Context, labID string, materialID string) (*models.LabMaterial, error) {

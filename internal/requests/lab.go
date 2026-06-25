@@ -63,6 +63,9 @@ type (
 	UpdateLabMaterialPosition struct {
 		Position int `json:"position"`
 	}
+	ReorderLabMaterials struct {
+		MaterialIDs []string `json:"material_ids"`
+	}
 )
 
 type (
@@ -129,6 +132,12 @@ func (lm *DeleteLabMaterial) Validate() error {
 func (lm *UpdateLabMaterialPosition) Validate() error {
 	return validation.ValidateStruct(lm,
 		validation.Field(&lm.Position, validation.Required, validation.Min(1)),
+	)
+}
+
+func (lm *ReorderLabMaterials) Validate() error {
+	return validation.ValidateStruct(lm,
+		validation.Field(&lm.MaterialIDs, validation.Required, validation.Length(1, 0), validation.Each(is.UUID)),
 	)
 }
 

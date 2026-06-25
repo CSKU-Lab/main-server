@@ -19,4 +19,5 @@ type LabMaterialRepository interface {
 	UpdatePosition(ctx context.Context, labMaterialID string, position int) error
 	ShiftRangeDown(ctx context.Context, labID string, startPos int, endPos int) error
 	ShiftRangeUp(ctx context.Context, labID string, startPos int, endPos int) error
+	ReorderByLabID(ctx context.Context, labID string, orderedMaterialIDs []string) error
 }
