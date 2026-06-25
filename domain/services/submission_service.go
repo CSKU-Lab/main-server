@@ -17,6 +17,7 @@ import (
 	"github.com/CSKU-Lab/main-server/internal/requests"
 	"github.com/CSKU-Lab/main-server/internal/sanitize"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 )
 
 type SubmissionService interface {
@@ -59,25 +60,27 @@ type submissionService struct {
 	typingSubmissionRepo  repositories.TypingSubmissionRepository
 	ps                    pubsub.PubSub
 	systemSettingsService SystemSettingsService
+	logger                *zap.SugaredLogger
 	allowedSortFields     map[string]bool
 }
 
 type SubmissionServiceArgs struct {
-	SubmissionRepository     repositories.SubmissionRepository
-	MaterialRepository       repositories.MaterialRepository
-	UowRepository            repositories.UoWRepository
-	SubmissionRegistry       registries.SubmissionRegistry
-	SectionStudentRepository repositories.SectionStudentRepository
-	UserRepository           repositories.User
-	MaterialRegistry         registries.Material
-	SectionRepository        repositories.SectionRepository
-	LabSectionRepository     repositories.LabSectionRepository
-	LabMaterialRepository    repositories.LabMaterialRepository
-	CodeSubmissionRepository repositories.CodeSubmissionRepository
-	CodeMaterialRepository   repositories.CodeMaterialRepository
+	SubmissionRepository       repositories.SubmissionRepository
+	MaterialRepository         repositories.MaterialRepository
+	UowRepository              repositories.UoWRepository
+	SubmissionRegistry         registries.SubmissionRegistry
+	SectionStudentRepository   repositories.SectionStudentRepository
+	UserRepository             repositories.User
+	MaterialRegistry           registries.Material
+	SectionRepository          repositories.SectionRepository
+	LabSectionRepository       repositories.LabSectionRepository
+	LabMaterialRepository      repositories.LabMaterialRepository
+	CodeSubmissionRepository   repositories.CodeSubmissionRepository
+	CodeMaterialRepository     repositories.CodeMaterialRepository
 	TypingSubmissionRepository repositories.TypingSubmissionRepository
-	PubSub                   pubsub.PubSub
-	SystemSettingsService    SystemSettingsService
+	PubSub                     pubsub.PubSub
+	SystemSettingsService      SystemSettingsService
+	Logger                     *zap.SugaredLogger
 }
 
 func NewSubmissionService(args *SubmissionServiceArgs) SubmissionService {
@@ -97,6 +100,7 @@ func NewSubmissionService(args *SubmissionServiceArgs) SubmissionService {
 		typingSubmissionRepo:  args.TypingSubmissionRepository,
 		ps:                    args.PubSub,
 		systemSettingsService: args.SystemSettingsService,
+		logger:                args.Logger,
 		allowedSortFields: map[string]bool{
 			"order":      true,
 			"created_at": true,
@@ -773,16 +777,30 @@ func (s *submissionService) RegradeByMaterial(ctx context.Context, sectionID, la
 		return err
 	}
 
+	// Detach from the request context: the HTTP handler returns 202 immediately,
+	// after which Fiber recycles the underlying *fasthttp.RequestCtx. These
+	// goroutines outlive the request, so using the request ctx would make every
+	// DB op run against a cancelled/recycled context and silently fail.
+	// WithoutCancel keeps request values (tracing, etc.) but drops the deadline.
+	bgCtx := context.WithoutCancel(ctx)
+
 	for _, sub := range submissions {
 		sub := sub
 		go func() {
-			codeSub, err := s.codeSubmissionRepo.Get(ctx, sub.ID)
-			if err != nil || codeSub.RunnerID == nil || *codeSub.RunnerID == "" {
+			codeSub, err := s.codeSubmissionRepo.Get(bgCtx, sub.ID)
+			if err != nil {
+				s.logger.Errorw("regrade: failed to load code submission",
+					"submissionID", sub.ID, "materialID", materialID, "error", err)
+				return
+			}
+			if codeSub.RunnerID == nil || *codeSub.RunnerID == "" {
 				return
 			}
 
 			id, err := uuid.NewV7()
 			if err != nil {
+				s.logger.Errorw("regrade: failed to generate id",
+					"submissionID", sub.ID, "materialID", materialID, "error", err)
 				return
 			}
 
@@ -792,18 +810,21 @@ func (s *submissionService) RegradeByMaterial(ctx context.Context, sectionID, la
 				Files:           codeSub.Files,
 				RunnerID:        *codeSub.RunnerID,
 				TaskID:          codeMat.TaskID,
-				CompareScriptID: s.systemSettingsService.GetDefaultCompareScriptID(ctx),
+				CompareScriptID: s.systemSettingsService.GetDefaultCompareScriptID(bgCtx),
 			}
 
-			_ = s.uowRepo.Execute(ctx, func(u repositories.UoWInstance) error {
-				if err := u.Submission().Update(ctx, &repositories.UpdateSubmissionRequest{
+			if err := s.uowRepo.Execute(bgCtx, func(u repositories.UoWInstance) error {
+				if err := u.Submission().Update(bgCtx, &repositories.UpdateSubmissionRequest{
 					ID:     sub.ID,
 					Status: &queued,
 				}); err != nil {
 					return err
 				}
-				return u.CodeSubmissionOutbox().Create(ctx, id.String(), sub.ID, gradePayload)
-			})
+				return u.CodeSubmissionOutbox().Create(bgCtx, id.String(), sub.ID, gradePayload)
+			}); err != nil {
+				s.logger.Errorw("regrade: failed to queue submission",
+					"submissionID", sub.ID, "materialID", materialID, "error", err)
+			}
 		}()
 	}
 

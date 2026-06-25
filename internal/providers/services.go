@@ -8,6 +8,7 @@ import (
 	"github.com/CSKU-Lab/main-server/internal/adapters/pubsub"
 
 	"github.com/google/wire"
+	"go.uber.org/zap"
 )
 
 func NewSubmissionServiceArgs(
@@ -26,23 +27,25 @@ func NewSubmissionServiceArgs(
 	typingSubmissionRepo repositories.TypingSubmissionRepository,
 	pubSub pubsub.PubSub,
 	systemSettingsService services.SystemSettingsService,
+	logger *zap.SugaredLogger,
 ) *services.SubmissionServiceArgs {
 	return &services.SubmissionServiceArgs{
-		SubmissionRepository:     submissionRepo,
-		MaterialRepository:       materialRepo,
-		UowRepository:            uowRepo,
-		SubmissionRegistry:       submissionRegistry,
-		SectionStudentRepository: sectionStudentRepo,
-		UserRepository:           userRepo,
-		MaterialRegistry:         materialRegistry,
-		SectionRepository:        sectionRepo,
-		LabSectionRepository:     labSectionRepo,
-		LabMaterialRepository:    labMaterialRepo,
-		CodeSubmissionRepository: codeSubmissionRepo,
-		CodeMaterialRepository:   codeMatRepo,
+		SubmissionRepository:       submissionRepo,
+		MaterialRepository:         materialRepo,
+		UowRepository:              uowRepo,
+		SubmissionRegistry:         submissionRegistry,
+		SectionStudentRepository:   sectionStudentRepo,
+		UserRepository:             userRepo,
+		MaterialRegistry:           materialRegistry,
+		SectionRepository:          sectionRepo,
+		LabSectionRepository:       labSectionRepo,
+		LabMaterialRepository:      labMaterialRepo,
+		CodeSubmissionRepository:   codeSubmissionRepo,
+		CodeMaterialRepository:     codeMatRepo,
 		TypingSubmissionRepository: typingSubmissionRepo,
-		PubSub:                   pubSub,
-		SystemSettingsService:    systemSettingsService,
+		PubSub:                     pubSub,
+		SystemSettingsService:      systemSettingsService,
+		Logger:                     logger,
 	}
 }
 
