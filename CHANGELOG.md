@@ -1,3 +1,10 @@
+## [0.23.2](https://github.com/CSKU-Lab/main-server/compare/v0.23.1...v0.23.2) (2026-06-25)
+
+
+### Bug Fixes
+
+* **lab-material:** renumber positions atomically on reorder ([f3ab6eb](https://github.com/CSKU-Lab/main-server/commit/f3ab6eb6bc05483b579b3f4ef56af6a06efe96fc))
+
 ## [0.23.1](https://github.com/CSKU-Lab/main-server/compare/v0.23.0...v0.23.1) (2026-06-25)
 
 
