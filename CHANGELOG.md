@@ -1,3 +1,10 @@
+## [0.23.1](https://github.com/CSKU-Lab/main-server/compare/v0.23.0...v0.23.1) (2026-06-25)
+
+
+### Bug Fixes
+
+* **regrade:** use detached context for regrade goroutines ([cc4f60a](https://github.com/CSKU-Lab/main-server/commit/cc4f60a7dad440e4a66de900c9ca14d4e799c5c4))
+
 # [0.23.0](https://github.com/CSKU-Lab/main-server/compare/v0.22.4...v0.23.0) (2026-06-24)
 
 
