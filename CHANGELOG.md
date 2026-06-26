@@ -1,3 +1,10 @@
+# [0.25.0](https://github.com/CSKU-Lab/main-server/compare/v0.24.0...v0.25.0) (2026-06-26)
+
+
+### Features
+
+* **material:** add clone endpoint for same-course duplication ([0119ace](https://github.com/CSKU-Lab/main-server/commit/0119ace9a9a12e16387ddac057fc5819fbccd0c6))
+
 # [0.24.0](https://github.com/CSKU-Lab/main-server/compare/v0.23.2...v0.24.0) (2026-06-25)
 
 
