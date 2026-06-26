@@ -19,6 +19,7 @@ import (
 type MaterialService interface {
 	Create(ctx context.Context, courseID string, createdByUserID string, req *requests.CreateMaterial) (string, error)
 	Fork(ctx context.Context, targetCourseID string, sourceMaterialID string, user *models.User) (string, error)
+	Clone(ctx context.Context, courseID string, sourceMaterialID string, user *models.User) (string, error)
 	GetPagination(ctx context.Context, courseID string, viewerID string, viewerRoles []models.Role, page int, limit int, search string, sortBy string, sortOrder string, filterParams map[string]string) ([]models.Material, error)
 	Count(ctx context.Context, courseID string, viewerID string, viewerRoles []models.Role, search string, filters map[string]string) (int, error)
 	GetByID(ctx context.Context, courseID string, ID string) (*models.MaterialDetail, error)
@@ -104,7 +105,22 @@ func (s *materialService) Create(ctx context.Context, courseID string, createdBy
 	return matID, nil
 }
 
+// Fork copies a material into targetCourseID, preserving its name. Used to
+// reuse a material across courses; lineage is tracked via forked_from_material_id.
 func (s *materialService) Fork(ctx context.Context, targetCourseID string, sourceMaterialID string, user *models.User) (string, error) {
+	return s.duplicate(ctx, targetCourseID, sourceMaterialID, user, "")
+}
+
+// Clone duplicates a material within the same course, appending " (Clone)" to
+// the name so the copy is distinguishable from the source. Copies all config,
+// including code config, via the type-specific Clone handler.
+func (s *materialService) Clone(ctx context.Context, courseID string, sourceMaterialID string, user *models.User) (string, error) {
+	return s.duplicate(ctx, courseID, sourceMaterialID, user, " (Clone)")
+}
+
+// duplicate creates a copy of sourceMaterialID in targetCourseID. nameSuffix is
+// appended to the source name (empty for a plain fork).
+func (s *materialService) duplicate(ctx context.Context, targetCourseID string, sourceMaterialID string, user *models.User, nameSuffix string) (string, error) {
 	source, err := s.repo.GetByID(ctx, sourceMaterialID)
 	if err != nil {
 		return "", err
@@ -123,7 +139,7 @@ func (s *materialService) Fork(ctx context.Context, targetCourseID string, sourc
 	}
 
 	req := &requests.CreateMaterial{
-		Name:        source.Name,
+		Name:        source.Name + nameSuffix,
 		Tags:        tags,
 		Type:        source.Type,
 		Visibility:  source.Visibility,

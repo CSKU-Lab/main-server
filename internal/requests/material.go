@@ -32,6 +32,16 @@ func (f *ForkMaterial) Validate() error {
 	)
 }
 
+type CloneMaterial struct {
+	SourceMaterialID string `json:"source_material_id"`
+}
+
+func (c *CloneMaterial) Validate() error {
+	return validation.ValidateStruct(c,
+		validation.Field(&c.SourceMaterialID, validation.Required),
+	)
+}
+
 type BaseUpdateMaterial struct {
 	Name        string    `json:"name"`
 	Tags        *[]string `json:"tags"`

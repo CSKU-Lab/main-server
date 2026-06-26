@@ -107,6 +107,24 @@ func NewCMSMaterialRoutes(router fiber.Router, materialService services.Material
 		})
 	})
 
+	materialRouter.Post("/clone", middlewares.RBACMiddleware([]models.Role{
+		models.ADMIN,
+		models.INSTRUCTOR,
+	}), middlewares.Permission(permService).ForCourse("courseID").CanModify(), middlewares.ValidateMiddleware[requests.CloneMaterial](), func(c fiber.Ctx) error {
+		courseID := c.Params("courseID")
+		req := c.Locals("body").(*requests.CloneMaterial)
+		user := c.Locals("user").(*models.User)
+
+		matID, err := materialService.Clone(c.RequestCtx(), courseID, req.SourceMaterialID, user)
+		if err != nil {
+			return err
+		}
+
+		return c.Status(fiber.StatusCreated).JSON(fiber.Map{
+			"id": matID,
+		})
+	})
+
 	// Get material by ID - students, instructors, and admins can view
 	materialRouter.Get("/:id", middlewares.RBACMiddleware([]models.Role{
 		models.ADMIN,
