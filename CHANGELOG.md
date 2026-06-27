@@ -1,3 +1,10 @@
+## [0.28.2](https://github.com/CSKU-Lab/main-server/compare/v0.28.1...v0.28.2) (2026-06-27)
+
+
+### Bug Fixes
+
+* **document-material:** derive status and per-embed scores from embedded code submissions ([4aefdb3](https://github.com/CSKU-Lab/main-server/commit/4aefdb3d68d121b422c54658c22b2853cf7a37d5))
+
 ## [0.28.1](https://github.com/CSKU-Lab/main-server/compare/v0.28.0...v0.28.1) (2026-06-27)
 
 
