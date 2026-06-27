@@ -1,3 +1,15 @@
+## [0.26.1](https://github.com/CSKU-Lab/main-server/compare/v0.26.0...v0.26.1) (2026-06-27)
+
+
+### Bug Fixes
+
+* **material:** hide grader-only segment data from students (CS-232) ([33a52cb](https://github.com/CSKU-Lab/main-server/commit/33a52cb8bc10b4267bf9d5822cec752bdac48a6b))
+
+
+### Performance Improvements
+
+* **analytics:** index created_at on submissions and auth_logs ([9995ebb](https://github.com/CSKU-Lab/main-server/commit/9995ebb85305212809480d1d45bcf15a4ed5b2b1))
+
 # [0.26.0](https://github.com/CSKU-Lab/main-server/compare/v0.25.0...v0.26.0) (2026-06-27)
 
 
