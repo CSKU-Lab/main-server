@@ -47,6 +47,7 @@ func NewFiberApp(
 	searchService services.SearchService,
 	permissionService permission.Service,
 	systemSettingsService services.SystemSettingsService,
+	analyticsService services.AnalyticsService,
 	configGRPCClient configPB.ConfigServiceClient,
 	q queue.Queue,
 	rClient pubsub.PubSub,
@@ -92,6 +93,7 @@ func NewFiberApp(
 		UserGroupService:      userGroupService,
 		PermissionService:     permissionService,
 		SystemSettingsService: systemSettingsService,
+		AnalyticsService:      analyticsService,
 	})
 
 	rest.NewCMSRouter(&rest.CMSRouter{
@@ -121,19 +123,19 @@ func NewFiberApp(
 	coreApi := protectedApi.Group("/", middlewares.RateLimitMiddleware(rateLimiter, 120, time.Minute))
 
 	rest.NewCoreRouter(&rest.CoreRouter{
-		Router:                  coreApi,
-		SectionService:          sectionService,
-		LabSectionService:       labSectionService,
-		LabService:              labService,
-		SectionStudentService:   sectionStudentService,
-		LabMaterialService:      labMaterialService,
-		CourseService:           courseService,
-		CourseEnrollmentService: courseEnrollmentService,
-		DefaultLabService:       defaultLabService,
-		SidebarService:          sidebarService,
-		MaterialService:         materialService,
-		SubmissionService:       submissionService,
-		SearchService:           searchService,
+		Router:                     coreApi,
+		SectionService:             sectionService,
+		LabSectionService:          labSectionService,
+		LabService:                 labService,
+		SectionStudentService:      sectionStudentService,
+		LabMaterialService:         labMaterialService,
+		CourseService:              courseService,
+		CourseEnrollmentService:    courseEnrollmentService,
+		DefaultLabService:          defaultLabService,
+		SidebarService:             sidebarService,
+		MaterialService:            materialService,
+		SubmissionService:          submissionService,
+		SearchService:              searchService,
 		PubSub:                     rClient,
 		PermissionService:          permissionService,
 		TypingSubmissionRepository: typingSubRepo,

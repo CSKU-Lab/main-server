@@ -112,6 +112,8 @@ func initializeApp(ctx context.Context, cfg *configs.Config, db *sqlx.DB, logger
 	searchRepository := providers.NewSearchRepository(db)
 	searchService := services.NewSearchService(searchRepository)
 	service := permission.NewService(user, courseRepository, courseCreatorRepository, sectionRepository, sectionInstructorRepository, sectionStudentRepository, submissionRepository)
+	analyticsRepository := providers.NewAnalyticsRepository(db)
+	analyticsService := services.NewAnalyticsService(analyticsRepository)
 	rateLimiter, err := providers.ProvideRateLimiter(cfg)
 	if err != nil {
 		cleanup2()
@@ -125,7 +127,7 @@ func initializeApp(ctx context.Context, cfg *configs.Config, db *sqlx.DB, logger
 		return nil, nil, err
 	}
 	playgroundHandler := providers.NewPlaygroundHandler(graderServiceClient)
-	app := providers.NewFiberApp(cfg, logger, errorHandlerMiddleware, userService, refreshTokenService, userGroupService, courseService, courseEnrollmentService, semesterService, sectionLogService, sectionService, sectionStudentService, tagService, materialAssetService, labService, labSectionService, labMaterialService, defaultLabService, affectedEntitiesService, submissionService, sidebarService, gradebookExportService, typingExportService, materialService, searchService, service, systemSettingsService, configServiceClient, queue, pubSub, rateLimiter, playgroundHandler, typingSubmissionRepository)
+	app := providers.NewFiberApp(cfg, logger, errorHandlerMiddleware, userService, refreshTokenService, userGroupService, courseService, courseEnrollmentService, semesterService, sectionLogService, sectionService, sectionStudentService, tagService, materialAssetService, labService, labSectionService, labMaterialService, defaultLabService, affectedEntitiesService, submissionService, sidebarService, gradebookExportService, typingExportService, materialService, searchService, service, systemSettingsService, analyticsService, configServiceClient, queue, pubSub, rateLimiter, playgroundHandler, typingSubmissionRepository)
 	return app, func() {
 		cleanup3()
 		cleanup2()
