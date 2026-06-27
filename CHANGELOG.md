@@ -1,3 +1,10 @@
+# [0.27.0](https://github.com/CSKU-Lab/main-server/compare/v0.26.1...v0.27.0) (2026-06-27)
+
+
+### Features
+
+* **material:** per-field testcase visibility (hide input/output) (CS-233) ([614147e](https://github.com/CSKU-Lab/main-server/commit/614147e2bd257ac2ed11bdbfe1e729bc2ea8d388))
+
 ## [0.26.1](https://github.com/CSKU-Lab/main-server/compare/v0.26.0...v0.26.1) (2026-06-27)
 
 
