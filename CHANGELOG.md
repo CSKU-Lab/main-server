@@ -1,3 +1,10 @@
+## [0.27.1](https://github.com/CSKU-Lab/main-server/compare/v0.27.0...v0.27.1) (2026-06-27)
+
+
+### Bug Fixes
+
+* **submission:** stop panic in typing CMS submissions view ([e9a6d64](https://github.com/CSKU-Lab/main-server/commit/e9a6d6441f8f36f79c056b17944283bd7df19c4b))
+
 # [0.27.0](https://github.com/CSKU-Lab/main-server/compare/v0.26.1...v0.27.0) (2026-06-27)
 
 
