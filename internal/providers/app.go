@@ -54,6 +54,7 @@ func NewFiberApp(
 	rateLimiter ratelimit.RateLimiter,
 	playgroundHandler *rest.PlaygroundHandler,
 	typingSubRepo repositories.TypingSubmissionRepository,
+	fileRepo repositories.FileRepository,
 ) *fiber.App {
 	app := fiber.New(fiber.Config{
 		ErrorHandler: errMiddleware.ErrorHandler,
@@ -81,6 +82,9 @@ func NewFiberApp(
 	api := app.Group("/api/v1")
 
 	rest.NewAuthRouter(api, cfg, userService, refreshTokenService)
+
+	// Public storage proxy — unauthenticated, mirrors anonymous-readable bucket.
+	rest.NewStorageRouter(api, fileRepo)
 
 	rest.NewInternalRouter(&rest.InternalRouter{
 		Router:          api,
