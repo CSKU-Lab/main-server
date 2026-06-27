@@ -127,7 +127,7 @@ func initializeApp(ctx context.Context, cfg *configs.Config, db *sqlx.DB, logger
 		return nil, nil, err
 	}
 	playgroundHandler := providers.NewPlaygroundHandler(graderServiceClient)
-	app := providers.NewFiberApp(cfg, logger, errorHandlerMiddleware, userService, refreshTokenService, userGroupService, courseService, courseEnrollmentService, semesterService, sectionLogService, sectionService, sectionStudentService, tagService, materialAssetService, labService, labSectionService, labMaterialService, defaultLabService, affectedEntitiesService, submissionService, sidebarService, gradebookExportService, typingExportService, materialService, searchService, service, systemSettingsService, analyticsService, configServiceClient, queue, pubSub, rateLimiter, playgroundHandler, typingSubmissionRepository, fileRepository)
+	app := providers.NewFiberApp(cfg, logger, errorHandlerMiddleware, userService, refreshTokenService, userGroupService, courseService, courseEnrollmentService, semesterService, sectionLogService, sectionService, sectionStudentService, tagService, materialAssetService, labService, labSectionService, labMaterialService, defaultLabService, affectedEntitiesService, submissionService, sidebarService, gradebookExportService, typingExportService, materialService, searchService, service, systemSettingsService, analyticsService, configServiceClient, queue, pubSub, rateLimiter, playgroundHandler, typingSubmissionRepository)
 	return app, func() {
 		cleanup3()
 		cleanup2()
