@@ -576,10 +576,63 @@ func (s *materialService) GetMaterialWithLatestSubmissionStatus(ctx context.Cont
 		Name:        material.Name,
 		Type:        material.Type,
 		Status:      status,
-		AutoScore:   material.AutoScore,
 		ManualScore: material.ManualScore,
 		Payload:     filteredPayload,
 	}, nil
+}
+
+// sanitizeStudentFiles strips grader-only information from files before they
+// are sent to a student.
+//
+// Segments are never added or removed: the editable-segment indices the client
+// submits are positions in this array, and the grader assembles using the same
+// positions on the real task segments, so a shift would corrupt assembly. Only
+// content and type are adjusted in place:
+//
+//   - hidden: carries solution/grader code → content blanked. The trailing
+//     newline is preserved when present so the client's normalizeHiddenSegments
+//     (which folds a following editable's leading "\n" into a hidden segment
+//     that lacks one) keeps behaving exactly as it did with the real content,
+//     leaving editable indices untouched. Blanked hidden content is excluded
+//     from the rebuilt flat File.Content.
+//   - exclude: a visible hint that is not compiled. The content stays, but the
+//     type is recast to "readonly" so the student cannot tell the code is
+//     excluded from grading (which would hint at the solution shape).
+func sanitizeStudentFiles(files []registrables.File) []registrables.File {
+	sanitized := make([]registrables.File, len(files))
+	for i, f := range files {
+		if len(f.Segments) == 0 {
+			sanitized[i] = f
+			continue
+		}
+
+		segments := make([]registrables.FileSegment, len(f.Segments))
+		var content strings.Builder
+		for j, seg := range f.Segments {
+			switch seg.Type {
+			case "hidden":
+				blanked := ""
+				if strings.HasSuffix(seg.Content, "\n") {
+					blanked = "\n"
+				}
+				segments[j] = registrables.FileSegment{Content: blanked, Type: seg.Type}
+				// excluded from flat content
+			case "exclude":
+				segments[j] = registrables.FileSegment{Content: seg.Content, Type: "readonly"}
+				content.WriteString(seg.Content)
+			default:
+				segments[j] = seg
+				content.WriteString(seg.Content)
+			}
+		}
+
+		sanitized[i] = registrables.File{
+			Name:     f.Name,
+			Content:  content.String(),
+			Segments: segments,
+		}
+	}
+	return sanitized
 }
 
 func (s *materialService) filterPayloadForUser(materialType string, payload any) any {
@@ -597,7 +650,7 @@ func (s *materialService) filterPayloadForUser(materialType string, payload any)
 				filteredRunners[i] = studentRunner{
 					ID:    runner.ID,
 					Name:  runner.Name,
-					Files: runner.Files,
+					Files: sanitizeStudentFiles(runner.Files),
 				}
 			}
 
@@ -610,7 +663,7 @@ func (s *materialService) filterPayloadForUser(materialType string, payload any)
 				Description:    codePayload.Description,
 				AllowedRunners: filteredRunners,
 				Limits:         codePayload.Limits,
-				ResourceFiles:  codePayload.ResourceFiles,
+				ResourceFiles:  sanitizeStudentFiles(codePayload.ResourceFiles),
 			}
 		}
 	}
