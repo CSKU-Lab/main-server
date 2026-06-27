@@ -48,6 +48,33 @@ func sumEmbeddedCodeScores(nodes []tiptapNode) int {
 	return total
 }
 
+func collectEmbeddedCodeMaterialIDs(nodes []tiptapNode) []string {
+	var ids []string
+	for _, node := range nodes {
+		if node.Type == "codeMaterialEmbed" {
+			if id, ok := node.Attrs["materialID"].(string); ok && id != "" {
+				ids = append(ids, id)
+			}
+		}
+		ids = append(ids, collectEmbeddedCodeMaterialIDs(node.Content)...)
+	}
+	return ids
+}
+
+// ExtractEmbeddedCodeMaterialIDs parses a document material's tiptap content
+// and returns the material IDs of every embedded code block, in document order.
+// Returns nil for empty or unparseable content.
+func ExtractEmbeddedCodeMaterialIDs(content *string) []string {
+	if content == nil {
+		return nil
+	}
+	var doc tiptapNode
+	if err := json.Unmarshal([]byte(*content), &doc); err != nil {
+		return nil
+	}
+	return collectEmbeddedCodeMaterialIDs(doc.Content)
+}
+
 func (d *DocumentMaterial) Create(ctx context.Context, matID string, _ *requests.CreateMaterial, _ []byte) error {
 	return d.repo.Create(ctx, matID)
 }

@@ -28,6 +28,10 @@ type SubmissionRepository interface {
 
 	CountCompletedStudentsByLabAndSection(ctx context.Context, labID string, sectionID string) (int, error)
 	Delete(ctx context.Context, id string) error
+	// GetLatestScoresByMaterialsForSection returns the latest submission (by order)
+	// per (user_id, material_id) for each given material in the section/lab.
+	// Used to aggregate embedded code problem scores into document submissions.
+	GetLatestScoresByMaterialsForSection(ctx context.Context, materialIDs []string, sectionID, labID string) ([]models.RawSubmission, error)
 }
 
 type Submission struct {

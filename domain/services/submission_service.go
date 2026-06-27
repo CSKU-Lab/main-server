@@ -57,6 +57,7 @@ type submissionService struct {
 	codeSubmissionRepo    repositories.CodeSubmissionRepository
 	codeMatRepo           repositories.CodeMaterialRepository
 	typingSubmissionRepo  repositories.TypingSubmissionRepository
+	docMatRepo            repositories.DocumentMaterialRepository
 	ps                    pubsub.PubSub
 	systemSettingsService SystemSettingsService
 	logger                *zap.SugaredLogger
@@ -64,20 +65,21 @@ type submissionService struct {
 }
 
 type SubmissionServiceArgs struct {
-	SubmissionRepository       repositories.SubmissionRepository
-	MaterialRepository         repositories.MaterialRepository
-	UowRepository              repositories.UoWRepository
-	SubmissionRegistry         registries.SubmissionRegistry
-	SectionStudentRepository   repositories.SectionStudentRepository
-	UserRepository             repositories.User
-	MaterialRegistry           registries.Material
-	SectionRepository          repositories.SectionRepository
-	LabSectionRepository       repositories.LabSectionRepository
-	LabMaterialRepository      repositories.LabMaterialRepository
-	CodeSubmissionRepository   repositories.CodeSubmissionRepository
-	CodeMaterialRepository     repositories.CodeMaterialRepository
-	TypingSubmissionRepository repositories.TypingSubmissionRepository
-	PubSub                     pubsub.PubSub
+	SubmissionRepository         repositories.SubmissionRepository
+	MaterialRepository           repositories.MaterialRepository
+	UowRepository                repositories.UoWRepository
+	SubmissionRegistry           registries.SubmissionRegistry
+	SectionStudentRepository     repositories.SectionStudentRepository
+	UserRepository               repositories.User
+	MaterialRegistry             registries.Material
+	SectionRepository            repositories.SectionRepository
+	LabSectionRepository         repositories.LabSectionRepository
+	LabMaterialRepository        repositories.LabMaterialRepository
+	CodeSubmissionRepository     repositories.CodeSubmissionRepository
+	CodeMaterialRepository       repositories.CodeMaterialRepository
+	TypingSubmissionRepository   repositories.TypingSubmissionRepository
+	DocumentMaterialRepository   repositories.DocumentMaterialRepository
+	PubSub                       pubsub.PubSub
 	SystemSettingsService      SystemSettingsService
 	Logger                     *zap.SugaredLogger
 }
@@ -97,6 +99,7 @@ func NewSubmissionService(args *SubmissionServiceArgs) SubmissionService {
 		codeSubmissionRepo:    args.CodeSubmissionRepository,
 		codeMatRepo:           args.CodeMaterialRepository,
 		typingSubmissionRepo:  args.TypingSubmissionRepository,
+		docMatRepo:            args.DocumentMaterialRepository,
 		ps:                    args.PubSub,
 		systemSettingsService: args.SystemSettingsService,
 		logger:                args.Logger,
@@ -600,6 +603,55 @@ func (s *submissionService) UpdateManualScore(ctx context.Context, submissionID 
 	})
 }
 
+// docEmbedScores aggregates embedded code submission scores and computes a
+// derived status per student for document materials.
+// Returns (autoScoreByUser, statusByUser) maps.
+func (s *submissionService) docEmbedScores(ctx context.Context, materialID, sectionID, labID string) (map[string]int, map[string]models.SubmissionStatus, error) {
+	embeds, err := s.docMatRepo.GetEmbeddedMaterialIDs(ctx, materialID)
+	if err != nil || len(embeds) == 0 {
+		return nil, nil, nil
+	}
+
+	codeSubmissions, err := s.repo.GetLatestScoresByMaterialsForSection(ctx, embeds, sectionID, labID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Per user: sum of auto_scores and aggregate status across all embedded materials.
+	autoScores := make(map[string]int)
+	// passedCount[userID] = number of embedded materials the user has passed.
+	passedCount := make(map[string]int)
+	// submittedMaterials[userID] = set of materialIDs the user has submitted to.
+	submittedMaterials := make(map[string]map[string]bool)
+
+	for _, sub := range codeSubmissions {
+		autoScores[sub.UserID] += sub.AutoScore
+		if submittedMaterials[sub.UserID] == nil {
+			submittedMaterials[sub.UserID] = make(map[string]bool)
+		}
+		submittedMaterials[sub.UserID][sub.MaterialID] = true
+		if sub.Status == models.PASSED {
+			passedCount[sub.UserID]++
+		}
+	}
+
+	statusByUser := make(map[string]models.SubmissionStatus)
+	for userID, submitted := range submittedMaterials {
+		passed := passedCount[userID]
+		total := len(embeds)
+		switch {
+		case passed == total:
+			statusByUser[userID] = models.PASSED
+		case len(submitted) > 0:
+			statusByUser[userID] = models.PARTIAL
+		default:
+			statusByUser[userID] = models.QUEUED
+		}
+	}
+
+	return autoScores, statusByUser, nil
+}
+
 func (s *submissionService) GetSectionLabMaterialSubmissions(ctx context.Context, sectionID string, labID string, materialID string) ([]models.CMSSectionStudentSubmission, error) {
 	_, err := s.labMatRepo.GetByID(ctx, labID, materialID)
 	if err != nil {
@@ -642,6 +694,13 @@ func (s *submissionService) GetSectionLabMaterialSubmissions(ctx context.Context
 		submissionMap[sub.UserID] = sub
 	}
 
+	// For document materials, compute auto_score and status from embedded code submissions.
+	var embedAutoScores map[string]int
+	var embedStatusByUser map[string]models.SubmissionStatus
+	if mat.Type == "document" {
+		embedAutoScores, embedStatusByUser, _ = s.docEmbedScores(ctx, materialID, sectionID, labID)
+	}
+
 	result := make([]models.CMSSectionStudentSubmission, len(students))
 	for i, student := range students {
 		sub, hasSubmission := submissionMap[student.ID]
@@ -652,27 +711,49 @@ func (s *submissionService) GetSectionLabMaterialSubmissions(ctx context.Context
 				return nil, err
 			}
 
+			autoScore := sub.AutoScore
+			status := sub.Status
+			if mat.Type == "document" {
+				if score, ok := embedAutoScores[student.ID]; ok {
+					autoScore = score
+				}
+				if st, ok := embedStatusByUser[student.ID]; ok {
+					status = st
+				}
+			}
+
 			result[i] = models.CMSSectionStudentSubmission{
 				Student: student,
 				StudentSubmission: &models.StudentSubmission{
 					Order:       sub.Order,
-					AutoScore:   sub.AutoScore,
+					AutoScore:   autoScore,
 					ManualScore: sub.ManualScore,
 					IP:          sub.IPAddress,
-					Status:      sub.Status,
+					Status:      status,
 					CreatedAt:   sub.CreatedAt,
 					UpdatedAt:   sub.UpdatedAt,
 					Payload:     payload,
 				},
 			}
 		} else {
+			// Student has no document submission but may have embedded code submissions.
+			autoScore := 0
+			status := models.NOT_SUBMITTED
+			if mat.Type == "document" {
+				if score, ok := embedAutoScores[student.ID]; ok {
+					autoScore = score
+				}
+				if st, ok := embedStatusByUser[student.ID]; ok {
+					status = st
+				}
+			}
 			result[i] = models.CMSSectionStudentSubmission{
 				Student: student,
 				StudentSubmission: &models.StudentSubmission{
-					AutoScore:   0,
+					AutoScore:   autoScore,
 					ManualScore: 0,
 					IP:          "",
-					Status:      models.NOT_SUBMITTED,
+					Status:      status,
 					Payload:     nil,
 				},
 			}
@@ -735,15 +816,38 @@ func (s *submissionService) GetStudentSubmissionsByMaterialSectionLab(ctx contex
 		return nil, 0, err
 	}
 
+	// For document materials, compute the current aggregate auto_score and
+	// status from the student's embedded code submissions.
+	var embedAutoScore int
+	var embedStatus models.SubmissionStatus
+	isDocument := mat.Type == "document"
+	if isDocument {
+		embedAutoScores, embedStatuses, _ := s.docEmbedScores(ctx, materialID, sectionID, labID)
+		if embedAutoScores != nil {
+			embedAutoScore = embedAutoScores[studentID]
+		}
+		if embedStatuses != nil {
+			embedStatus = embedStatuses[studentID]
+		}
+	}
+
 	result := make([]models.StudentSubmission, len(rawSubmissions))
 	for i, sub := range rawSubmissions {
+		autoScore := sub.AutoScore
+		status := sub.Status
+		if isDocument {
+			autoScore = embedAutoScore
+			if embedStatus != "" {
+				status = embedStatus
+			}
+		}
 		result[i] = models.StudentSubmission{
 			ID:          sub.ID,
-			Status:      sub.Status,
+			Status:      status,
 			Order:       sub.Order,
 			CreatedAt:   sub.CreatedAt,
 			UpdatedAt:   sub.UpdatedAt,
-			AutoScore:   sub.AutoScore,
+			AutoScore:   autoScore,
 			ManualScore: sub.ManualScore,
 			IP:          sub.IPAddress,
 			Payload:     payloads[sub.ID],

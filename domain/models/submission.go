@@ -9,6 +9,10 @@ const (
 	RUNNING       SubmissionStatus = "running"
 	PASSED        SubmissionStatus = "passed"
 	FAILED        SubmissionStatus = "failed"
+	// PARTIAL is a derived status for document materials: some embedded code
+	// blocks have a submission but they are not all passing (and none are still
+	// grading). It is never stored — only computed when aggregating children.
+	PARTIAL       SubmissionStatus = "partial"
 	NOT_SUBMITTED SubmissionStatus = "not_submitted"
 )
 

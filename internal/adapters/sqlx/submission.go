@@ -9,6 +9,7 @@ import (
 	contextkeys "github.com/CSKU-Lab/main-server/context_keys"
 	"github.com/CSKU-Lab/main-server/domain/models"
 	"github.com/CSKU-Lab/main-server/domain/repositories"
+	"github.com/lib/pq"
 )
 
 type submissionRepository struct {
@@ -378,10 +379,10 @@ func (s *submissionRepository) Delete(ctx context.Context, id string) error {
 
 func (s *submissionRepository) CountByMaterialSectionLabAndStudentID(ctx context.Context, materialID string, sectionID string, labID string, studentID string) (int, error) {
 	query := `
-		SELECT COUNT(*) 
+		SELECT COUNT(*)
 		FROM submissions
-		WHERE material_id = $1 
-		  AND section_id = $2 
+		WHERE material_id = $1
+		  AND section_id = $2
 		  AND lab_id = $3
 		  AND user_id = $4
 	`
@@ -393,4 +394,46 @@ func (s *submissionRepository) CountByMaterialSectionLabAndStudentID(ctx context
 	}
 
 	return count, nil
+}
+
+func (s *submissionRepository) GetLatestScoresByMaterialsForSection(ctx context.Context, materialIDs []string, sectionID, labID string) ([]models.RawSubmission, error) {
+	if len(materialIDs) == 0 {
+		return nil, nil
+	}
+
+	query := `
+		SELECT DISTINCT ON (user_id, material_id)
+			id, user_id, material_id, lab_id, section_id, course_id,
+			status, submission_order, created_at, updated_at,
+			ip_address, manual_score, auto_score
+		FROM submissions
+		WHERE material_id = ANY($1)
+		  AND section_id = $2
+		  AND lab_id = $3
+		ORDER BY user_id, material_id, submission_order DESC
+	`
+
+	rows := []submission{}
+	err := s.db.SelectContext(ctx, &rows, query, pq.Array(materialIDs), sectionID, labID)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]models.RawSubmission, len(rows))
+	for i, row := range rows {
+		result[i] = models.RawSubmission{
+			ID:          row.ID,
+			UserID:      row.UserID,
+			MaterialID:  row.MaterialID,
+			LabID:       row.LabID,
+			Status:      row.Status,
+			Order:       row.Order,
+			CreatedAt:   row.CreatedAt,
+			UpdatedAt:   row.UpdatedAt,
+			IPAddress:   row.IPAddress,
+			ManualScore: row.ManualScore,
+			AutoScore:   row.AutoScore,
+		}
+	}
+	return result, nil
 }

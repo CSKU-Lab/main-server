@@ -371,6 +371,11 @@ func (m *mockSubmissionRepo) CountCompletedStudentsByLabAndSection(ctx context.C
 	return args.Int(0), args.Error(1)
 }
 
+func (m *mockSubmissionRepo) GetLatestScoresByMaterialsForSection(ctx context.Context, materialIDs []string, sectionID, labID string) ([]models.RawSubmission, error) {
+	args := m.Called(ctx, materialIDs, sectionID, labID)
+	return args.Get(0).([]models.RawSubmission), args.Error(1)
+}
+
 // Helper function to create a new permission service with mocks
 func setupTestService() (*service, *mockUserRepo, *mockCourseRepo, *mockCourseCreatorRepo, *mockSectionRepo, *mockSectionInstructorRepo, *mockSectionStudentRepo, *mockSubmissionRepo) {
 	userRepo := new(mockUserRepo)
