@@ -1,3 +1,10 @@
+## [0.28.3](https://github.com/CSKU-Lab/main-server/compare/v0.28.2...v0.28.3) (2026-06-27)
+
+
+### Bug Fixes
+
+* **s3:** drop bucket from ToS3Path, S3_FRONTEND_URL now includes /storage ([a730de7](https://github.com/CSKU-Lab/main-server/commit/a730de73e46c0b91ed2337bd687d39cb0a85f4f2))
+
 ## [0.28.2](https://github.com/CSKU-Lab/main-server/compare/v0.28.1...v0.28.2) (2026-06-27)
 
 
