@@ -1,3 +1,10 @@
+## [0.28.4](https://github.com/CSKU-Lab/main-server/compare/v0.28.3...v0.28.4) (2026-06-27)
+
+
+### Bug Fixes
+
+* **document-material:** synthesize submission entry when no direct row exists ([9a59c0d](https://github.com/CSKU-Lab/main-server/commit/9a59c0d07f5609038bfdb2844a277155844d3f9d))
+
 ## [0.28.3](https://github.com/CSKU-Lab/main-server/compare/v0.28.2...v0.28.3) (2026-06-27)
 
 
