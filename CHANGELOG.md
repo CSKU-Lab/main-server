@@ -1,3 +1,10 @@
+# [0.26.0](https://github.com/CSKU-Lab/main-server/compare/v0.25.0...v0.26.0) (2026-06-27)
+
+
+### Features
+
+* **analytics:** admin-only analytics overview endpoint ([39f2696](https://github.com/CSKU-Lab/main-server/commit/39f2696a546629c21e32f3cb6c2a2ad01ff56a7c))
+
 # [0.25.0](https://github.com/CSKU-Lab/main-server/compare/v0.24.0...v0.25.0) (2026-06-26)
 
 
