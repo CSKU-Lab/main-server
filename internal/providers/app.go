@@ -58,6 +58,15 @@ func NewFiberApp(
 	app := fiber.New(fiber.Config{
 		ErrorHandler: errMiddleware.ErrorHandler,
 		BodyLimit:    10 * 1024 * 1024, // 10 MB
+		// Real client IP sits in X-Forwarded-For set by Traefik. Trust only the
+		// in-cluster proxy hop (private + loopback ranges) so c.IP() reads XFF
+		// from Traefik but never an attacker-spoofed header from an untrusted source.
+		ProxyHeader: fiber.HeaderXForwardedFor,
+		TrustProxy:  true,
+		TrustProxyConfig: fiber.TrustProxyConfig{
+			Private:  true,
+			Loopback: true,
+		},
 	})
 
 	app.Use(middlewares.OtelMiddleware())
