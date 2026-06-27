@@ -98,9 +98,9 @@ func (r *typingSubmissionRepo) GetByIDs(ctx context.Context, submissionIDs []str
 	return result, nil
 }
 
-func (r *typingSubmissionRepo) GetBestByMaterial(ctx context.Context, materialID, labID, sectionID string) ([]map[string]interface{}, error) {
-	var results []map[string]interface{}
-	rows, err := r.db.QueryxContext(ctx, `
+func (r *typingSubmissionRepo) GetBestByMaterial(ctx context.Context, materialID, labID, sectionID string) ([]models.RawSubmission, error) {
+	rows := []submission{}
+	err := r.db.SelectContext(ctx, &rows, `
 		SELECT
 			s.id,
 			s.user_id,
@@ -114,11 +114,7 @@ func (r *typingSubmissionRepo) GetBestByMaterial(ctx context.Context, materialID
 			s.updated_at,
 			s.ip_address,
 			s.manual_score,
-			s.auto_score,
-			ts.raw_wpm,
-			ts.adjusted_wpm,
-			ts.error_rate,
-			ts.duration
+			s.auto_score
 		FROM submissions s
 		JOIN typing_submissions ts ON s.id = ts.submission_id
 		WHERE s.material_id = $1 AND s.lab_id = $2 AND s.section_id = $3
@@ -134,15 +130,25 @@ func (r *typingSubmissionRepo) GetBestByMaterial(ctx context.Context, materialID
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 
-	for rows.Next() {
-		result := make(map[string]interface{})
-		if err := rows.MapScan(result); err != nil {
-			return nil, err
+	result := make([]models.RawSubmission, len(rows))
+	for i, row := range rows {
+		result[i] = models.RawSubmission{
+			ID:          row.ID,
+			UserID:      row.UserID,
+			LabID:       row.LabID,
+			MaterialID:  row.MaterialID,
+			SectionID:   row.SectionID,
+			CourseID:    row.CourseID,
+			Status:      row.Status,
+			Order:       row.Order,
+			CreatedAt:   row.CreatedAt,
+			UpdatedAt:   row.UpdatedAt,
+			IPAddress:   row.IPAddress,
+			ManualScore: row.ManualScore,
+			AutoScore:   row.AutoScore,
 		}
-		results = append(results, result)
 	}
 
-	return results, rows.Err()
+	return result, nil
 }

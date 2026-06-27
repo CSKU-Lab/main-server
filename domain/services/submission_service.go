@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"time"
 
 	contextkeys "github.com/CSKU-Lab/main-server/context_keys"
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
@@ -607,28 +606,9 @@ func (s *submissionService) GetSectionLabMaterialSubmissions(ctx context.Context
 
 	// For typing materials, get best submissions; for others, get latest
 	if mat.Type == "typing" {
-		bestSubs, err := s.typingSubmissionRepo.GetBestByMaterial(ctx, materialID, labID, sectionID)
+		rawSubmissions, err = s.typingSubmissionRepo.GetBestByMaterial(ctx, materialID, labID, sectionID)
 		if err != nil {
 			return nil, err
-		}
-
-		// Convert map data to RawSubmission structs
-		for _, best := range bestSubs {
-			rawSubmissions = append(rawSubmissions, models.RawSubmission{
-				ID:          best["id"].(string),
-				UserID:      best["user_id"].(string),
-				MaterialID:  best["material_id"].(string),
-				LabID:       best["lab_id"].(string),
-				SectionID:   best["section_id"].(*string),
-				CourseID:    best["course_id"].(*string),
-				Status:      models.SubmissionStatus(best["status"].(string)),
-				Order:       best["submission_order"].(int),
-				CreatedAt:   best["created_at"].(time.Time),
-				UpdatedAt:   best["updated_at"].(time.Time),
-				IPAddress:   best["ip_address"].(string),
-				ManualScore: best["manual_score"].(int),
-				AutoScore:   best["auto_score"].(int),
-			})
 		}
 	} else {
 		var err error
