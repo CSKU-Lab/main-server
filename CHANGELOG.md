@@ -1,3 +1,10 @@
+## [0.27.4](https://github.com/CSKU-Lab/main-server/compare/v0.27.3...v0.27.4) (2026-06-27)
+
+
+### Bug Fixes
+
+* **storage:** add public /storage proxy route ([fb01d46](https://github.com/CSKU-Lab/main-server/commit/fb01d4622736a377edb44063509f757f7fb229cb))
+
 ## [0.27.3](https://github.com/CSKU-Lab/main-server/compare/v0.27.2...v0.27.3) (2026-06-27)
 
 
