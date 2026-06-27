@@ -1,3 +1,10 @@
+## [0.27.3](https://github.com/CSKU-Lab/main-server/compare/v0.27.2...v0.27.3) (2026-06-27)
+
+
+### Bug Fixes
+
+* **ip:** read real client IP from X-Forwarded-For behind Traefik ([b187567](https://github.com/CSKU-Lab/main-server/commit/b187567ad56d3d6b6ee5c39054bfbc8684a7065f))
+
 ## [0.27.2](https://github.com/CSKU-Lab/main-server/compare/v0.27.1...v0.27.2) (2026-06-27)
 
 
