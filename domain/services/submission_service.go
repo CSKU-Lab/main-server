@@ -226,6 +226,18 @@ func (s *submissionService) GetLabStudentStatus(ctx context.Context, sectionID, 
 		})
 	}
 
+	// Pre-compute embed-derived status maps for document materials so we don't
+	// re-query inside the O(students × materials) loop below.
+	docEmbedStatusMaps := make(map[string]map[string]models.SubmissionStatus) // matID → userID → status
+	for _, mat := range materials {
+		if mat.MaterialData != nil && mat.MaterialData.Type == "document" {
+			_, statusByUser, _, _ := s.docEmbedScores(ctx, mat.MaterialID, sectionID, labID)
+			if statusByUser != nil {
+				docEmbedStatusMaps[mat.MaterialID] = statusByUser
+			}
+		}
+	}
+
 	for _, student := range students {
 		studentRow := models.StudentLabStatus{
 			Student: &models.Student{
@@ -238,6 +250,29 @@ func (s *submissionService) GetLabStudentStatus(ctx context.Context, sectionID, 
 		}
 
 		for _, mat := range materials {
+			// Document materials: derive status from embedded code submissions.
+			// The CMS status grid only renders passed/failed/not_submitted, so
+			// map PARTIAL → FAILED (some embeds not passing = not fully done).
+			if embedStatuses, ok := docEmbedStatusMaps[mat.MaterialID]; ok {
+				status, hasStatus := embedStatuses[student.ID]
+				if !hasStatus {
+					studentRow.MaterialStatuses[mat.MaterialID] = models.MaterialStatus{
+						Status:      models.NOT_SUBMITTED,
+						SubmittedAt: nil,
+					}
+				} else {
+					mappedStatus := models.FAILED
+					if status == models.PASSED {
+						mappedStatus = models.PASSED
+					}
+					studentRow.MaterialStatuses[mat.MaterialID] = models.MaterialStatus{
+						Status:      mappedStatus,
+						SubmittedAt: nil,
+					}
+				}
+				continue
+			}
+
 			submission, err := s.repo.GetLatestOfStudentIDInSectionID(ctx, sectionID, labID, mat.MaterialID, student.ID)
 			if err != nil {
 				if errors.Is(err, sql.ErrNoRows) {
@@ -562,6 +597,20 @@ func (s *submissionService) GetUserSubmissionsWithMaterial(ctx context.Context, 
 }
 
 func (s *submissionService) GetMaterialStudentStatus(ctx context.Context, userID, materialID, labID, sectionID string) string {
+	mat, err := s.materialRepo.GetByID(ctx, materialID)
+	if err == nil && mat.Type == "document" {
+		_, statusByUser, _, _ := s.docEmbedScores(ctx, materialID, sectionID, labID)
+		if statusByUser != nil {
+			switch statusByUser[userID] {
+			case models.PASSED:
+				return "passed"
+			case models.PARTIAL:
+				return "in_progress"
+			}
+		}
+		return "not_started"
+	}
+
 	subs, _, err := s.GetUserSubmissions(ctx, userID, materialID, labID, sectionID, 1, 1, "desc")
 	if err != nil || len(subs) == 0 {
 		return "not_started"
@@ -605,16 +654,17 @@ func (s *submissionService) UpdateManualScore(ctx context.Context, submissionID 
 
 // docEmbedScores aggregates embedded code submission scores and computes a
 // derived status per student for document materials.
-// Returns (autoScoreByUser, statusByUser) maps.
-func (s *submissionService) docEmbedScores(ctx context.Context, materialID, sectionID, labID string) (map[string]int, map[string]models.SubmissionStatus, error) {
+// Returns (autoScoreByUser, statusByUser, perEmbedByUser) maps.
+// perEmbedByUser[userID][embedMaterialID] = that embed's auto_score for the user.
+func (s *submissionService) docEmbedScores(ctx context.Context, materialID, sectionID, labID string) (map[string]int, map[string]models.SubmissionStatus, map[string]map[string]int, error) {
 	embeds, err := s.docMatRepo.GetEmbeddedMaterialIDs(ctx, materialID)
 	if err != nil || len(embeds) == 0 {
-		return nil, nil, nil
+		return nil, nil, nil, nil
 	}
 
 	codeSubmissions, err := s.repo.GetLatestScoresByMaterialsForSection(ctx, embeds, sectionID, labID)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	// Per user: sum of auto_scores and aggregate status across all embedded materials.
@@ -623,6 +673,8 @@ func (s *submissionService) docEmbedScores(ctx context.Context, materialID, sect
 	passedCount := make(map[string]int)
 	// submittedMaterials[userID] = set of materialIDs the user has submitted to.
 	submittedMaterials := make(map[string]map[string]bool)
+	// perEmbedByUser[userID][embedMaterialID] = that embed's latest auto_score.
+	perEmbedByUser := make(map[string]map[string]int)
 
 	for _, sub := range codeSubmissions {
 		autoScores[sub.UserID] += sub.AutoScore
@@ -633,6 +685,10 @@ func (s *submissionService) docEmbedScores(ctx context.Context, materialID, sect
 		if sub.Status == models.PASSED {
 			passedCount[sub.UserID]++
 		}
+		if perEmbedByUser[sub.UserID] == nil {
+			perEmbedByUser[sub.UserID] = make(map[string]int)
+		}
+		perEmbedByUser[sub.UserID][sub.MaterialID] = sub.AutoScore
 	}
 
 	statusByUser := make(map[string]models.SubmissionStatus)
@@ -649,7 +705,7 @@ func (s *submissionService) docEmbedScores(ctx context.Context, materialID, sect
 		}
 	}
 
-	return autoScores, statusByUser, nil
+	return autoScores, statusByUser, perEmbedByUser, nil
 }
 
 func (s *submissionService) GetSectionLabMaterialSubmissions(ctx context.Context, sectionID string, labID string, materialID string) ([]models.CMSSectionStudentSubmission, error) {
@@ -694,21 +750,39 @@ func (s *submissionService) GetSectionLabMaterialSubmissions(ctx context.Context
 		submissionMap[sub.UserID] = sub
 	}
 
-	// For document materials, compute auto_score and status from embedded code submissions.
+	// For document materials, compute auto_score, status, and per-embed scores
+	// from embedded code submissions.
 	var embedAutoScores map[string]int
 	var embedStatusByUser map[string]models.SubmissionStatus
+	var embedPerUser map[string]map[string]int
 	if mat.Type == "document" {
-		embedAutoScores, embedStatusByUser, _ = s.docEmbedScores(ctx, materialID, sectionID, labID)
+		embedAutoScores, embedStatusByUser, embedPerUser, _ = s.docEmbedScores(ctx, materialID, sectionID, labID)
 	}
 
 	result := make([]models.CMSSectionStudentSubmission, len(students))
 	for i, student := range students {
 		sub, hasSubmission := submissionMap[student.ID]
 
+		// Build per-embed score payload for document materials so the frontend
+		// can render individual embed scores in the submission detail panel.
+		var docPayload any
+		if mat.Type == "document" {
+			embedScores := map[string]int{}
+			if embedPerUser != nil {
+				for matID, score := range embedPerUser[student.ID] {
+					embedScores[matID] = score
+				}
+			}
+			docPayload = map[string]any{"embed_scores": embedScores}
+		}
+
 		if hasSubmission {
 			payload, err := handler.Get(ctx, sub.ID, "instructor")
 			if err != nil {
 				return nil, err
+			}
+			if mat.Type == "document" {
+				payload = docPayload
 			}
 
 			autoScore := sub.AutoScore
@@ -754,7 +828,7 @@ func (s *submissionService) GetSectionLabMaterialSubmissions(ctx context.Context
 					ManualScore: 0,
 					IP:          "",
 					Status:      status,
-					Payload:     nil,
+					Payload:     docPayload,
 				},
 			}
 		}
@@ -816,18 +890,22 @@ func (s *submissionService) GetStudentSubmissionsByMaterialSectionLab(ctx contex
 		return nil, 0, err
 	}
 
-	// For document materials, compute the current aggregate auto_score and
-	// status from the student's embedded code submissions.
+	// For document materials, compute the current aggregate auto_score, status,
+	// and per-embed scores from the student's embedded code submissions.
 	var embedAutoScore int
 	var embedStatus models.SubmissionStatus
+	var embedPerEmbed map[string]int
 	isDocument := mat.Type == "document"
 	if isDocument {
-		embedAutoScores, embedStatuses, _ := s.docEmbedScores(ctx, materialID, sectionID, labID)
+		embedAutoScores, embedStatuses, embedPerUser, _ := s.docEmbedScores(ctx, materialID, sectionID, labID)
 		if embedAutoScores != nil {
 			embedAutoScore = embedAutoScores[studentID]
 		}
 		if embedStatuses != nil {
 			embedStatus = embedStatuses[studentID]
+		}
+		if embedPerUser != nil {
+			embedPerEmbed = embedPerUser[studentID]
 		}
 	}
 
@@ -835,11 +913,17 @@ func (s *submissionService) GetStudentSubmissionsByMaterialSectionLab(ctx contex
 	for i, sub := range rawSubmissions {
 		autoScore := sub.AutoScore
 		status := sub.Status
+		payload := payloads[sub.ID]
 		if isDocument {
 			autoScore = embedAutoScore
 			if embedStatus != "" {
 				status = embedStatus
 			}
+			embedScores := map[string]int{}
+			for matID, score := range embedPerEmbed {
+				embedScores[matID] = score
+			}
+			payload = map[string]any{"embed_scores": embedScores}
 		}
 		result[i] = models.StudentSubmission{
 			ID:          sub.ID,
@@ -850,7 +934,7 @@ func (s *submissionService) GetStudentSubmissionsByMaterialSectionLab(ctx contex
 			AutoScore:   autoScore,
 			ManualScore: sub.ManualScore,
 			IP:          sub.IPAddress,
-			Payload:     payloads[sub.ID],
+			Payload:     payload,
 		}
 	}
 
