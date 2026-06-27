@@ -871,7 +871,43 @@ func (s *submissionService) GetStudentSubmissionsByMaterialSectionLab(ctx contex
 		return nil, 0, err
 	}
 
+	isDocument := mat.Type == "document"
+
+	// For document materials, compute the current aggregate auto_score, status,
+	// and per-embed scores from the student's embedded code submissions.
+	var embedAutoScore int
+	var embedStatus models.SubmissionStatus
+	var embedPerEmbed map[string]int
+	if isDocument {
+		embedAutoScores, embedStatuses, embedPerUser, _ := s.docEmbedScores(ctx, materialID, sectionID, labID)
+		if embedAutoScores != nil {
+			embedAutoScore = embedAutoScores[studentID]
+		}
+		if embedStatuses != nil {
+			embedStatus = embedStatuses[studentID]
+		}
+		if embedPerUser != nil {
+			embedPerEmbed = embedPerUser[studentID]
+		}
+	}
+
+	// For document materials with no direct submission row, synthesize one from
+	// the embed state so the CMS "view all submissions" panel has something to show.
 	if len(rawSubmissions) == 0 {
+		if isDocument && embedStatus != "" {
+			embedScores := map[string]int{}
+			for matID, score := range embedPerEmbed {
+				embedScores[matID] = score
+			}
+			status := embedStatus
+			return []models.StudentSubmission{
+				{
+					Status:    status,
+					AutoScore: embedAutoScore,
+					Payload:   map[string]any{"embed_scores": embedScores},
+				},
+			}, 1, nil
+		}
 		return []models.StudentSubmission{}, count, nil
 	}
 
@@ -888,25 +924,6 @@ func (s *submissionService) GetStudentSubmissionsByMaterialSectionLab(ctx contex
 	payloads, err := handler.GetByIDs(ctx, submissionIDs, "instructor")
 	if err != nil {
 		return nil, 0, err
-	}
-
-	// For document materials, compute the current aggregate auto_score, status,
-	// and per-embed scores from the student's embedded code submissions.
-	var embedAutoScore int
-	var embedStatus models.SubmissionStatus
-	var embedPerEmbed map[string]int
-	isDocument := mat.Type == "document"
-	if isDocument {
-		embedAutoScores, embedStatuses, embedPerUser, _ := s.docEmbedScores(ctx, materialID, sectionID, labID)
-		if embedAutoScores != nil {
-			embedAutoScore = embedAutoScores[studentID]
-		}
-		if embedStatuses != nil {
-			embedStatus = embedStatuses[studentID]
-		}
-		if embedPerUser != nil {
-			embedPerEmbed = embedPerUser[studentID]
-		}
 	}
 
 	result := make([]models.StudentSubmission, len(rawSubmissions))
