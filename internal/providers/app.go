@@ -120,7 +120,7 @@ func NewFiberApp(
 		TagService:              tagService,
 	})
 
-	coreApi := protectedApi.Group("/", middlewares.RateLimitMiddleware(rateLimiter, 120, time.Minute))
+	coreApi := protectedApi.Group("/", middlewares.RateLimitMiddleware(rateLimiter, 300, time.Minute))
 
 	rest.NewCoreRouter(&rest.CoreRouter{
 		Router:                     coreApi,
