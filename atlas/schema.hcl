@@ -871,6 +871,9 @@ table "auth_logs" {
     columns     = [column.user_id]
     ref_columns = [table.users.column.id]
   }
+  index "idx_auth_logs_action_created_at" {
+    columns = [column.action, column.created_at]
+  }
 }
 
 enum "submission_status" {
@@ -946,6 +949,9 @@ table "submissions" {
     columns     = [column.course_id]
     ref_columns = [table.courses.column.id]
   }
+  index "idx_submissions_created_at" {
+    columns = [column.created_at]
+  }
 }
 
 table "code_submissions" {
@@ -977,8 +983,8 @@ table "code_submissions" {
     null = true
   }
   column "runner_id" {
-    type    = text
-    null    = true
+    type = text
+    null = true
   }
   primary_key {
     columns = [column.submission_id]
