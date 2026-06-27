@@ -44,6 +44,15 @@ func (r *redisPubSub) Publish(ctx context.Context, channel string, message strin
 func (r *redisPubSub) Subscribe(ctx context.Context, channel string) (<-chan []byte, error) {
 	sub := r.c.Subscribe(ctx, channel)
 
+	// Block until the server confirms the subscription is active. Without this,
+	// r.c.Subscribe returns before SUBSCRIBE is acked, so a caller that re-checks
+	// state right after Subscribe could still miss a message published in the
+	// window. Draining the confirmation here makes the returned channel live.
+	if _, err := sub.Receive(ctx); err != nil {
+		_ = sub.Close()
+		return nil, err
+	}
+
 	payloadChan := make(chan []byte)
 
 	go func() {

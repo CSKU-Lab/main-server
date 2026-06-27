@@ -403,6 +403,7 @@ func (s *submissionService) Listen(ctx context.Context, submissionID string) (<-
 				ID:        submissionID,
 				Status:    repoSubmission.Status,
 				CreatedAt: repoSubmission.CreatedAt,
+				Payload:   handler.GetOverviewStatsByID(ctx, submissionID),
 			}
 			close(subChan)
 		}()
@@ -420,6 +421,24 @@ func (s *submissionService) Listen(ctx context.Context, submissionID string) (<-
 				return
 			}
 			errChan <- err
+			return
+		}
+
+		// Re-check the status now that the subscription is confirmed active. The
+		// grader updates the DB before publishing, so if the submission already
+		// reached a terminal state, the final publish either landed in the
+		// subscribe window (and would otherwise be lost) or is still pending (and
+		// will be caught by the loop below). Emitting here closes the
+		// subscribe-after-publish race that left the list stuck on "queued".
+		latest, err := s.repo.Get(ctx, submissionID)
+		if err == nil && (latest.Status == models.PASSED || latest.Status == models.FAILED) {
+			subChan <- &models.Submission{
+				ID:        submissionID,
+				Status:    latest.Status,
+				CreatedAt: latest.CreatedAt,
+				Payload:   handler.GetOverviewStatsByID(ctx, submissionID),
+			}
+			return
 		}
 
 		for msg := range msgs {
