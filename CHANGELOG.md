@@ -1,3 +1,10 @@
+## [0.28.1](https://github.com/CSKU-Lab/main-server/compare/v0.28.0...v0.28.1) (2026-06-27)
+
+
+### Bug Fixes
+
+* **storage:** remove HTTP proxy handler, MinIO now served directly via ingress ([c964d59](https://github.com/CSKU-Lab/main-server/commit/c964d59677c9239900d56b7b42ccf844cce83f73))
+
 # [0.28.0](https://github.com/CSKU-Lab/main-server/compare/v0.27.4...v0.28.0) (2026-06-27)
 
 
