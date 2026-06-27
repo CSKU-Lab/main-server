@@ -1,3 +1,10 @@
+# [0.28.0](https://github.com/CSKU-Lab/main-server/compare/v0.27.4...v0.28.0) (2026-06-27)
+
+
+### Features
+
+* **submission:** compute document material scores from embedded code submissions ([6d6537c](https://github.com/CSKU-Lab/main-server/commit/6d6537c274e814f555faaeed8537bdc9e279c3e2))
+
 ## [0.27.4](https://github.com/CSKU-Lab/main-server/compare/v0.27.3...v0.27.4) (2026-06-27)
 
 
