@@ -1,3 +1,10 @@
+## [0.27.2](https://github.com/CSKU-Lab/main-server/compare/v0.27.1...v0.27.2) (2026-06-27)
+
+
+### Bug Fixes
+
+* **submission:** close subscribe-after-publish race in listen SSE ([9c8d212](https://github.com/CSKU-Lab/main-server/commit/9c8d2125438757b9c46ff45177863f8c0928e062))
+
 ## [0.27.1](https://github.com/CSKU-Lab/main-server/compare/v0.27.0...v0.27.1) (2026-06-27)
 
 
