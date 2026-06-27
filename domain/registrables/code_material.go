@@ -19,11 +19,12 @@ type CodeMaterial struct {
 }
 
 type TestCase struct {
-	ID       string `json:"id"`
-	Order    int32  `json:"order"`
-	Input    string `json:"input"`
-	Output   string `json:"output"`
-	IsHidden bool   `json:"is_hidden"`
+	ID         string `json:"id"`
+	Order      int32  `json:"order"`
+	Input      string `json:"input"`
+	Output     string `json:"output"`
+	HideInput  bool   `json:"hide_input"`
+	HideOutput bool   `json:"hide_output"`
 }
 
 type TestCaseGroup struct {
@@ -269,11 +270,12 @@ func (c *CodeMaterial) GetByID(ctx context.Context, ID string) (any, error) {
 
 		for j, tcase := range tc.GetTestCases() {
 			res.TestCaseGroups[i].TestCases[j] = TestCase{
-				ID:       tcase.GetId(),
-				Order:    tcase.GetOrder(),
-				Input:    tcase.GetInput(),
-				Output:   tcase.GetOutput(),
-				IsHidden: tcase.GetIsHidden(),
+				ID:         tcase.GetId(),
+				Order:      tcase.GetOrder(),
+				Input:      tcase.GetInput(),
+				Output:     tcase.GetOutput(),
+				HideInput:  tcase.GetHideInput(),
+				HideOutput: tcase.GetHideOutput(),
 			}
 		}
 	}
@@ -345,11 +347,12 @@ func (c *CodeMaterial) UpdateByID(ctx context.Context, ID string, req *requests.
 
 			for i, tc := range g.TestCases {
 				testCaseGroup.TestCases[i] = &taskPB.TestCase{
-					Id:       tc.ID,
-					Order:    tc.Order,
-					Input:    tc.Input,
-					Output:   tc.Output,
-					IsHidden: tc.IsHidden,
+					Id:         tc.ID,
+					Order:      tc.Order,
+					Input:      tc.Input,
+					Output:     tc.Output,
+					HideInput:  tc.HideInput,
+					HideOutput: tc.HideOutput,
 				}
 			}
 

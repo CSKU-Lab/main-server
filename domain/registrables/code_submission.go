@@ -19,6 +19,32 @@ import (
 // may be unknown on old rows) and removes every occurrence — over-removal is
 // acceptable for legacy rows; a leak is not. Tasks with no hidden segments are
 // returned unchanged.
+// testCaseVisibility holds, per test case ID, whether the input and/or output
+// must be withheld from students. Sourced from the authoritative task definition:
+// a creator may hide the input, the output, or both, independently (CS-233).
+type testCaseVisibility struct {
+	hideInput  map[string]bool
+	hideOutput map[string]bool
+}
+
+func testCaseVisibilityByID(task *taskPB.TaskResponse) testCaseVisibility {
+	v := testCaseVisibility{
+		hideInput:  make(map[string]bool),
+		hideOutput: make(map[string]bool),
+	}
+	for _, tg := range task.GetTestCaseGroups() {
+		for _, tc := range tg.GetTestCases() {
+			if tc.GetHideInput() {
+				v.hideInput[tc.GetId()] = true
+			}
+			if tc.GetHideOutput() {
+				v.hideOutput[tc.GetId()] = true
+			}
+		}
+	}
+	return v
+}
+
 func stripHiddenSegmentText(files models.SubmissionFiles, task *taskPB.TaskResponse) models.SubmissionFiles {
 	var hidden []string
 	for _, ar := range task.GetAllowedRunners() {
@@ -345,6 +371,8 @@ func (c *CodeSubmission) Get(ctx context.Context, submissionID string, viewBy st
 			studentFiles = stripHiddenSegmentText(codeSubmission.Files, task)
 		}
 
+		visibility := testCaseVisibilityByID(task)
+
 		coreGroups := make([]coreTestCaseGroupResult, 0, len(testCaseGroups))
 		for _, tg := range testCaseGroups {
 			cg := coreTestCaseGroupResult{
@@ -359,8 +387,10 @@ func (c *CodeSubmission) Get(ctx context.Context, submissionID string, viewBy st
 					Memory:   tc.Memory,
 					Message:  tc.Message,
 				}
-				if !codeMat.HideTestCases {
+				if !visibility.hideInput[tc.ID] {
 					result.Input = tc.Input
+				}
+				if !visibility.hideOutput[tc.ID] {
 					result.Output = tc.Output
 				}
 				cg.Results = append(cg.Results, result)
@@ -427,6 +457,8 @@ func (c *CodeSubmission) GetByIDs(ctx context.Context, submissionIDs []string, v
 				studentFiles = stripHiddenSegmentText(codeSubmission.Files, task)
 			}
 
+			visibility := testCaseVisibilityByID(task)
+
 			coreGroups := make([]coreTestCaseGroupResult, 0, len(testCaseGroups))
 			for _, tg := range testCaseGroups {
 				cg := coreTestCaseGroupResult{
@@ -441,8 +473,10 @@ func (c *CodeSubmission) GetByIDs(ctx context.Context, submissionIDs []string, v
 						Memory:   tc.Memory,
 						Message:  tc.Message,
 					}
-					if !codeMat.HideTestCases {
+					if !visibility.hideInput[tc.ID] {
 						result.Input = tc.Input
+					}
+					if !visibility.hideOutput[tc.ID] {
 						result.Output = tc.Output
 					}
 					cg.Results = append(cg.Results, result)
