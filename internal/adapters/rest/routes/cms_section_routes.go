@@ -276,14 +276,17 @@ func NewCmsSectionRoutes(router fiber.Router, sectionService services.SectionSer
 			body := c.Locals("body").(*requests.SectionStudents)
 
 			ctx := c.Context()
-			err := sectionService.AddStudents(ctx, sectionID, body.StudentUsernames)
+			result, err := sectionService.AddStudents(ctx, sectionID, body.StudentUsernames)
 			if err != nil {
 				log.Println(err)
 				return err
 			}
 
 			return c.Status(fiber.StatusOK).JSON(fiber.Map{
-				"message": "Students added successfully",
+				"message":       "Students added successfully",
+				"not_found":     result.NotFound,
+				"not_students":  result.NotStudents,
+				"already_added": result.AlreadyAdded,
 			})
 		})
 

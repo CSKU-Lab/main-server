@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"errors"
 	"net/http"
 
 	"github.com/CSKU-Lab/main-server/configs"
@@ -17,6 +16,14 @@ import (
 	"github.com/google/uuid"
 )
 
+// AddStudentsResult reports usernames that were skipped while adding students
+// so the caller can surface them to the user.
+type AddStudentsResult struct {
+	NotFound     []string
+	NotStudents  []string
+	AlreadyAdded []string
+}
+
 type SectionService interface {
 	Create(ctx context.Context, req *requests.CreateSection) (string, error)
 	UpdateByID(ctx context.Context, ID string, req *requests.UpdateSection, userID string) error
@@ -25,7 +32,7 @@ type SectionService interface {
 	GetByCourseIDAndSemesterID(ctx context.Context, courseID string, semesterID string) ([]models.Section, error)
 	GetRawBySemesterID(ctx context.Context, semesterID string) ([]repositories.RawSection, error)
 	DeleteByID(ctx context.Context, ID string, userID string) error
-	AddStudents(ctx context.Context, sectionID string, studentUsernames []string) error
+	AddStudents(ctx context.Context, sectionID string, studentUsernames []string) (*AddStudentsResult, error)
 	GetStudentsBySectionID(ctx context.Context, sectionID string) ([]models.Student, error)
 	RemoveStudents(ctx context.Context, sectionID string, studentIDs []string) error
 	SetDefaultLabs(ctx context.Context, sectionID string, courseID string) error
@@ -514,46 +521,72 @@ func hasStudentRole(roles []string) bool {
 	return false
 }
 
-func (s *sectionService) AddStudents(ctx context.Context, sectionID string, studentUsernames []string) error {
+func (s *sectionService) AddStudents(ctx context.Context, sectionID string, studentUsernames []string) (*AddStudentsResult, error) {
 	students, err := s.userRepo.GetManyByUsername(ctx, studentUsernames)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	if len(students) == 0 || len(students) != len(studentUsernames) {
-		return cserrors.New(&cserrors.Option{
-			HttpStatus: http.StatusBadRequest,
-			Message:    "Some students not found",
-		})
+	result := &AddStudentsResult{
+		NotFound:     []string{},
+		NotStudents:  []string{},
+		AlreadyAdded: []string{},
 	}
 
-	return s.uowRepo.Execute(ctx, func(u repositories.UoWInstance) error {
-		for _, student := range students {
+	// Skip usernames that don't exist.
+	foundUsernames := make(map[string]bool, len(students))
+	for _, student := range students {
+		foundUsernames[student.Username] = true
+	}
+	for _, username := range studentUsernames {
+		if !foundUsernames[username] {
+			result.NotFound = append(result.NotFound, username)
+		}
+	}
 
-			isStudent := hasStudentRole(student.Roles)
-			if !isStudent {
-				return cserrors.New(&cserrors.Option{
-					HttpStatus: http.StatusBadRequest,
-					Message:    "User \"" + student.DisplayName + "\" is not a student and cannot be added to the section",
-				})
-			}
+	// Look up who is already in the section so we can skip duplicates without
+	// poisoning the insert transaction with a unique violation.
+	existing, err := s.sectionStudentRepo.GetBySectionID(ctx, sectionID)
+	if err != nil {
+		return nil, err
+	}
+	existingIDs := make(map[string]bool, len(existing))
+	for _, st := range existing {
+		existingIDs[st.ID] = true
+	}
 
-			err := u.SectionStudent().Add(ctx, sectionID, student.ID)
-			if err != nil {
-				var csErr *cserrors.Error
-				if ok := errors.As(err, &csErr); ok {
-					if csErr.Code == cserrors.UniqueViolation {
-						return cserrors.New(&cserrors.Option{
-							HttpStatus: http.StatusBadRequest,
-							Message:    "Student \"" + student.DisplayName + "\" is already added to the section",
-						})
-					}
-				}
+	// Partition found users: skip non-students and already-added, add the rest.
+	toAdd := make([]repositories.UserData, 0, len(students))
+	for _, student := range students {
+		if !hasStudentRole(student.Roles) {
+			result.NotStudents = append(result.NotStudents, student.Username)
+			continue
+		}
+		if existingIDs[student.ID] {
+			result.AlreadyAdded = append(result.AlreadyAdded, student.Username)
+			continue
+		}
+		toAdd = append(toAdd, student)
+	}
+
+	if len(toAdd) == 0 {
+		return result, nil
+	}
+
+	err = s.uowRepo.Execute(ctx, func(u repositories.UoWInstance) error {
+		for _, student := range toAdd {
+			if err := u.SectionStudent().Add(ctx, sectionID, student.ID); err != nil {
+				return err
 			}
 		}
 
 		return s.sectionLogService.Create(ctx, sectionID, "Added students to section")
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 func (s *sectionService) GetStudentsBySectionID(ctx context.Context, sectionID string) ([]models.Student, error) {
