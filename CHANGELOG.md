@@ -1,3 +1,10 @@
+# [0.29.0](https://github.com/CSKU-Lab/main-server/compare/v0.28.4...v0.29.0) (2026-06-28)
+
+
+### Features
+
+* **submission:** persist editable_segments + return runner_id ([709fdac](https://github.com/CSKU-Lab/main-server/commit/709fdac16d4efdcc0085ae2aa7f15bb96d6636b1))
+
 ## [0.28.4](https://github.com/CSKU-Lab/main-server/compare/v0.28.3...v0.28.4) (2026-06-27)
 
 
