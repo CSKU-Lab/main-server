@@ -1,3 +1,10 @@
+## [0.30.1](https://github.com/CSKU-Lab/main-server/compare/v0.30.0...v0.30.1) (2026-06-28)
+
+
+### Bug Fixes
+
+* include document material embed scores in section gradebook ([4c6b052](https://github.com/CSKU-Lab/main-server/commit/4c6b0524bd2485b7be877510f5db6158f32dd50e))
+
 # [0.30.0](https://github.com/CSKU-Lab/main-server/compare/v0.29.0...v0.30.0) (2026-06-28)
 
 
