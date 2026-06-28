@@ -17,9 +17,20 @@ type CodeSubmission struct {
 	RunnerID       *string               `json:"runner_id"`
 }
 
+type EditableSegment struct {
+	Index   int    `json:"index"`
+	Content string `json:"content"`
+}
+
 type SubmissionFile struct {
 	Name    string `json:"name"`
 	Content string `json:"content"`
+	// EditableSegments carries the student's per-slot editable input, indexed to
+	// the runner template segments. Persisted on student files only so a later
+	// read can rebuild the segmented editor view (readonly ranges + editable
+	// content) without ambiguous flat-content reconstruction. Empty for grader
+	// files and for submissions saved before this field existed.
+	EditableSegments []EditableSegment `json:"editable_segments,omitempty"`
 }
 
 type SubmissionFiles []SubmissionFile

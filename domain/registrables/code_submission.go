@@ -122,6 +122,7 @@ type coreTestCaseGroupResult struct {
 type coreCodeSubmission struct {
 	SubmissionID   string                    `json:"submission_id"`
 	Files          models.SubmissionFiles    `json:"files"`
+	RunnerID       *string                   `json:"runner_id"`
 	Status         *string                   `json:"status"`
 	AvgWallTime    *float32                  `json:"avg_wall_time"`
 	AvgMemory      *int32                    `json:"avg_memory"`
@@ -187,6 +188,12 @@ func (c *CodeSubmission) Create(ctx context.Context, uowRepo repositories.UoWIns
 	if err != nil {
 		return err
 	}
+
+	// Persist the raw indexed editable segments alongside the student files so the
+	// segmented editor view can be rebuilt deterministically on read (no flat
+	// reconstruction). These are the student's editable input only — never hidden
+	// grader code — so they are safe to store on the student-facing files.
+	attachEditableSegments(studentFiles, parsedPayload.Files)
 
 	createPayload := &repositories.CreateCodeSubmissionPayload{
 		SubmissionID: submissionID,
@@ -299,6 +306,27 @@ func assembleFiles(submitted []submittedFile, runnerID string, task *taskPB.Task
 	return result, nil
 }
 
+// attachEditableSegments copies each submitted file's indexed editable segments
+// onto the matching assembled student file (by name), in place. Used so the
+// stored student files carry enough to rebuild the segmented editor view.
+func attachEditableSegments(studentFiles models.SubmissionFiles, submitted []submittedFile) {
+	segmentsByName := make(map[string][]editableSegment, len(submitted))
+	for _, sf := range submitted {
+		segmentsByName[sf.Name] = sf.EditableSegments
+	}
+	for i := range studentFiles {
+		segs, ok := segmentsByName[studentFiles[i].Name]
+		if !ok {
+			continue
+		}
+		modelSegs := make([]models.EditableSegment, 0, len(segs))
+		for _, s := range segs {
+			modelSegs = append(modelSegs, models.EditableSegment{Index: s.Index, Content: s.Content})
+		}
+		studentFiles[i].EditableSegments = modelSegs
+	}
+}
+
 func (c *CodeSubmission) resolveDefaultCompareScriptID(ctx context.Context) string {
 	val, err := c.settingsRepo.Get(ctx, defaultCompareScriptIDKey)
 	if err != nil || val == nil {
@@ -400,6 +428,7 @@ func (c *CodeSubmission) Get(ctx context.Context, submissionID string, viewBy st
 		return &coreCodeSubmission{
 			SubmissionID:   cleanedCodeSubmission.SubmissionID,
 			Files:          studentFiles,
+			RunnerID:       codeSubmission.RunnerID,
 			Status:         cleanedCodeSubmission.Status,
 			AvgWallTime:    cleanedCodeSubmission.AvgWallTime,
 			AvgMemory:      cleanedCodeSubmission.AvgMemory,
