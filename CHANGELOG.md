@@ -1,3 +1,10 @@
+# [0.30.0](https://github.com/CSKU-Lab/main-server/compare/v0.29.0...v0.30.0) (2026-06-28)
+
+
+### Features
+
+* **section:** skip invalid usernames when adding students ([e9a748b](https://github.com/CSKU-Lab/main-server/commit/e9a748b2f534cee16f789713815bf866592f17cf))
+
 # [0.29.0](https://github.com/CSKU-Lab/main-server/compare/v0.28.4...v0.29.0) (2026-06-28)
 
 
