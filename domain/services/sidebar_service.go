@@ -59,7 +59,7 @@ func (sb *sidebarService) GetSidebar(
 			SubItems:   []*models.SidebarLab{},
 		}
 
-		labs, err := sb.labSectionRepo.GetBySectionID(ctx, section.ID)
+		labs, err := sb.labSectionRepo.GetVisibleBySectionID(ctx, section.ID)
 		if err != nil {
 			return nil, err
 		}

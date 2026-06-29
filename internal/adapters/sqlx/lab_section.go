@@ -298,6 +298,33 @@ func (ls *sqlxLabSectionRepository) GetBySectionID(ctx context.Context, sectionI
 	return labs, nil
 }
 
+func (ls *sqlxLabSectionRepository) GetVisibleBySectionID(ctx context.Context, sectionID string) ([]models.Lab, error) {
+	query := `SELECT l.id, l.display_name, l.course_id FROM lab_sections ls
+		  JOIN labs l ON ls.lab_id = l.id
+		  WHERE ls.section_id = $1
+		    AND ls.is_deleted = false
+		    AND l.is_deleted = false
+		    AND ls.status != 'hidden'
+		  ORDER BY ls.position ASC`
+
+	dbLabs := []labSchema{}
+	err := ls.db.SelectContext(ctx, &dbLabs, query, sectionID)
+	if err != nil {
+		return nil, err
+	}
+
+	labs := make([]models.Lab, 0, len(dbLabs))
+	for _, dbLab := range dbLabs {
+		labs = append(labs, models.Lab{
+			ID:          dbLab.ID,
+			DisplayName: dbLab.DisplayName,
+			CourseID:    dbLab.CourseID,
+		})
+	}
+
+	return labs, nil
+}
+
 func (ls *sqlxLabSectionRepository) GetByID(ctx context.Context, labID string, sectionID string) (*models.LabSection, error) {
 	query := `SELECT id, lab_id, section_id, position, status, opened_at, readonly_at, created_at, updated_at FROM lab_sections WHERE lab_id = $1 AND section_id = $2 AND is_deleted = false`
 
