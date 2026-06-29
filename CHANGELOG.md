@@ -1,3 +1,10 @@
+# [0.31.0](https://github.com/CSKU-Lab/main-server/compare/v0.30.2...v0.31.0) (2026-06-29)
+
+
+### Features
+
+* **submission:** show expected output to students, gate message by hide flags ([7416a12](https://github.com/CSKU-Lab/main-server/commit/7416a12ecd64b2bcfb7a7df750eb59aa8369f333))
+
 ## [0.30.2](https://github.com/CSKU-Lab/main-server/compare/v0.30.1...v0.30.2) (2026-06-29)
 
 
