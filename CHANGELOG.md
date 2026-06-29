@@ -1,3 +1,10 @@
+## [0.30.2](https://github.com/CSKU-Lab/main-server/compare/v0.30.1...v0.30.2) (2026-06-29)
+
+
+### Bug Fixes
+
+* **sidebar:** hide hidden labs from student sidebar ([b8dbef5](https://github.com/CSKU-Lab/main-server/commit/b8dbef56faff18ff37ceabf1d446a3c600f9288d))
+
 ## [0.30.1](https://github.com/CSKU-Lab/main-server/compare/v0.30.0...v0.30.1) (2026-06-28)
 
 
