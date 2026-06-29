@@ -20,17 +20,20 @@ import (
 // acceptable for legacy rows; a leak is not. Tasks with no hidden segments are
 // returned unchanged.
 // testCaseVisibility holds, per test case ID, whether the input and/or output
-// must be withheld from students. Sourced from the authoritative task definition:
-// a creator may hide the input, the output, or both, independently (CS-233).
+// must be withheld from students, plus the authoritative expected output to show
+// in its place. Sourced from the task definition: a creator may hide the input,
+// the output, or both, independently (CS-233).
 type testCaseVisibility struct {
-	hideInput  map[string]bool
-	hideOutput map[string]bool
+	hideInput      map[string]bool
+	hideOutput     map[string]bool
+	expectedOutput map[string]string
 }
 
 func testCaseVisibilityByID(task *taskPB.TaskResponse) testCaseVisibility {
 	v := testCaseVisibility{
-		hideInput:  make(map[string]bool),
-		hideOutput: make(map[string]bool),
+		hideInput:      make(map[string]bool),
+		hideOutput:     make(map[string]bool),
+		expectedOutput: make(map[string]string),
 	}
 	for _, tg := range task.GetTestCaseGroups() {
 		for _, tc := range tg.GetTestCases() {
@@ -40,9 +43,35 @@ func testCaseVisibilityByID(task *taskPB.TaskResponse) testCaseVisibility {
 			if tc.GetHideOutput() {
 				v.hideOutput[tc.GetId()] = true
 			}
+			v.expectedOutput[tc.GetId()] = tc.GetOutput()
 		}
 	}
 	return v
+}
+
+// studentTestCaseResult projects a stored grader result into the student-facing
+// view, honoring the creator's per-test-case hide flags. The output column shows
+// the task's expected output (never the student's raw stdout, which could echo a
+// hidden input). The message — which carries raw stdout / compare diffs on
+// non-passing runs — is withheld whenever input or output is hidden, since it
+// would otherwise leak the very value the creator chose to hide.
+func (v testCaseVisibility) studentTestCaseResult(tc models.TestCaseResult) models.TestCaseResult {
+	result := models.TestCaseResult{
+		ID:       tc.ID,
+		Status:   tc.Status,
+		WallTime: tc.WallTime,
+		Memory:   tc.Memory,
+	}
+	if !v.hideInput[tc.ID] {
+		result.Input = tc.Input
+	}
+	if !v.hideOutput[tc.ID] {
+		result.Output = v.expectedOutput[tc.ID]
+	}
+	if !v.hideInput[tc.ID] && !v.hideOutput[tc.ID] {
+		result.Message = tc.Message
+	}
+	return result
 }
 
 func stripHiddenSegmentText(files models.SubmissionFiles, task *taskPB.TaskResponse) models.SubmissionFiles {
@@ -408,20 +437,7 @@ func (c *CodeSubmission) Get(ctx context.Context, submissionID string, viewBy st
 				Results: make([]models.TestCaseResult, 0, len(tg.Results)),
 			}
 			for _, tc := range tg.Results {
-				result := models.TestCaseResult{
-					ID:       tc.ID,
-					Status:   tc.Status,
-					WallTime: tc.WallTime,
-					Memory:   tc.Memory,
-					Message:  tc.Message,
-				}
-				if !visibility.hideInput[tc.ID] {
-					result.Input = tc.Input
-				}
-				if !visibility.hideOutput[tc.ID] {
-					result.Output = tc.Output
-				}
-				cg.Results = append(cg.Results, result)
+				cg.Results = append(cg.Results, visibility.studentTestCaseResult(tc))
 			}
 			coreGroups = append(coreGroups, cg)
 		}
@@ -495,20 +511,7 @@ func (c *CodeSubmission) GetByIDs(ctx context.Context, submissionIDs []string, v
 					Results: make([]models.TestCaseResult, 0, len(tg.Results)),
 				}
 				for _, tc := range tg.Results {
-					result := models.TestCaseResult{
-						ID:       tc.ID,
-						Status:   tc.Status,
-						WallTime: tc.WallTime,
-						Memory:   tc.Memory,
-						Message:  tc.Message,
-					}
-					if !visibility.hideInput[tc.ID] {
-						result.Input = tc.Input
-					}
-					if !visibility.hideOutput[tc.ID] {
-						result.Output = tc.Output
-					}
-					cg.Results = append(cg.Results, result)
+					cg.Results = append(cg.Results, visibility.studentTestCaseResult(tc))
 				}
 				coreGroups = append(coreGroups, cg)
 			}
