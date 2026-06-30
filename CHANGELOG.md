@@ -1,3 +1,10 @@
+# [0.32.0](https://github.com/CSKU-Lab/main-server/compare/v0.31.0...v0.32.0) (2026-06-30)
+
+
+### Features
+
+* expose analytics overview to instructors via /cms ([e66e503](https://github.com/CSKU-Lab/main-server/commit/e66e50371c898af64e221185a638e8800eea147e))
+
 # [0.31.0](https://github.com/CSKU-Lab/main-server/compare/v0.30.2...v0.31.0) (2026-06-29)
 
 
