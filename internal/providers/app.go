@@ -127,6 +127,7 @@ func NewFiberApp(
 		Queue:                   q,
 		PermissionService:       permissionService,
 		TagService:              tagService,
+		AnalyticsService:        analyticsService,
 	})
 
 	coreApi := protectedApi.Group("/", middlewares.RateLimitMiddleware(rateLimiter, 300, time.Minute))

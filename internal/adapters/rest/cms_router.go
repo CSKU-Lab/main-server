@@ -31,6 +31,7 @@ type CMSRouter struct {
 	Queue                   queue.Queue
 	PermissionService       permission.Service
 	TagService              services.TagService
+	AnalyticsService        services.AnalyticsService
 }
 
 func NewCMSRouter(r *CMSRouter) {
@@ -48,4 +49,5 @@ func NewCMSRouter(r *CMSRouter) {
 	routes.NewCMSUserRoute(cmsRouter, r.UserService)
 	routes.NewCMSTagRoutes(cmsRouter, r.TagService)
 	routes.NewCMSSearchRoutes(cmsRouter, r.SearchService)
+	routes.NewCMSAnalyticsRoutes(cmsRouter, r.AnalyticsService)
 }
