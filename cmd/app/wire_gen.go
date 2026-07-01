@@ -129,7 +129,11 @@ func initializeApp(ctx context.Context, cfg *configs.Config, db *sqlx.DB, logger
 	playgroundHandler := providers.NewPlaygroundHandler(graderServiceClient)
 	inputSubmissionRepository := providers.NewInputSubmissionRepository(db)
 	inputSubmissionService := services.NewInputSubmissionService(inputSubmissionRepository, documentMaterialRepository, logger)
-	app := providers.NewFiberApp(cfg, logger, errorHandlerMiddleware, userService, refreshTokenService, userGroupService, courseService, courseEnrollmentService, semesterService, sectionLogService, sectionService, sectionStudentService, tagService, materialAssetService, labService, labSectionService, labMaterialService, defaultLabService, affectedEntitiesService, submissionService, sidebarService, gradebookExportService, typingExportService, materialService, searchService, service, systemSettingsService, analyticsService, configServiceClient, queue, pubSub, rateLimiter, playgroundHandler, typingSubmissionRepository, inputSubmissionService)
+	authLogRepository := providers.NewAuthLogRepository(db)
+	authLogService := services.NewAuthLogService(authLogRepository)
+	userActivityRepository := providers.NewUserActivityRepository(db)
+	userActivityService := services.NewUserActivityService(userActivityRepository)
+	app := providers.NewFiberApp(cfg, logger, errorHandlerMiddleware, userService, refreshTokenService, userGroupService, courseService, courseEnrollmentService, semesterService, sectionLogService, sectionService, sectionStudentService, tagService, materialAssetService, labService, labSectionService, labMaterialService, defaultLabService, affectedEntitiesService, submissionService, sidebarService, gradebookExportService, typingExportService, materialService, searchService, service, systemSettingsService, analyticsService, configServiceClient, queue, pubSub, rateLimiter, playgroundHandler, typingSubmissionRepository, inputSubmissionService, authLogService, userActivityService)
 	return app, func() {
 		cleanup3()
 		cleanup2()

@@ -78,5 +78,7 @@ var ServiceSet = wire.NewSet(
 	services.NewMaterialService,
 	services.NewAnalyticsService,
 	services.NewInputSubmissionService,
+	services.NewAuthLogService,
+	services.NewUserActivityService,
 	permission.NewService,
 )

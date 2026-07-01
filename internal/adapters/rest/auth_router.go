@@ -16,7 +16,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService services.UserService, refreshTokenService services.RefreshTokenService) {
+func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService services.UserService, refreshTokenService services.RefreshTokenService, authLogService services.AuthLogService) {
 	authRouter := router.Group("/auth")
 
 	googleAuth := auth.NewGoogleAuth(appConfig)
@@ -121,6 +121,9 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 			return cserrors.NewRedirectWithError(cserrors.REDIRECT_SOMETHING_WENT_WRONG, err)
 		}
 
+		// Best-effort analytics log; never block login on a logging failure.
+		_ = authLogService.RecordSignIn(ctx, user.ID)
+
 		c.Cookie(&fiber.Cookie{
 			Name:     "access_token",
 			Value:    newAccessToken,
@@ -190,6 +193,9 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Something went wrong"})
 		}
 
+		// Best-effort analytics log; never block login on a logging failure.
+		_ = authLogService.RecordSignIn(c.RequestCtx(), user.ID)
+
 		c.Cookie(&fiber.Cookie{
 			Name:     "access_token",
 			Value:    newAccessToken,
@@ -250,6 +256,9 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 			}
 
 			if claims.ExpiresAt.Sub(time.Now()).Minutes() > 5 {
+				// Still-valid path: the caller is an active user even though no
+				// rotation happens. Log as activity so DAU picks up long sessions.
+				_ = authLogService.RecordRefresh(c.RequestCtx(), user.ID)
 				return c.JSON(fiber.Map{
 					"message": "token is stil valid",
 				})
@@ -290,6 +299,9 @@ func NewAuthRouter(router fiber.Router, appConfig *configs.Config, userService s
 		if err != nil {
 			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusInternalServerError, Message: "Something went wrong"})
 		}
+
+		// Best-effort analytics log; rotation means the user is active today.
+		_ = authLogService.RecordRefresh(c.RequestCtx(), user.ID)
 
 		c.Cookie(&fiber.Cookie{
 			Name:     "access_token",

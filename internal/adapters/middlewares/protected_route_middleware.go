@@ -8,13 +8,14 @@ import (
 	contextkeys "github.com/CSKU-Lab/main-server/context_keys"
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
 	"github.com/CSKU-Lab/main-server/domain/models"
+	"github.com/CSKU-Lab/main-server/domain/services"
 	"github.com/CSKU-Lab/main-server/infrastructure/auth"
 	"github.com/CSKU-Lab/main-server/internal/converter"
 	"github.com/gofiber/fiber/v3"
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func ProtectedRouteMiddleware(secret string) func(fiber.Ctx) error {
+func ProtectedRouteMiddleware(secret string, userActivityService services.UserActivityService) func(fiber.Ctx) error {
 	return func(c fiber.Ctx) error {
 		accessToken := c.Cookies("access_token")
 
@@ -57,6 +58,13 @@ func ProtectedRouteMiddleware(secret string) func(fiber.Ctx) error {
 				ProfileImage: claims.ProfileImage,
 				Roles:        roleSlice,
 			})
+
+			// Update last_seen off the request path. Fire-and-forget with a
+			// detached context so it survives the response and never adds
+			// latency or fails the request; it feeds the "currently active" count.
+			go func(userID string) {
+				_ = userActivityService.Touch(context.Background(), userID)
+			}(claims.Subject)
 
 			return c.Next()
 		}

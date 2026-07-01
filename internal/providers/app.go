@@ -55,6 +55,8 @@ func NewFiberApp(
 	playgroundHandler *rest.PlaygroundHandler,
 	typingSubRepo repositories.TypingSubmissionRepository,
 	inputSubmissionService services.InputSubmissionService,
+	authLogService services.AuthLogService,
+	userActivityService services.UserActivityService,
 ) *fiber.App {
 	app := fiber.New(fiber.Config{
 		ErrorHandler: errMiddleware.ErrorHandler,
@@ -81,7 +83,7 @@ func NewFiberApp(
 
 	api := app.Group("/api/v1")
 
-	rest.NewAuthRouter(api, cfg, userService, refreshTokenService)
+	rest.NewAuthRouter(api, cfg, userService, refreshTokenService, authLogService)
 
 	rest.NewInternalRouter(&rest.InternalRouter{
 		Router:          api,
@@ -92,7 +94,7 @@ func NewFiberApp(
 		Queue:           q,
 	})
 
-	protectedApi := api.Group("/", middlewares.ProtectedRouteMiddleware(cfg.JWTSecret))
+	protectedApi := api.Group("/", middlewares.ProtectedRouteMiddleware(cfg.JWTSecret, userActivityService))
 
 	rest.NewPlaygroundRouter(protectedApi, playgroundHandler)
 

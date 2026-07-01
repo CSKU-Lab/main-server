@@ -104,6 +104,14 @@ func NewAnalyticsRepository(db *sqlx.DB) repositories.AnalyticsRepository {
 	return sqlxAdapter.NewAnalyticsRepository(db)
 }
 
+func NewAuthLogRepository(db *sqlx.DB) repositories.AuthLogRepository {
+	return sqlxAdapter.NewAuthLogRepository(db)
+}
+
+func NewUserActivityRepository(db *sqlx.DB) repositories.UserActivityRepository {
+	return sqlxAdapter.NewUserActivityRepository(db)
+}
+
 var RepositorySet = wire.NewSet(
 	sqlxAdapter.NewUoWRepository,
 	NewUserRepository,
@@ -136,4 +144,6 @@ var RepositorySet = wire.NewSet(
 	NewSearchRepository,
 	NewSystemSettingsRepository,
 	NewAnalyticsRepository,
+	NewAuthLogRepository,
+	NewUserActivityRepository,
 )

@@ -847,7 +847,7 @@ table "tags" {
 
 enum "action" {
   schema = schema.public
-  values = ["sign-in", "sign-out", "sign-in-failed"]
+  values = ["sign-in", "sign-out", "sign-in-failed", "refresh"]
 }
 
 table "auth_logs" {
@@ -873,6 +873,29 @@ table "auth_logs" {
   }
   index "idx_auth_logs_action_created_at" {
     columns = [column.action, column.created_at]
+  }
+  index "idx_auth_logs_created_at" {
+    columns = [column.created_at]
+  }
+}
+
+table "user_activity" {
+  schema = schema.public
+  column "user_id" {
+    type = uuid
+  }
+  column "last_seen" {
+    type = timestamp
+  }
+  primary_key {
+    columns = [column.user_id]
+  }
+  foreign_key "fk_user_id" {
+    columns     = [column.user_id]
+    ref_columns = [table.users.column.id]
+  }
+  index "idx_user_activity_last_seen" {
+    columns = [column.last_seen]
   }
 }
 

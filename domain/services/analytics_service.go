@@ -30,8 +30,12 @@ func NewAnalyticsService(repo repositories.AnalyticsRepository) AnalyticsService
 
 const topCoursesLimit = 5
 
+// activeWindowMinutes is the trailing window used to count "currently active"
+// users from their last_seen snapshot.
+const activeWindowMinutes = 15
+
 func (s *analyticsService) GetOverview(ctx context.Context, days int) (*AnalyticsOverview, error) {
-	summary, err := s.repo.GetSummary(ctx, days)
+	summary, err := s.repo.GetSummary(ctx, days, activeWindowMinutes)
 	if err != nil {
 		return nil, err
 	}

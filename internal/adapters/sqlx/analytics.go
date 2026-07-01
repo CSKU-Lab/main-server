@@ -18,17 +18,25 @@ func NewAnalyticsRepository(db instance) repositories.AnalyticsRepository {
 // default UTC timezone), so day buckets convert UTC -> Asia/Bangkok before
 // truncating to a local date.
 
-func (r *analyticsRepository) GetSummary(ctx context.Context, days int) (*repositories.AnalyticsSummary, error) {
+func (r *analyticsRepository) GetSummary(ctx context.Context, days int, activeWindowMinutes int) (*repositories.AnalyticsSummary, error) {
 	// active_courses is scoped to the selected window ($1) so it tracks the
 	// dashboard range selector. Pass rate is all-time over graded submissions.
+	//
+	// active_users_today counts distinct users with ANY auth activity today
+	// (sign-in OR refresh) so long-lived sessions that only refresh tokens still
+	// register as daily-active. currently_active_users reads the user_activity
+	// last_seen snapshot within the trailing $2-minute window for a real-time
+	// "online now" count that auth_logs alone can't give.
 	query := `
 		SELECT
 			(SELECT COUNT(*) FROM users) AS total_users,
 			(SELECT COUNT(DISTINCT user_id)
 			   FROM auth_logs
-			  WHERE action = 'sign-in'
-			    AND (created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Bangkok')::date
+			  WHERE (created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Bangkok')::date
 			        = (now() AT TIME ZONE 'Asia/Bangkok')::date) AS active_users_today,
+			(SELECT COUNT(*)
+			   FROM user_activity
+			  WHERE last_seen >= now() - ($2::int || ' minutes')::interval) AS currently_active_users,
 			(SELECT COUNT(*)
 			   FROM submissions
 			  WHERE (created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Bangkok')::date
@@ -44,7 +52,7 @@ func (r *analyticsRepository) GetSummary(ctx context.Context, days int) (*reposi
 	`
 
 	var summary repositories.AnalyticsSummary
-	if err := r.db.GetContext(ctx, &summary, query, days); err != nil {
+	if err := r.db.GetContext(ctx, &summary, query, days, activeWindowMinutes); err != nil {
 		return nil, err
 	}
 	return &summary, nil
@@ -94,7 +102,6 @@ func (r *analyticsRepository) GetActiveUsersPerDay(ctx context.Context, days int
 		FROM series
 		LEFT JOIN auth_logs a
 			ON (a.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Bangkok')::date = series.d
-			AND a.action = 'sign-in'
 		GROUP BY series.d
 		ORDER BY series.d
 	`

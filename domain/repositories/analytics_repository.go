@@ -4,11 +4,12 @@ import "context"
 
 // AnalyticsSummary holds the headline numbers shown in the dashboard cards.
 type AnalyticsSummary struct {
-	TotalUsers       int     `db:"total_users" json:"total_users"`
-	ActiveUsersToday int     `db:"active_users_today" json:"active_users_today"`
-	SubmissionsToday int     `db:"submissions_today" json:"submissions_today"`
-	PassRateOfGraded float64 `db:"pass_rate_of_graded" json:"pass_rate_of_graded"`
-	ActiveCourses    int     `db:"active_courses" json:"active_courses"`
+	TotalUsers           int     `db:"total_users" json:"total_users"`
+	ActiveUsersToday     int     `db:"active_users_today" json:"active_users_today"`
+	CurrentlyActiveUsers int     `db:"currently_active_users" json:"currently_active_users"`
+	SubmissionsToday     int     `db:"submissions_today" json:"submissions_today"`
+	PassRateOfGraded     float64 `db:"pass_rate_of_graded" json:"pass_rate_of_graded"`
+	ActiveCourses        int     `db:"active_courses" json:"active_courses"`
 }
 
 // DailySubmissions is one day's submission counts in the trend chart.
@@ -40,7 +41,7 @@ type CourseCount struct {
 // AnalyticsRepository exposes read-only aggregation queries over existing
 // domain tables. All day buckets are computed in the Asia/Bangkok timezone.
 type AnalyticsRepository interface {
-	GetSummary(ctx context.Context, days int) (*AnalyticsSummary, error)
+	GetSummary(ctx context.Context, days int, activeWindowMinutes int) (*AnalyticsSummary, error)
 	GetSubmissionsPerDay(ctx context.Context, days int) ([]DailySubmissions, error)
 	GetActiveUsersPerDay(ctx context.Context, days int) ([]DailyCount, error)
 	GetSubmissionsByType(ctx context.Context, days int) ([]TypeCount, error)
