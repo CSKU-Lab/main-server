@@ -15,7 +15,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 )
 
-func NewCMSMaterialRoutes(router fiber.Router, materialService services.MaterialService, materialAssetService services.MaterialAssetService, submissionService services.SubmissionService, permService permission.Service) {
+func NewCMSMaterialRoutes(router fiber.Router, materialService services.MaterialService, materialAssetService services.MaterialAssetService, submissionService services.SubmissionService, inputSubmissionService services.InputSubmissionService, permService permission.Service) {
 	materialRouter := router.Group("/courses/:courseID/materials")
 
 	// Create material - instructors and admins only
@@ -163,6 +163,19 @@ func NewCMSMaterialRoutes(router fiber.Router, materialService services.Material
 		courseID := c.Params("courseID")
 		id := c.Params("id")
 		return materialService.DeleteByID(c.RequestCtx(), courseID, id, user.ID)
+	})
+
+	// List input submissions for a document material - instructors and admins only
+	materialRouter.Get("/:id/input-submissions", middlewares.RBACMiddleware([]models.Role{
+		models.ADMIN,
+		models.INSTRUCTOR,
+	}), middlewares.Permission(permService).ForCourse("courseID").CanView(), func(c fiber.Ctx) error {
+		id := c.Params("id")
+		results, err := inputSubmissionService.ListByMaterial(c.RequestCtx(), id)
+		if err != nil {
+			return err
+		}
+		return c.JSON(results)
 	})
 
 	// Upload asset - instructors and admins only

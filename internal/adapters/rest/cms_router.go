@@ -32,6 +32,7 @@ type CMSRouter struct {
 	PermissionService       permission.Service
 	TagService              services.TagService
 	AnalyticsService        services.AnalyticsService
+	InputSubmissionService  services.InputSubmissionService
 }
 
 func NewCMSRouter(r *CMSRouter) {
@@ -39,7 +40,7 @@ func NewCMSRouter(r *CMSRouter) {
 
 	routes.NewCmsSectionRoutes(cmsRouter, r.SectionService, r.SemesterService, r.LabSectionService, r.SectionLogService, r.LabService, r.SubmissionService, r.GradebookExportService, r.TypingExportService, r.PermissionService)
 	routes.NewAdminSemesterRoutes(cmsRouter, r.SemesterService, r.SectionService, r.CourseService)
-	routes.NewCMSMaterialRoutes(cmsRouter, r.MaterialService, r.MaterialAssetService, r.SubmissionService, r.PermissionService)
+	routes.NewCMSMaterialRoutes(cmsRouter, r.MaterialService, r.MaterialAssetService, r.SubmissionService, r.InputSubmissionService, r.PermissionService)
 	routes.NewCMSAffectedEntitiesRoutes(cmsRouter, r.AffectedEntitiesService)
 	routes.NewCMSUserExistancesRoutes(cmsRouter, r.UserService)
 	routes.NewCMSCourseRoutes(cmsRouter, r.CourseService, r.SectionService, r.SemesterService, r.DefaultLabService, r.LabService, r.PermissionService)

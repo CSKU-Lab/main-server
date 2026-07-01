@@ -28,6 +28,7 @@ type CoreRouter struct {
 	PubSub                  pubsub.PubSub
 	PermissionService          permission.Service
 	TypingSubmissionRepository repositories.TypingSubmissionRepository
+	InputSubmissionService     services.InputSubmissionService
 	Secret                     string
 }
 
@@ -96,6 +97,11 @@ func NewCoreRouter(r *CoreRouter) {
 		r.LabSectionService,
 		r.TypingSubmissionRepository,
 		r.Secret,
+	)
+
+	routes.NewCoreInputRoutes(
+		coreRouter,
+		r.InputSubmissionService,
 	)
 
 	routes.NewCoreSearchRoutes(

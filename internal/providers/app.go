@@ -54,6 +54,7 @@ func NewFiberApp(
 	rateLimiter ratelimit.RateLimiter,
 	playgroundHandler *rest.PlaygroundHandler,
 	typingSubRepo repositories.TypingSubmissionRepository,
+	inputSubmissionService services.InputSubmissionService,
 ) *fiber.App {
 	app := fiber.New(fiber.Config{
 		ErrorHandler: errMiddleware.ErrorHandler,
@@ -128,6 +129,7 @@ func NewFiberApp(
 		PermissionService:       permissionService,
 		TagService:              tagService,
 		AnalyticsService:        analyticsService,
+		InputSubmissionService:  inputSubmissionService,
 	})
 
 	coreApi := protectedApi.Group("/", middlewares.RateLimitMiddleware(rateLimiter, 300, time.Minute))
@@ -149,6 +151,7 @@ func NewFiberApp(
 		PubSub:                     rClient,
 		PermissionService:          permissionService,
 		TypingSubmissionRepository: typingSubRepo,
+		InputSubmissionService:     inputSubmissionService,
 		Secret:                     cfg.JWTSecret,
 	})
 

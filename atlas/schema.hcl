@@ -1102,6 +1102,56 @@ table "typing_submissions" {
   }
 }
 
+table "input_submissions" {
+  schema = schema.public
+  column "id" {
+    type    = uuid
+    default = sql("gen_random_uuid()")
+  }
+  column "user_id" {
+    type = uuid
+  }
+  column "node_id" {
+    type = uuid
+  }
+  column "document_material_id" {
+    type = uuid
+  }
+  column "lab_id" {
+    type = uuid
+  }
+  column "section_id" {
+    type = uuid
+    null = true
+  }
+  column "value" {
+    type = text
+  }
+  column "passed" {
+    type = bool
+  }
+  column "score" {
+    type    = int
+    default = 0
+  }
+  column "created_at" {
+    type    = timestamptz
+    default = sql("now()")
+  }
+  primary_key {
+    columns = [column.id]
+  }
+  foreign_key "fk_user_id" {
+    columns     = [column.user_id]
+    ref_columns = [table.users.column.id]
+  }
+  foreign_key "fk_document_material_id" {
+    columns     = [column.document_material_id]
+    ref_columns = [table.materials.column.id]
+    on_delete   = CASCADE
+  }
+}
+
 table "system_settings" {
   schema = schema.public
   column "key" {

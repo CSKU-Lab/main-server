@@ -60,6 +60,10 @@ func NewTypingSubmissionRepository(db *sqlx.DB) repositories.TypingSubmissionRep
 	return sqlxAdapter.NewTypingSubmissionRepository(db)
 }
 
+func NewInputSubmissionRepository(db *sqlx.DB) repositories.InputSubmissionRepository {
+	return sqlxAdapter.NewInputSubmissionRepository(db)
+}
+
 func NewSqlxLabRepository(db *sqlx.DB) repositories.LabRepository {
 	return sqlxAdapter.NewSqlxLabRepository(db)
 }
@@ -121,6 +125,7 @@ var RepositorySet = wire.NewSet(
 	sqlxAdapter.NewCodeMaterialRepository,
 	sqlxAdapter.NewTypingMaterialRepository,
 	NewTypingSubmissionRepository,
+	NewInputSubmissionRepository,
 	NewSqlxLabRepository,
 	NewSqlxLabSectionRepository,
 	NewSqlxLabMaterialRepository,

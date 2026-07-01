@@ -43,6 +43,11 @@ func sumEmbeddedCodeScores(nodes []tiptapNode) int {
 				total += int(score)
 			}
 		}
+		if node.Type == "inputEmbed" {
+			if score, ok := node.Attrs["score"].(float64); ok {
+				total += int(score)
+			}
+		}
 		total += sumEmbeddedCodeScores(node.Content)
 	}
 	return total
