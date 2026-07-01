@@ -1,3 +1,10 @@
+# [0.33.0](https://github.com/CSKU-Lab/main-server/compare/v0.32.0...v0.33.0) (2026-07-01)
+
+
+### Features
+
+* inline input embed for document materials (CS-212) ([2690bc4](https://github.com/CSKU-Lab/main-server/commit/2690bc4905b905c9aaf0446cb1b16973b9d54d8d))
+
 # [0.32.0](https://github.com/CSKU-Lab/main-server/compare/v0.31.0...v0.32.0) (2026-06-30)
 
 
