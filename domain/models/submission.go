@@ -25,6 +25,15 @@ type Submission struct {
 	Payload   any              `json:"payload"`
 }
 
+// SubmissionStatusEvent is the payload published on the redis
+// "submissions:update:<id>" channel by the submission worker and consumed by
+// the SSE Listen stream. Carrying the overview payload inline lets the stream
+// forward it to the client without an extra read-after-write DB query.
+type SubmissionStatusEvent struct {
+	Status  SubmissionStatus `json:"status"`
+	Payload any              `json:"payload,omitempty"`
+}
+
 type RawSubmission struct {
 	ID         string           `json:"id"`
 	UserID     string           `json:"user_id"`

@@ -235,8 +235,7 @@ func processOutboxRecord(ctx context.Context, deps *outboxDeps, subPayload *noti
 				return err
 			}
 
-			err = deps.rClient.Publish(ctx, channel, string(models.QUEUED))
-			if err != nil {
+			if err := publishStatusEvent(ctx, deps, channel, status, nil); err != nil {
 				return err
 			}
 		}
@@ -251,8 +250,7 @@ func processOutboxRecord(ctx context.Context, deps *outboxDeps, subPayload *noti
 				return err
 			}
 
-			err = deps.rClient.Publish(ctx, channel, string(models.RUNNING))
-			if err != nil {
+			if err := publishStatusEvent(ctx, deps, channel, status, nil); err != nil {
 				return err
 			}
 		}
@@ -262,6 +260,36 @@ func processOutboxRecord(ctx context.Context, deps *outboxDeps, subPayload *noti
 	if err != nil {
 		deps.logger.Errorln("Cannot consume grade result message", "error", err)
 		return
+	}
+
+	var status models.SubmissionStatus
+	if result.Status == models.CODE_EXECUTION_RUN_FAILED {
+		status = models.FAILED
+	} else {
+		status = models.PASSED
+	}
+
+	// Overview stats computed from the in-memory grade result. Carrying them in
+	// the status event lets the SSE stream forward them without a read-after-write
+	// query against code_submission.
+	overview := overviewFromResult(result)
+
+	autoScore := int(result.Score)
+	err = deps.submissionRepo.Update(ctx, &repositories.UpdateSubmissionRequest{
+		ID:        subPayload.SubmissionID,
+		Status:    &status,
+		AutoScore: &autoScore,
+	})
+	if err != nil {
+		deps.logger.Errorln("Cannot update submission status", "error", err)
+		return
+	}
+
+	// Publish the terminal status before persisting the (heavy) test-case detail
+	// so the student sees passed/failed immediately. The detail write below is off
+	// the critical path — the event already carries the overview counts.
+	if err := publishStatusEvent(ctx, deps, channel, status, overview); err != nil {
+		deps.logger.Errorln("Cannot publish final submission status", "error", err)
 	}
 
 	err = deps.codeSubmissionRepo.Update(ctx, &repositories.UpdateCodeSubmissionPayload{
@@ -275,28 +303,36 @@ func processOutboxRecord(ctx context.Context, deps *outboxDeps, subPayload *noti
 		deps.logger.Errorln("Cannot update code submission result", "error", err)
 		return
 	}
+}
 
-	var status models.SubmissionStatus
-	if result.Status == models.CODE_EXECUTION_RUN_FAILED {
-		status = models.FAILED
-	} else {
-		status = models.PASSED
+// publishStatusEvent publishes a SubmissionStatusEvent as JSON on the given
+// redis channel. payload may be nil for non-terminal (queued/running) states.
+func publishStatusEvent(ctx context.Context, deps *outboxDeps, channel string, status models.SubmissionStatus, payload any) error {
+	event := models.SubmissionStatusEvent{
+		Status:  status,
+		Payload: payload,
 	}
-
-	autoScore := int(result.Score)
-	err = deps.submissionRepo.Update(ctx, &repositories.UpdateSubmissionRequest{
-		ID:        subPayload.SubmissionID,
-		Status:    &status,
-		AutoScore: &autoScore,
-	})
+	body, err := json.Marshal(event)
 	if err != nil {
-		deps.logger.Errorln("Cannot update submission status", "error", err)
-		return
+		return err
 	}
+	return deps.rClient.Publish(ctx, channel, string(body))
+}
 
-	err = deps.rClient.Publish(ctx, channel, string(status))
-	if err != nil {
-		deps.logger.Errorln("Cannot publish final submission status", "error", err)
-		return
+// overviewFromResult derives the passed/total test-case counts from an
+// in-memory grade result, avoiding a DB round-trip.
+func overviewFromResult(result *models.GradeResult) models.CodeSubmissionOverviewPayload {
+	passed, total := 0, 0
+	for _, group := range result.TestCaseGroupResults {
+		total += len(group.Results)
+		for _, tc := range group.Results {
+			if tc.Status == models.CODE_EXECUTION_RUN_PASSED {
+				passed++
+			}
+		}
+	}
+	return models.CodeSubmissionOverviewPayload{
+		TotalTestCases:  total,
+		PassedTestCases: passed,
 	}
 }

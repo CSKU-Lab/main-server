@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -506,19 +507,22 @@ func (s *submissionService) Listen(ctx context.Context, submissionID string) (<-
 		}
 
 		for msg := range msgs {
-			stats := handler.GetOverviewStatsByID(ctx, submissionID)
-			status := models.SubmissionStatus(string(msg))
+			var event models.SubmissionStatusEvent
+			if err := json.Unmarshal(msg, &event); err != nil {
+				s.logger.Errorw("Cannot unmarshal submission status event", "error", err, "submission_id", submissionID)
+				continue
+			}
 
 			response := &models.Submission{
 				ID:        submissionID,
-				Status:    status,
+				Status:    event.Status,
 				CreatedAt: repoSubmission.CreatedAt,
-				Payload:   stats,
+				Payload:   event.Payload,
 			}
 
 			subChan <- response
 
-			if status == models.FAILED || status == models.PASSED {
+			if event.Status == models.FAILED || event.Status == models.PASSED {
 				return
 			}
 		}
