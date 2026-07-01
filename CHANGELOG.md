@@ -1,3 +1,10 @@
+## [0.34.1](https://github.com/CSKU-Lab/main-server/compare/v0.34.0...v0.34.1) (2026-07-01)
+
+
+### Performance Improvements
+
+* **submission:** cut grade→student status latency ([6bd0e67](https://github.com/CSKU-Lab/main-server/commit/6bd0e6703993c59bcf286e0d144e0284e007600a))
+
 # [0.34.0](https://github.com/CSKU-Lab/main-server/compare/v0.33.0...v0.34.0) (2026-07-01)
 
 
