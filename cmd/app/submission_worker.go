@@ -104,13 +104,20 @@ func startSubmissionWorker(ctx context.Context, logger *zap.SugaredLogger, db *s
 
 	for msg := range msgs {
 		go func(m []byte) {
-			var subPayload notiPayload
-			err = json.Unmarshal(m, &subPayload)
+			// The notify channel carries the outbox row id only (the payload can
+			// exceed pg_notify's 8000-byte cap), so fetch the persisted row here.
+			id := string(m)
+			record, err := deps.codeSubmissionOutboxRepo.Get(ctx, id)
 			if err != nil {
-				logger.Errorln("Cannot unmarshal code submission outbox message", "error", err)
+				logger.Errorln("Cannot load code submission outbox record", "id", id, "error", err)
 				return
 			}
-			processOutboxRecord(ctx, deps, &subPayload)
+			processOutboxRecord(ctx, deps, &notiPayload{
+				ID:           record.ID,
+				SubmissionID: record.SubmissionID,
+				IsSent:       record.IsSent,
+				Payload:      record.Payload,
+			})
 		}(msg)
 	}
 }

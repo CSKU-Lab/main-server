@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"sync"
 
 	contextkeys "github.com/CSKU-Lab/main-server/context_keys"
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
@@ -1030,6 +1031,10 @@ func (s *submissionService) DeleteSubmission(ctx context.Context, submissionID s
 	return s.repo.Delete(ctx, submissionID)
 }
 
+// regradeConcurrency caps how many submissions a single "regrade all" request
+// queues in parallel, bounding the DB connection pressure from one section.
+const regradeConcurrency = 10
+
 func (s *submissionService) RegradeByMaterial(ctx context.Context, sectionID, labID, materialID string) error {
 	mat, err := s.materialRepo.GetByID(ctx, materialID)
 	if err != nil {
@@ -1050,55 +1055,73 @@ func (s *submissionService) RegradeByMaterial(ctx context.Context, sectionID, la
 	}
 
 	// Detach from the request context: the HTTP handler returns 202 immediately,
-	// after which Fiber recycles the underlying *fasthttp.RequestCtx. These
-	// goroutines outlive the request, so using the request ctx would make every
-	// DB op run against a cancelled/recycled context and silently fail.
-	// WithoutCancel keeps request values (tracing, etc.) but drops the deadline.
-	bgCtx := context.WithoutCancel(ctx)
+	// after which Fiber recycles the underlying *fasthttp.RequestCtx and reuses it
+	// for the next request. These goroutines outlive the request, so anything still
+	// referencing that ctx (even via context.WithoutCancel, whose Value/Deadline
+	// still delegate to the recycled parent) reads reset/foreign state — a data
+	// race. Use a fresh background context, matching the detach pattern used
+	// elsewhere in the codebase.
+	bgCtx := context.Background()
 
-	for _, sub := range submissions {
-		sub := sub
-		go func() {
-			codeSub, err := s.codeSubmissionRepo.Get(bgCtx, sub.ID)
-			if err != nil {
-				s.logger.Errorw("regrade: failed to load code submission",
-					"submissionID", sub.ID, "materialID", materialID, "error", err)
-				return
-			}
-			if codeSub.RunnerID == nil || *codeSub.RunnerID == "" {
-				return
-			}
+	// Fan out under a bounded pool so a large section (hundreds of students) can't
+	// open one DB transaction per submission at once and exhaust the connection
+	// pool. The whole fan-out runs in a detached goroutine so the handler still
+	// returns immediately; concurrency is capped inside.
+	go func() {
+		sem := make(chan struct{}, regradeConcurrency)
+		var wg sync.WaitGroup
 
-			id, err := uuid.NewV7()
-			if err != nil {
-				s.logger.Errorw("regrade: failed to generate id",
-					"submissionID", sub.ID, "materialID", materialID, "error", err)
-				return
-			}
+		for _, sub := range submissions {
+			sub := sub
+			sem <- struct{}{}
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				defer func() { <-sem }()
 
-			queued := models.QUEUED
-			gradePayload := &models.GradeExecution{
-				ID:              id.String(),
-				Files:           codeSub.Files,
-				RunnerID:        *codeSub.RunnerID,
-				TaskID:          codeMat.TaskID,
-				CompareScriptID: s.systemSettingsService.GetDefaultCompareScriptID(bgCtx),
-			}
-
-			if err := s.uowRepo.Execute(bgCtx, func(u repositories.UoWInstance) error {
-				if err := u.Submission().Update(bgCtx, &repositories.UpdateSubmissionRequest{
-					ID:     sub.ID,
-					Status: &queued,
-				}); err != nil {
-					return err
+				codeSub, err := s.codeSubmissionRepo.Get(bgCtx, sub.ID)
+				if err != nil {
+					s.logger.Errorw("regrade: failed to load code submission",
+						"submissionID", sub.ID, "materialID", materialID, "error", err)
+					return
 				}
-				return u.CodeSubmissionOutbox().Create(bgCtx, id.String(), sub.ID, gradePayload)
-			}); err != nil {
-				s.logger.Errorw("regrade: failed to queue submission",
-					"submissionID", sub.ID, "materialID", materialID, "error", err)
-			}
-		}()
-	}
+				if codeSub.RunnerID == nil || *codeSub.RunnerID == "" {
+					return
+				}
+
+				id, err := uuid.NewV7()
+				if err != nil {
+					s.logger.Errorw("regrade: failed to generate id",
+						"submissionID", sub.ID, "materialID", materialID, "error", err)
+					return
+				}
+
+				queued := models.QUEUED
+				gradePayload := &models.GradeExecution{
+					ID:              id.String(),
+					Files:           codeSub.Files,
+					RunnerID:        *codeSub.RunnerID,
+					TaskID:          codeMat.TaskID,
+					CompareScriptID: s.systemSettingsService.GetDefaultCompareScriptID(bgCtx),
+				}
+
+				if err := s.uowRepo.Execute(bgCtx, func(u repositories.UoWInstance) error {
+					if err := u.Submission().Update(bgCtx, &repositories.UpdateSubmissionRequest{
+						ID:     sub.ID,
+						Status: &queued,
+					}); err != nil {
+						return err
+					}
+					return u.CodeSubmissionOutbox().Create(bgCtx, id.String(), sub.ID, gradePayload)
+				}); err != nil {
+					s.logger.Errorw("regrade: failed to queue submission",
+						"submissionID", sub.ID, "materialID", materialID, "error", err)
+				}
+			}()
+		}
+
+		wg.Wait()
+	}()
 
 	return nil
 }
