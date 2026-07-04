@@ -133,11 +133,31 @@ func (s *submissionService) GetGradebookBySectionID(ctx context.Context, ID stri
 	}
 	labMaterials := make(map[string][]*repositories.Material)
 	// Document materials have no submission of their own — their auto score is
-	// the sum of the embedded code materials' latest scores. Pre-compute the
-	// per-user auto scores once per (lab, document material) so the student loop
-	// below can read them directly instead of looking up a (non-existent) direct
-	// submission. docEmbedAutoScores[labID][materialID][userID] = auto score.
-	docEmbedAutoScores := make(map[string]map[string]map[string]int)
+	// the sum of the embedded code materials' latest scores. Collect each
+	// document material's embedded code material IDs once per (lab, document)
+	// so the student loop can sum their scores from the in-memory index below.
+	// docEmbedIDs[labID][documentMaterialID] = embedded code material IDs.
+	docEmbedIDs := make(map[string]map[string][]string)
+
+	// Fetch every student's latest submission for the whole section in a single
+	// query, then index it in memory. This replaces a per-(student, lab,
+	// material) lookup that previously fired thousands of queries per gradebook.
+	// latest[labID][materialID][userID] = latest submission.
+	allLatest, err := s.repo.GetLatestScoresBySection(ctx, ID)
+	if err != nil {
+		return nil, err
+	}
+	latest := make(map[string]map[string]map[string]*models.RawSubmission)
+	for i := range allLatest {
+		sub := &allLatest[i]
+		if latest[sub.LabID] == nil {
+			latest[sub.LabID] = make(map[string]map[string]*models.RawSubmission)
+		}
+		if latest[sub.LabID][sub.MaterialID] == nil {
+			latest[sub.LabID][sub.MaterialID] = make(map[string]*models.RawSubmission)
+		}
+		latest[sub.LabID][sub.MaterialID][sub.UserID] = sub
+	}
 
 	for _, lab := range labs {
 		labMats, err := s.labMatRepo.GetByLabID(ctx, lab.ID)
@@ -159,15 +179,15 @@ func (s *submissionService) GetGradebookBySectionID(ctx context.Context, ID stri
 			labMaterials[lab.ID] = append(labMaterials[lab.ID], mat)
 
 			if mat.Type == "document" {
-				autoScores, _, _, err := s.docEmbedScores(ctx, mat.ID, ID, lab.ID)
+				embeds, err := s.docMatRepo.GetEmbeddedMaterialIDs(ctx, mat.ID)
 				if err != nil {
 					return nil, err
 				}
-				if autoScores != nil {
-					if docEmbedAutoScores[lab.ID] == nil {
-						docEmbedAutoScores[lab.ID] = make(map[string]map[string]int)
+				if len(embeds) > 0 {
+					if docEmbedIDs[lab.ID] == nil {
+						docEmbedIDs[lab.ID] = make(map[string][]string)
 					}
-					docEmbedAutoScores[lab.ID][mat.ID] = autoScores
+					docEmbedIDs[lab.ID][mat.ID] = embeds
 				}
 			}
 		}
@@ -196,23 +216,18 @@ func (s *submissionService) GetGradebookBySectionID(ctx context.Context, ID stri
 			for _, mat := range labMaterials[lab.ID] {
 				// Document materials: auto score is the sum of embedded code
 				// material scores; there is no direct submission to look up.
-				if userScores, ok := docEmbedAutoScores[lab.ID][mat.ID]; ok {
-					totalAutoScore += userScores[student.ID]
+				if mat.Type == "document" {
+					for _, embedID := range docEmbedIDs[lab.ID][mat.ID] {
+						if sub := latest[lab.ID][embedID][student.ID]; sub != nil {
+							totalAutoScore += sub.AutoScore
+						}
+					}
 					continue
 				}
 
-				submission, err := s.repo.GetLatestOfStudentIDInSectionID(ctx, ID, lab.ID, mat.ID, student.ID)
-				if err != nil {
-					if errors.Is(err, sql.ErrNoRows) {
-						submission = nil
-					} else {
-						return nil, err
-					}
-				}
-
-				if submission != nil {
-					totalManualScore += submission.ManualScore
-					totalAutoScore += submission.AutoScore
+				if sub := latest[lab.ID][mat.ID][student.ID]; sub != nil {
+					totalManualScore += sub.ManualScore
+					totalAutoScore += sub.AutoScore
 				}
 
 			}

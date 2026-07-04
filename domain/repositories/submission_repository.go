@@ -32,6 +32,10 @@ type SubmissionRepository interface {
 	// per (user_id, material_id) for each given material in the section/lab.
 	// Used to aggregate embedded code problem scores into document submissions.
 	GetLatestScoresByMaterialsForSection(ctx context.Context, materialIDs []string, sectionID, labID string) ([]models.RawSubmission, error)
+	// GetLatestScoresBySection returns the latest submission (by order) per
+	// (user_id, lab_id, material_id) across the whole section in one query.
+	// Used by the gradebook to avoid a per-cell lookup.
+	GetLatestScoresBySection(ctx context.Context, sectionID string) ([]models.RawSubmission, error)
 }
 
 type Submission struct {

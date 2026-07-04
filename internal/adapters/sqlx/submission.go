@@ -437,3 +437,39 @@ func (s *submissionRepository) GetLatestScoresByMaterialsForSection(ctx context.
 	}
 	return result, nil
 }
+
+func (s *submissionRepository) GetLatestScoresBySection(ctx context.Context, sectionID string) ([]models.RawSubmission, error) {
+	query := `
+		SELECT DISTINCT ON (user_id, lab_id, material_id)
+			id, user_id, material_id, lab_id, section_id, course_id,
+			status, submission_order, created_at, updated_at,
+			ip_address, manual_score, auto_score
+		FROM submissions
+		WHERE section_id = $1
+		ORDER BY user_id, lab_id, material_id, submission_order DESC
+	`
+
+	rows := []submission{}
+	err := s.db.SelectContext(ctx, &rows, query, sectionID)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]models.RawSubmission, len(rows))
+	for i, row := range rows {
+		result[i] = models.RawSubmission{
+			ID:          row.ID,
+			UserID:      row.UserID,
+			MaterialID:  row.MaterialID,
+			LabID:       row.LabID,
+			Status:      row.Status,
+			Order:       row.Order,
+			CreatedAt:   row.CreatedAt,
+			UpdatedAt:   row.UpdatedAt,
+			IPAddress:   row.IPAddress,
+			ManualScore: row.ManualScore,
+			AutoScore:   row.AutoScore,
+		}
+	}
+	return result, nil
+}
