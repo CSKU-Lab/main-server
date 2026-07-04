@@ -174,7 +174,6 @@ func (s *submissionService) GetGradebookBySectionID(ctx context.Context, ID stri
 				return nil, err
 			}
 
-			totalMaxAutoScore += mat.AutoScore
 			totalMaxManualScore += mat.ManualScore
 			labMaterials[lab.ID] = append(labMaterials[lab.ID], mat)
 
@@ -189,7 +188,31 @@ func (s *submissionService) GetGradebookBySectionID(ctx context.Context, ID stri
 					}
 					docEmbedIDs[lab.ID][mat.ID] = embeds
 				}
+
+				// A document's max auto score is the sum of its embedded code
+				// materials' CURRENT max — the same live source the student
+				// score is aggregated from. The document's own stored auto_score
+				// is a snapshot taken when the document was last saved; it goes
+				// stale when an embedded material's points change afterwards,
+				// making the displayed max lower than a student's real score.
+				for _, embedID := range embeds {
+					embedMat, err := s.materialRepo.GetByID(ctx, embedID)
+					if err != nil {
+						// Embedded material was deleted but still referenced in
+						// the document content — skip it, matching the student
+						// aggregation which simply finds no score for it.
+						var csErr *cserrors.Error
+						if errors.As(err, &csErr) && csErr.HttpStatus == http.StatusNotFound {
+							continue
+						}
+						return nil, err
+					}
+					totalMaxAutoScore += embedMat.AutoScore
+				}
+				continue
 			}
+
+			totalMaxAutoScore += mat.AutoScore
 		}
 
 		res.LabCol = append(res.LabCol, models.LabCol{
