@@ -1,3 +1,10 @@
+## [0.34.2](https://github.com/CSKU-Lab/main-server/compare/v0.34.1...v0.34.2) (2026-07-04)
+
+
+### Performance Improvements
+
+* **gradebook:** batch section submissions into one query ([647f55b](https://github.com/CSKU-Lab/main-server/commit/647f55b664420b9c9270e7f99da77ed6407a728a))
+
 ## [0.34.1](https://github.com/CSKU-Lab/main-server/compare/v0.34.0...v0.34.1) (2026-07-01)
 
 
