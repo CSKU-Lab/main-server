@@ -1,3 +1,10 @@
+## [0.34.3](https://github.com/CSKU-Lab/main-server/compare/v0.34.2...v0.34.3) (2026-07-04)
+
+
+### Bug Fixes
+
+* **gradebook:** compute document max score from live embedded materials ([6946176](https://github.com/CSKU-Lab/main-server/commit/69461765c7800626bb2e520037051a7da7a0e28f))
+
 ## [0.34.2](https://github.com/CSKU-Lab/main-server/compare/v0.34.1...v0.34.2) (2026-07-04)
 
 
