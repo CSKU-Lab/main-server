@@ -1,3 +1,10 @@
+## [0.34.4](https://github.com/CSKU-Lab/main-server/compare/v0.34.3...v0.34.4) (2026-07-05)
+
+
+### Bug Fixes
+
+* **regrade:** harden background grade dispatch ([c351fb6](https://github.com/CSKU-Lab/main-server/commit/c351fb6e35718c16b3d2b4ca85c51621e2c96f1a))
+
 ## [0.34.3](https://github.com/CSKU-Lab/main-server/compare/v0.34.2...v0.34.3) (2026-07-04)
 
 
