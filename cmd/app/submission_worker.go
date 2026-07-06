@@ -80,7 +80,7 @@ func startSubmissionWorker(ctx context.Context, logger *zap.SugaredLogger, db *s
 
 	logger.Infoln("Submission Worker running...")
 
-	unsentRecords, err := codeSubmissionOutboxRepo.GetUnsent(ctx, 100, 2*time.Minute)
+	unsentRecords, err := codeSubmissionOutboxRepo.GetUnsent(ctx, 100, outboxClaimStaleAfter)
 	if err != nil {
 		logger.Errorln("Failed to fetch unsent outbox records", "error", err)
 	} else if len(unsentRecords) > 0 {
@@ -132,7 +132,7 @@ func startReconciliationTicker(ctx context.Context, deps *outboxDeps) {
 			return
 		case <-ticker.C:
 			deps.logger.Infoln("Reconciliation: scanning for unsent outbox records...")
-			unsentRecords, err := deps.codeSubmissionOutboxRepo.GetUnsent(ctx, 100, 2*time.Minute)
+			unsentRecords, err := deps.codeSubmissionOutboxRepo.GetUnsent(ctx, 100, outboxClaimStaleAfter)
 			if err != nil {
 				deps.logger.Errorln("Reconciliation: failed to fetch unsent records", "error", err)
 				continue
@@ -153,7 +153,32 @@ func startReconciliationTicker(ctx context.Context, deps *outboxDeps) {
 	}
 }
 
+// outboxClaimStaleAfter bounds how long a claim is held before another instance
+// may reclaim it. Must exceed the worst-case grade wall-time (isolate wall-time
+// * test cases) so a live grade is never reclaimed mid-flight, yet be short
+// enough that a dead consumer's record is retried promptly.
+const outboxClaimStaleAfter = 5 * time.Minute
+
 func processOutboxRecord(ctx context.Context, deps *outboxDeps, subPayload *notiPayload) {
+	// Claim BEFORE publishing so exactly one instance publishes the grade and
+	// consumes the result. Previously every replica that received the notify
+	// published a (duplicate) grade and only the TryMarkSent winner consumed;
+	// worse, is_sent was set at publish time, so if that consumer dropped during
+	// a long grade the terminal result was orphaned and the submission stuck in
+	// RUNNING forever. Now is_sent is set only after the terminal result lands
+	// (MarkSent below); an abandoned claim is retried by reconciliation once it
+	// goes stale.
+	claimed, err := deps.codeSubmissionOutboxRepo.ClaimForProcessing(ctx, subPayload.ID, outboxClaimStaleAfter)
+	if err != nil {
+		deps.logger.Errorln("Cannot claim code submission outbox record", "id", subPayload.ID, "error", err)
+		return
+	}
+	if !claimed {
+		// Another instance owns the in-flight claim, or the record is already
+		// sent / dead-lettered. Nothing to do.
+		return
+	}
+
 	qName, err := deps.q.CreateQueue(ctx, "grade_result-"+subPayload.ID, &queue.QueueOptions{
 		AutoDelete: true,
 	})
@@ -161,7 +186,6 @@ func processOutboxRecord(ctx context.Context, deps *outboxDeps, subPayload *noti
 		deps.logger.Warnw("Cannot create grade result queue, attempting reconnect", "error", err)
 		if reconnErr := deps.reconnectQueue(); reconnErr != nil {
 			deps.logger.Errorln("Cannot reconnect to RabbitMQ", "error", reconnErr)
-			deps.codeSubmissionOutboxRepo.IncrementRetry(ctx, subPayload.ID)
 			return
 		}
 		qName, err = deps.q.CreateQueue(ctx, "grade_result-"+subPayload.ID, &queue.QueueOptions{
@@ -169,7 +193,6 @@ func processOutboxRecord(ctx context.Context, deps *outboxDeps, subPayload *noti
 		})
 		if err != nil {
 			deps.logger.Errorln("Cannot create grade result queue after reconnect", "error", err)
-			deps.codeSubmissionOutboxRepo.IncrementRetry(ctx, subPayload.ID)
 			return
 		}
 	}
@@ -184,7 +207,6 @@ func processOutboxRecord(ctx context.Context, deps *outboxDeps, subPayload *noti
 		deps.logger.Warnw("Cannot publish grade request message, attempting reconnect", "error", err)
 		if reconnErr := deps.reconnectQueue(); reconnErr != nil {
 			deps.logger.Errorln("Cannot reconnect to RabbitMQ", "error", reconnErr)
-			deps.codeSubmissionOutboxRepo.IncrementRetry(ctx, subPayload.ID)
 			return
 		}
 		qName, err = deps.q.CreateQueue(ctx, "grade_result-"+subPayload.ID, &queue.QueueOptions{
@@ -192,7 +214,6 @@ func processOutboxRecord(ctx context.Context, deps *outboxDeps, subPayload *noti
 		})
 		if err != nil {
 			deps.logger.Errorln("Cannot re-create grade result queue after reconnect", "error", err)
-			deps.codeSubmissionOutboxRepo.IncrementRetry(ctx, subPayload.ID)
 			return
 		}
 		err = deps.q.Publish(ctx, "", "grade", &queue.Derivery{
@@ -203,18 +224,8 @@ func processOutboxRecord(ctx context.Context, deps *outboxDeps, subPayload *noti
 		})
 		if err != nil {
 			deps.logger.Errorln("Cannot publish grade request message after reconnect", "error", err)
-			deps.codeSubmissionOutboxRepo.IncrementRetry(ctx, subPayload.ID)
 			return
 		}
-	}
-
-	marked, err := deps.codeSubmissionOutboxRepo.TryMarkSent(ctx, subPayload.ID)
-	if err != nil {
-		deps.logger.Errorln("Cannot mark code submission outbox as sent", "error", err)
-	}
-	if !marked {
-		deps.logger.Warnf("Outbox record %s was already marked as sent by another instance, skipping result consumption", subPayload.ID)
-		return
 	}
 
 	channel := fmt.Sprintf("submissions:update:%s", subPayload.SubmissionID)
@@ -309,6 +320,13 @@ func processOutboxRecord(ctx context.Context, deps *outboxDeps, subPayload *noti
 	if err != nil {
 		deps.logger.Errorln("Cannot update code submission result", "error", err)
 		return
+	}
+
+	// Terminal result consumed and persisted — mark done. Only now is it safe to
+	// set is_sent; any earlier failure leaves the claim reclaimable so the grade
+	// result is never orphaned.
+	if err := deps.codeSubmissionOutboxRepo.MarkSent(ctx, subPayload.ID); err != nil {
+		deps.logger.Errorln("Cannot mark code submission outbox as sent", "id", subPayload.ID, "error", err)
 	}
 }
 
