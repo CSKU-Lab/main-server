@@ -74,7 +74,10 @@ func (c *codeSubmissionOutboxRepository) Delete(ctx context.Context, id string) 
 }
 
 func (c *codeSubmissionOutboxRepository) GetUnsent(ctx context.Context, limit int, olderThan time.Duration) ([]*repositories.CodeSubmissionOutboxPayload, error) {
-	query := `SELECT * FROM code_submissions_outbox WHERE is_sent = false AND retry_count < 3 AND created_at < NOW() - ($1 || ' seconds')::interval ORDER BY created_at ASC LIMIT $2`
+	// Surface records not attempted within olderThan (last_attempt_at, NULL for
+	// never-attempted) so reconciliation retries claims whose consumer died, not
+	// just brand-new records.
+	query := `SELECT * FROM code_submissions_outbox WHERE is_sent = false AND retry_count < 3 AND (last_attempt_at IS NULL OR last_attempt_at < NOW() - ($1 || ' seconds')::interval) ORDER BY created_at ASC LIMIT $2`
 
 	var records []codeSubmissionOutboxRecord
 	err := c.db.SelectContext(ctx, &records, query, int(olderThan.Seconds()), limit)
@@ -96,10 +99,17 @@ func (c *codeSubmissionOutboxRepository) GetUnsent(ctx context.Context, limit in
 	return result, nil
 }
 
-func (c *codeSubmissionOutboxRepository) TryMarkSent(ctx context.Context, id string) (bool, error) {
-	query := `UPDATE code_submissions_outbox SET is_sent = true, last_attempt_at = NOW() WHERE id = $1 AND is_sent = false`
+// ClaimForProcessing atomically claims an unsent, not-dead-lettered record that
+// has not been attempted within staleAfter. Exactly one instance wins; it bumps
+// retry_count + last_attempt_at so a claim whose consumer dies is reclaimable
+// after staleAfter instead of orphaning the grade result.
+func (c *codeSubmissionOutboxRepository) ClaimForProcessing(ctx context.Context, id string, staleAfter time.Duration) (bool, error) {
+	query := `UPDATE code_submissions_outbox
+		SET retry_count = retry_count + 1, last_attempt_at = NOW()
+		WHERE id = $1 AND is_sent = false AND retry_count < 3
+		  AND (last_attempt_at IS NULL OR last_attempt_at < NOW() - ($2 || ' seconds')::interval)`
 
-	res, err := c.db.ExecContext(ctx, query, id)
+	res, err := c.db.ExecContext(ctx, query, id, int(staleAfter.Seconds()))
 	if err != nil {
 		return false, err
 	}
@@ -110,6 +120,14 @@ func (c *codeSubmissionOutboxRepository) TryMarkSent(ctx context.Context, id str
 	}
 
 	return rowsAffected > 0, nil
+}
+
+// MarkSent marks a record done. Call ONLY after the terminal grade result has
+// been consumed and the submission status persisted.
+func (c *codeSubmissionOutboxRepository) MarkSent(ctx context.Context, id string) error {
+	query := `UPDATE code_submissions_outbox SET is_sent = true, last_attempt_at = NOW() WHERE id = $1`
+	_, err := c.db.ExecContext(ctx, query, id)
+	return err
 }
 
 func (c *codeSubmissionOutboxRepository) IncrementRetry(ctx context.Context, id string) error {

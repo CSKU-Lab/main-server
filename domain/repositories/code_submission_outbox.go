@@ -13,7 +13,16 @@ type CodeSubmissionOutboxRepository interface {
 	Get(ctx context.Context, id string) (*CodeSubmissionOutboxPayload, error)
 	Delete(ctx context.Context, id string) error
 	GetUnsent(ctx context.Context, limit int, olderThan time.Duration) ([]*CodeSubmissionOutboxPayload, error)
-	TryMarkSent(ctx context.Context, id string) (bool, error)
+	// ClaimForProcessing atomically claims a record for one worker instance:
+	// it succeeds for exactly one caller while the record is unsent, not yet
+	// dead-lettered (retry_count < 3), and not claimed within staleAfter. It
+	// bumps retry_count and last_attempt_at so a claim whose consumer dies
+	// becomes reclaimable after staleAfter (the grade result is otherwise
+	// orphaned). Only the claimer publishes the grade and consumes the result.
+	ClaimForProcessing(ctx context.Context, id string, staleAfter time.Duration) (bool, error)
+	// MarkSent marks a record done — call ONLY after the terminal grade result
+	// has been consumed and the submission status persisted.
+	MarkSent(ctx context.Context, id string) error
 	IncrementRetry(ctx context.Context, id string) error
 }
 
