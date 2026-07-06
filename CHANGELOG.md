@@ -1,3 +1,10 @@
+## [0.34.5](https://github.com/CSKU-Lab/main-server/compare/v0.34.4...v0.34.5) (2026-07-06)
+
+
+### Bug Fixes
+
+* **submission:** claim outbox before publish; mark sent only after terminal ([a3f79f3](https://github.com/CSKU-Lab/main-server/commit/a3f79f37bf85929158cdace0927392c5d22ee377))
+
 ## [0.34.4](https://github.com/CSKU-Lab/main-server/compare/v0.34.3...v0.34.4) (2026-07-05)
 
 
