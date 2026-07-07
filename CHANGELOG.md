@@ -1,3 +1,10 @@
+## [0.34.6](https://github.com/CSKU-Lab/main-server/compare/v0.34.5...v0.34.6) (2026-07-07)
+
+
+### Bug Fixes
+
+* **submissions:** show compare feedback to students on hidden test cases ([4245931](https://github.com/CSKU-Lab/main-server/commit/4245931951e716b3d273cc52214c04e54aecd51a))
+
 ## [0.34.5](https://github.com/CSKU-Lab/main-server/compare/v0.34.4...v0.34.5) (2026-07-06)
 
 
