@@ -52,9 +52,14 @@ func testCaseVisibilityByID(task *taskPB.TaskResponse) testCaseVisibility {
 // studentTestCaseResult projects a stored grader result into the student-facing
 // view, honoring the creator's per-test-case hide flags. The output column shows
 // the task's expected output (never the student's raw stdout, which could echo a
-// hidden input). The message — which carries raw stdout / compare diffs on
-// non-passing runs — is withheld whenever input or output is hidden, since it
-// would otherwise leak the very value the creator chose to hide.
+// hidden input).
+//
+// The message depends on status: on RUN_FAILED it is the compare script's
+// output — instructor-authored feedback meant for the student, so it is always
+// surfaced regardless of the hide flags. On every other non-passing status
+// (TLE/MLE/runtime/signal/compile/grader) the message is raw stdout or grader
+// output, which can leak a hidden input, so it is withheld whenever input or
+// output is hidden.
 func (v testCaseVisibility) studentTestCaseResult(tc models.TestCaseResult) models.TestCaseResult {
 	result := models.TestCaseResult{
 		ID:       tc.ID,
@@ -68,7 +73,10 @@ func (v testCaseVisibility) studentTestCaseResult(tc models.TestCaseResult) mode
 	if !v.hideOutput[tc.ID] {
 		result.Output = v.expectedOutput[tc.ID]
 	}
-	if !v.hideInput[tc.ID] && !v.hideOutput[tc.ID] {
+	if tc.Status == models.CODE_EXECUTION_RUN_FAILED {
+		// Compare-script output — student-facing feedback, safe even when hidden.
+		result.Message = tc.Message
+	} else if !v.hideInput[tc.ID] && !v.hideOutput[tc.ID] {
 		result.Message = tc.Message
 	}
 	return result

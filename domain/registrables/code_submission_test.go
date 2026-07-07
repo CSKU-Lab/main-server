@@ -334,3 +334,52 @@ func TestStripHiddenSegmentText(t *testing.T) {
 		t.Fatalf("expected unchanged, got: %#v", got)
 	}
 }
+
+func TestStudentTestCaseResultMessageVisibility(t *testing.T) {
+	// A hidden test case: input and output are withheld from students.
+	v := testCaseVisibility{
+		hideInput:      map[string]bool{"tc": true},
+		hideOutput:     map[string]bool{"tc": true},
+		expectedOutput: map[string]string{"tc": "42"},
+	}
+
+	// RUN_FAILED message is compare-script output — instructor feedback that must
+	// reach the student even when the case is hidden.
+	failed := v.studentTestCaseResult(models.TestCaseResult{
+		ID:      "tc",
+		Status:  models.CODE_EXECUTION_RUN_FAILED,
+		Input:   "secret",
+		Message: "expected 42 but got 41",
+	})
+	if failed.Message != "expected 42 but got 41" {
+		t.Fatalf("compare output must be shown on hidden RUN_FAILED, got %q", failed.Message)
+	}
+	if failed.Input != "" {
+		t.Fatalf("hidden input must not leak, got %q", failed.Input)
+	}
+
+	// TLE message is raw stdout — could echo the hidden input, so withhold it.
+	tle := v.studentTestCaseResult(models.TestCaseResult{
+		ID:      "tc",
+		Status:  models.CODE_EXECUTION_TIME_LIMIT_EXCEEDED,
+		Message: "secret\n",
+	})
+	if tle.Message != "" {
+		t.Fatalf("raw stdout must be withheld on hidden TLE, got %q", tle.Message)
+	}
+
+	// When nothing is hidden, the raw-stdout message is shown as before.
+	open := testCaseVisibility{
+		hideInput:      map[string]bool{},
+		hideOutput:     map[string]bool{},
+		expectedOutput: map[string]string{"tc": "42"},
+	}
+	tleOpen := open.studentTestCaseResult(models.TestCaseResult{
+		ID:      "tc",
+		Status:  models.CODE_EXECUTION_TIME_LIMIT_EXCEEDED,
+		Message: "41\n",
+	})
+	if tleOpen.Message != "41\n" {
+		t.Fatalf("message must be shown when nothing hidden, got %q", tleOpen.Message)
+	}
+}
