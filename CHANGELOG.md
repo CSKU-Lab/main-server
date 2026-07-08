@@ -1,3 +1,10 @@
+## [0.34.7](https://github.com/CSKU-Lab/main-server/compare/v0.34.6...v0.34.7) (2026-07-08)
+
+
+### Bug Fixes
+
+* **pubsub:** retry postgres LISTEN reconnect until success ([9811f8d](https://github.com/CSKU-Lab/main-server/commit/9811f8d9848314382b8b56a98dca0c668fdec563))
+
 ## [0.34.6](https://github.com/CSKU-Lab/main-server/compare/v0.34.5...v0.34.6) (2026-07-07)
 
 
