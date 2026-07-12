@@ -92,6 +92,7 @@ type TestCaseResult struct {
 
 type TestCaseGroupResult struct {
 	ID      string           `json:"id"`
+	Name    string           `json:"name"`
 	Score   int32            `json:"score"`
 	Results []TestCaseResult `json:"results"`
 }

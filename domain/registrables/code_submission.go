@@ -152,7 +152,8 @@ type updateCodeSubmissionPayload struct {
 }
 
 type coreTestCaseGroupResult struct {
-	ID      string                `json:"id"`
+	ID      string                  `json:"id"`
+	Name    string                  `json:"name"`
 	Results []models.TestCaseResult `json:"results"`
 }
 
@@ -190,6 +191,7 @@ func reorderTestCaseGroups(groups []models.TestCaseGroupResult, taskGroups []*ta
 
 		ordered = append(ordered, models.TestCaseGroupResult{
 			ID:      tg.GetId(),
+			Name:    tg.GetName(),
 			Score:   tg.GetScore(),
 			Results: orderedResults,
 		})
@@ -442,6 +444,7 @@ func (c *CodeSubmission) Get(ctx context.Context, submissionID string, viewBy st
 		for _, tg := range testCaseGroups {
 			cg := coreTestCaseGroupResult{
 				ID:      tg.ID,
+				Name:    tg.Name,
 				Results: make([]models.TestCaseResult, 0, len(tg.Results)),
 			}
 			for _, tc := range tg.Results {
@@ -516,6 +519,7 @@ func (c *CodeSubmission) GetByIDs(ctx context.Context, submissionIDs []string, v
 			for _, tg := range testCaseGroups {
 				cg := coreTestCaseGroupResult{
 					ID:      tg.ID,
+					Name:    tg.Name,
 					Results: make([]models.TestCaseResult, 0, len(tg.Results)),
 				}
 				for _, tc := range tg.Results {
