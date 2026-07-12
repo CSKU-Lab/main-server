@@ -37,7 +37,7 @@ func (g *googleOauthHandler) GenerateAuthURL() (string, error) {
 		return "", err
 	}
 
-	return g.auth.AuthCodeURL(state), nil
+	return g.auth.AuthCodeURL(state, oauth2.SetAuthURLParam("prompt", "select_account")), nil
 }
 
 func (g *googleOauthHandler) VerifyState(state string) bool {
