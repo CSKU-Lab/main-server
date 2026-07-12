@@ -96,6 +96,7 @@ func initializeApp(ctx context.Context, cfg *configs.Config, db *sqlx.DB, logger
 	documentMaterialRepository := providers.NewDocumentMaterialRepository(db)
 	documentMaterial := registrables.NewDocumentMaterial(documentMaterialRepository, materialRepository)
 	material := providers.NewPopulatedMaterialRegistry(codeMaterial, typingMaterial, documentMaterial)
+	inputSubmissionRepository := providers.NewInputSubmissionRepository(db)
 	pubSub, err := providers.ProvideRedis(cfg)
 	if err != nil {
 		cleanup2()
@@ -103,7 +104,7 @@ func initializeApp(ctx context.Context, cfg *configs.Config, db *sqlx.DB, logger
 		return nil, nil, err
 	}
 	systemSettingsService := services.NewSystemSettingsService(systemSettingsRepository)
-	submissionServiceArgs := providers.NewSubmissionServiceArgs(submissionRepository, materialRepository, uoWRepository, submissionRegistry, sectionStudentRepository, user, material, sectionRepository, labSectionRepository, labMaterialRepository, codeSubmissionRepository, codeMaterialRepository, typingSubmissionRepository, documentMaterialRepository, pubSub, systemSettingsService, logger)
+	submissionServiceArgs := providers.NewSubmissionServiceArgs(submissionRepository, materialRepository, uoWRepository, submissionRegistry, sectionStudentRepository, user, material, sectionRepository, labSectionRepository, labMaterialRepository, codeSubmissionRepository, codeMaterialRepository, typingSubmissionRepository, documentMaterialRepository, inputSubmissionRepository, pubSub, systemSettingsService, logger)
 	submissionService := services.NewSubmissionService(submissionServiceArgs)
 	sidebarService := services.NewSidebarService(courseRepository, sectionStudentRepository, labSectionRepository, labMaterialRepository, submissionService)
 	gradebookExportService := services.NewGradebookExportService(submissionService)
@@ -127,7 +128,6 @@ func initializeApp(ctx context.Context, cfg *configs.Config, db *sqlx.DB, logger
 		return nil, nil, err
 	}
 	playgroundHandler := providers.NewPlaygroundHandler(graderServiceClient)
-	inputSubmissionRepository := providers.NewInputSubmissionRepository(db)
 	inputSubmissionService := services.NewInputSubmissionService(inputSubmissionRepository, documentMaterialRepository, logger)
 	authLogRepository := providers.NewAuthLogRepository(db)
 	authLogService := services.NewAuthLogService(authLogRepository)

@@ -60,6 +60,7 @@ type submissionService struct {
 	codeMatRepo           repositories.CodeMaterialRepository
 	typingSubmissionRepo  repositories.TypingSubmissionRepository
 	docMatRepo            repositories.DocumentMaterialRepository
+	inputSubmissionRepo   repositories.InputSubmissionRepository
 	ps                    pubsub.PubSub
 	systemSettingsService SystemSettingsService
 	logger                *zap.SugaredLogger
@@ -81,6 +82,7 @@ type SubmissionServiceArgs struct {
 	CodeMaterialRepository       repositories.CodeMaterialRepository
 	TypingSubmissionRepository   repositories.TypingSubmissionRepository
 	DocumentMaterialRepository   repositories.DocumentMaterialRepository
+	InputSubmissionRepository    repositories.InputSubmissionRepository
 	PubSub                       pubsub.PubSub
 	SystemSettingsService      SystemSettingsService
 	Logger                     *zap.SugaredLogger
@@ -102,6 +104,7 @@ func NewSubmissionService(args *SubmissionServiceArgs) SubmissionService {
 		codeMatRepo:           args.CodeMaterialRepository,
 		typingSubmissionRepo:  args.TypingSubmissionRepository,
 		docMatRepo:            args.DocumentMaterialRepository,
+		inputSubmissionRepo:   args.InputSubmissionRepository,
 		ps:                    args.PubSub,
 		systemSettingsService: args.SystemSettingsService,
 		logger:                args.Logger,
@@ -160,6 +163,26 @@ func (s *submissionService) GetGradebookBySectionID(ctx context.Context, ID stri
 		latest[sub.LabID][sub.MaterialID][sub.UserID] = sub
 	}
 
+	// Input embed submissions contribute to a document material's auto score.
+	// Fetch every latest input submission for the section once and index the
+	// per-student total per (lab, document material).
+	// inputScores[labID][documentMaterialID][userID] = sum of input node scores.
+	allInput, err := s.inputSubmissionRepo.ListLatestBySection(ctx, ID)
+	if err != nil {
+		return nil, err
+	}
+	inputScores := make(map[string]map[string]map[string]int)
+	for i := range allInput {
+		sub := &allInput[i]
+		if inputScores[sub.LabID] == nil {
+			inputScores[sub.LabID] = make(map[string]map[string]int)
+		}
+		if inputScores[sub.LabID][sub.DocumentMaterialID] == nil {
+			inputScores[sub.LabID][sub.DocumentMaterialID] = make(map[string]int)
+		}
+		inputScores[sub.LabID][sub.DocumentMaterialID][sub.UserID] += sub.Score
+	}
+
 	for _, lab := range labs {
 		labMats, err := s.labMatRepo.GetByLabID(ctx, lab.ID)
 		if err != nil {
@@ -210,6 +233,15 @@ func (s *submissionService) GetGradebookBySectionID(ctx context.Context, ID stri
 					}
 					totalMaxAutoScore += embedMat.AutoScore
 				}
+
+				// Input embed nodes add their configured max score to the document.
+				inputNodes, err := s.docInputNodes(ctx, mat.ID)
+				if err != nil {
+					return nil, err
+				}
+				for _, n := range inputNodes {
+					totalMaxAutoScore += n.Score
+				}
 				continue
 			}
 
@@ -246,6 +278,7 @@ func (s *submissionService) GetGradebookBySectionID(ctx context.Context, ID stri
 							totalAutoScore += sub.AutoScore
 						}
 					}
+					totalAutoScore += inputScores[lab.ID][mat.ID][student.ID]
 					continue
 				}
 
@@ -727,43 +760,75 @@ func (s *submissionService) UpdateManualScore(ctx context.Context, submissionID 
 // perEmbedByUser[userID][embedMaterialID] = that embed's auto_score for the user.
 func (s *submissionService) docEmbedScores(ctx context.Context, materialID, sectionID, labID string) (map[string]int, map[string]models.SubmissionStatus, map[string]map[string]int, error) {
 	embeds, err := s.docMatRepo.GetEmbeddedMaterialIDs(ctx, materialID)
-	if err != nil || len(embeds) == 0 {
-		return nil, nil, nil, nil
-	}
-
-	codeSubmissions, err := s.repo.GetLatestScoresByMaterialsForSection(ctx, embeds, sectionID, labID)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	// Per user: sum of auto_scores and aggregate status across all embedded materials.
+	// Input embed nodes live in the document content, not the embedded-code index.
+	inputNodes, err := s.docInputNodes(ctx, materialID)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	if len(embeds) == 0 && len(inputNodes) == 0 {
+		return nil, nil, nil, nil
+	}
+
+	// Per user: sum of auto_scores and aggregate status across all embedded
+	// code materials and input embed nodes.
 	autoScores := make(map[string]int)
-	// passedCount[userID] = number of embedded materials the user has passed.
+	// passedCount[userID] = number of embeds (code + input) the user has passed.
 	passedCount := make(map[string]int)
-	// submittedMaterials[userID] = set of materialIDs the user has submitted to.
-	submittedMaterials := make(map[string]map[string]bool)
-	// perEmbedByUser[userID][embedMaterialID] = that embed's latest auto_score.
+	// submittedItems[userID] = set of embed keys (materialID or nodeID) submitted.
+	submittedItems := make(map[string]map[string]bool)
+	// perEmbedByUser[userID][embedMaterialID] = that code embed's latest auto_score.
+	// Only code embeds are tracked here; the CMS detail panel keys on material IDs.
 	perEmbedByUser := make(map[string]map[string]int)
 
-	for _, sub := range codeSubmissions {
-		autoScores[sub.UserID] += sub.AutoScore
-		if submittedMaterials[sub.UserID] == nil {
-			submittedMaterials[sub.UserID] = make(map[string]bool)
+	if len(embeds) > 0 {
+		codeSubmissions, err := s.repo.GetLatestScoresByMaterialsForSection(ctx, embeds, sectionID, labID)
+		if err != nil {
+			return nil, nil, nil, err
 		}
-		submittedMaterials[sub.UserID][sub.MaterialID] = true
-		if sub.Status == models.PASSED {
-			passedCount[sub.UserID]++
+		for _, sub := range codeSubmissions {
+			autoScores[sub.UserID] += sub.AutoScore
+			if submittedItems[sub.UserID] == nil {
+				submittedItems[sub.UserID] = make(map[string]bool)
+			}
+			submittedItems[sub.UserID][sub.MaterialID] = true
+			if sub.Status == models.PASSED {
+				passedCount[sub.UserID]++
+			}
+			if perEmbedByUser[sub.UserID] == nil {
+				perEmbedByUser[sub.UserID] = make(map[string]int)
+			}
+			perEmbedByUser[sub.UserID][sub.MaterialID] = sub.AutoScore
 		}
-		if perEmbedByUser[sub.UserID] == nil {
-			perEmbedByUser[sub.UserID] = make(map[string]int)
+	}
+
+	if len(inputNodes) > 0 {
+		inputSubs, err := s.inputSubmissionRepo.ListLatestByMaterialSectionLab(ctx, materialID, sectionID, labID)
+		if err != nil {
+			return nil, nil, nil, err
 		}
-		perEmbedByUser[sub.UserID][sub.MaterialID] = sub.AutoScore
+		for _, sub := range inputSubs {
+			autoScores[sub.UserID] += sub.Score
+			if submittedItems[sub.UserID] == nil {
+				submittedItems[sub.UserID] = make(map[string]bool)
+			}
+			submittedItems[sub.UserID][sub.NodeID] = true
+			// A manual submission awaiting grading (graded=false) is not "passed"
+			// yet, so it keeps the document status at PARTIAL until graded.
+			if sub.Passed && sub.Graded {
+				passedCount[sub.UserID]++
+			}
+		}
 	}
 
 	statusByUser := make(map[string]models.SubmissionStatus)
-	for userID, submitted := range submittedMaterials {
+	total := len(embeds) + len(inputNodes)
+	for userID, submitted := range submittedItems {
 		passed := passedCount[userID]
-		total := len(embeds)
 		switch {
 		case passed == total:
 			statusByUser[userID] = models.PASSED
@@ -775,6 +840,49 @@ func (s *submissionService) docEmbedScores(ctx context.Context, materialID, sect
 	}
 
 	return autoScores, statusByUser, perEmbedByUser, nil
+}
+
+// docInputNode is an input embed node's identity and configured max score.
+type docInputNode struct {
+	NodeID string
+	Score  int
+}
+
+func collectInputNodes(nodes []inputTiptapNode) []docInputNode {
+	var out []docInputNode
+	for i := range nodes {
+		n := &nodes[i]
+		if n.Type == "inputEmbed" {
+			id, _ := n.Attrs["nodeID"].(string)
+			scoreF, _ := n.Attrs["score"].(float64)
+			if id != "" {
+				out = append(out, docInputNode{NodeID: id, Score: int(scoreF)})
+			}
+		}
+		out = append(out, collectInputNodes(n.Content)...)
+	}
+	return out
+}
+
+// docInputNodes parses a document material's content and returns its input embed
+// nodes. Returns nil for a missing row, empty content, or unparseable JSON.
+func (s *submissionService) docInputNodes(ctx context.Context, materialID string) ([]docInputNode, error) {
+	doc, err := s.docMatRepo.GetByID(ctx, materialID)
+	if err != nil {
+		var csErr *cserrors.Error
+		if errors.As(err, &csErr) && csErr.HttpStatus == http.StatusNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	if doc.Content == nil {
+		return nil, nil
+	}
+	var root inputTiptapNode
+	if err := json.Unmarshal([]byte(*doc.Content), &root); err != nil {
+		return nil, nil
+	}
+	return collectInputNodes(root.Content), nil
 }
 
 func (s *submissionService) GetSectionLabMaterialSubmissions(ctx context.Context, sectionID string, labID string, materialID string) ([]models.CMSSectionStudentSubmission, error) {

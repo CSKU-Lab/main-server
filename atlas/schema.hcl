@@ -1157,6 +1157,13 @@ table "input_submissions" {
     type    = int
     default = 0
   }
+  # graded=false marks a manual-mode submission awaiting instructor grading.
+  # Auto-graded (exact/regex) submissions are graded on submit; existing rows
+  # predate manual mode and are all auto, hence default = true.
+  column "graded" {
+    type    = bool
+    default = true
+  }
   column "created_at" {
     type    = timestamptz
     default = sql("now()")

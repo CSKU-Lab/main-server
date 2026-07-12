@@ -178,6 +178,30 @@ func NewCMSMaterialRoutes(router fiber.Router, materialService services.Material
 		return c.JSON(results)
 	})
 
+	// Grade a manual-mode input submission - instructors and admins only
+	materialRouter.Post("/:id/input-submissions/grade", middlewares.RBACMiddleware([]models.Role{
+		models.ADMIN,
+		models.INSTRUCTOR,
+	}), middlewares.Permission(permService).ForCourse("courseID").CanModify(), func(c fiber.Ctx) error {
+		var req struct {
+			SubmissionID string `json:"submission_id"`
+			Score        int    `json:"score"`
+		}
+		if err := c.Bind().JSON(&req); err != nil {
+			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusBadRequest, Message: "Invalid request body"})
+		}
+		if req.SubmissionID == "" {
+			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusBadRequest, Message: "submission_id is required"})
+		}
+		if err := inputSubmissionService.GradeManualInput(c.RequestCtx(), &services.GradeInputInput{
+			SubmissionID: req.SubmissionID,
+			Score:        req.Score,
+		}); err != nil {
+			return err
+		}
+		return c.SendStatus(http.StatusNoContent)
+	})
+
 	// Upload asset - instructors and admins only
 	materialRouter.Post("/:id/assets", middlewares.RBACMiddleware([]models.Role{
 		models.ADMIN,

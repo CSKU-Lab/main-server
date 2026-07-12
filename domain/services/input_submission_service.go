@@ -25,21 +25,31 @@ type SubmitInputAnswerInput struct {
 type SubmitInputAnswerResult struct {
 	Passed bool `json:"passed"`
 	Score  int  `json:"score"`
+	// Graded is false for manual-mode submissions awaiting instructor grading.
+	Graded bool `json:"graded"`
+}
+
+type GradeInputInput struct {
+	SubmissionID string
+	Score        int
 }
 
 type InputResult struct {
 	Submitted bool   `json:"submitted"`
 	Passed    bool   `json:"passed"`
 	Score     int    `json:"score"`
+	Graded    bool   `json:"graded"`
 	Value     string `json:"value"`
 }
 
 type InputSubmissionResult struct {
+	ID        string    `json:"id"`
 	UserID    string    `json:"user_id"`
 	NodeID    string    `json:"node_id"`
 	Value     string    `json:"value"`
 	Passed    bool      `json:"passed"`
 	Score     int       `json:"score"`
+	Graded    bool      `json:"graded"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
@@ -47,6 +57,8 @@ type InputSubmissionService interface {
 	SubmitInputAnswer(ctx context.Context, input *SubmitInputAnswerInput) (*SubmitInputAnswerResult, error)
 	GetMyLatestResult(ctx context.Context, userID, nodeID, documentMaterialID, labID string) (*InputResult, error)
 	ListByMaterial(ctx context.Context, documentMaterialID string) ([]InputSubmissionResult, error)
+	// GradeManualInput sets an instructor-assigned score on a manual-mode submission.
+	GradeManualInput(ctx context.Context, input *GradeInputInput) error
 }
 
 type inputSubmissionService struct {
@@ -109,13 +121,28 @@ func (s *inputSubmissionService) SubmitInputAnswer(ctx context.Context, input *S
 		return nil, cserrors.New(&cserrors.Option{HttpStatus: http.StatusNotFound, Message: "input field not found"})
 	}
 
+	mode, _ := node.Attrs["mode"].(string)
+	if mode == "" {
+		mode = "exact"
+	}
 	pattern, _ := node.Attrs["pattern"].(string)
 	caseInsensitive, _ := node.Attrs["caseInsensitive"].(bool)
 	scoreF, _ := node.Attrs["score"].(float64)
 	nodeScore := int(scoreF)
 
-	passed := s.matchValue(pattern, input.Value, caseInsensitive)
+	var passed, graded bool
 	score := 0
+	switch mode {
+	case "manual":
+		// No auto-grade: stored as pending until an instructor grades it.
+		graded = false
+	case "regex":
+		passed = s.matchValue(pattern, input.Value, caseInsensitive)
+		graded = true
+	default: // "exact": literal comparison (regex metachars are not special)
+		passed = exactMatch(pattern, input.Value)
+		graded = true
+	}
 	if passed {
 		score = nodeScore
 	}
@@ -129,11 +156,60 @@ func (s *inputSubmissionService) SubmitInputAnswer(ctx context.Context, input *S
 		Value:              input.Value,
 		Passed:             passed,
 		Score:              score,
+		Graded:             graded,
 	}); err != nil {
 		return nil, err
 	}
 
-	return &SubmitInputAnswerResult{Passed: passed, Score: score}, nil
+	return &SubmitInputAnswerResult{Passed: passed, Score: score, Graded: graded}, nil
+}
+
+// GradeManualInput sets an instructor-assigned score on a submission, clamping
+// it to [0, node score] and marking the submission graded.
+func (s *inputSubmissionService) GradeManualInput(ctx context.Context, input *GradeInputInput) error {
+	sub, err := s.repo.GetByID(ctx, input.SubmissionID)
+	if err != nil {
+		return err
+	}
+	if sub == nil {
+		return cserrors.New(&cserrors.Option{HttpStatus: http.StatusNotFound, Message: "input submission not found"})
+	}
+
+	maxScore := s.nodeScore(ctx, sub.DocumentMaterialID, sub.NodeID)
+	score := input.Score
+	if score < 0 {
+		score = 0
+	}
+	if maxScore > 0 && score > maxScore {
+		score = maxScore
+	}
+
+	return s.repo.Grade(ctx, sub.ID, score, score > 0)
+}
+
+// nodeScore looks up the configured max score of an input embed node. Returns 0
+// when the document or node cannot be resolved.
+func (s *inputSubmissionService) nodeScore(ctx context.Context, documentMaterialID, nodeID string) int {
+	doc, err := s.docRepo.GetByID(ctx, documentMaterialID)
+	if err != nil || doc.Content == nil {
+		return 0
+	}
+	var root inputTiptapNode
+	if err := json.Unmarshal([]byte(*doc.Content), &root); err != nil {
+		return 0
+	}
+	node := findInputEmbed(root.Content, nodeID)
+	if node == nil {
+		return 0
+	}
+	scoreF, _ := node.Attrs["score"].(float64)
+	return int(scoreF)
+}
+
+// exactMatch reports whether the submitted value equals the expected value.
+// Surrounding whitespace is trimmed so accidental spaces don't fail an answer.
+func exactMatch(expected, value string) bool {
+	return strings.TrimSpace(expected) == strings.TrimSpace(value)
 }
 
 // matchValue compiles the pattern and reports whether the entire value matches.
@@ -166,6 +242,7 @@ func (s *inputSubmissionService) GetMyLatestResult(ctx context.Context, userID, 
 		Submitted: true,
 		Passed:    sub.Passed,
 		Score:     sub.Score,
+		Graded:    sub.Graded,
 		Value:     sub.Value,
 	}, nil
 }
@@ -178,11 +255,13 @@ func (s *inputSubmissionService) ListByMaterial(ctx context.Context, documentMat
 	results := make([]InputSubmissionResult, 0, len(subs))
 	for _, sub := range subs {
 		results = append(results, InputSubmissionResult{
+			ID:        sub.ID,
 			UserID:    sub.UserID,
 			NodeID:    sub.NodeID,
 			Value:     sub.Value,
 			Passed:    sub.Passed,
 			Score:     sub.Score,
+			Graded:    sub.Graded,
 			CreatedAt: sub.CreatedAt,
 		})
 	}

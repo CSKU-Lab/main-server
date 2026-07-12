@@ -12,5 +12,6 @@ type InputSubmission struct {
 	Value              string    `json:"value" db:"value"`
 	Passed             bool      `json:"passed" db:"passed"`
 	Score              int       `json:"score" db:"score"`
+	Graded             bool      `json:"graded" db:"graded"`
 	CreatedAt          time.Time `json:"created_at" db:"created_at"`
 }
