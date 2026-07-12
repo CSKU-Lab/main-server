@@ -1,3 +1,12 @@
+# [0.35.0](https://github.com/CSKU-Lab/main-server/compare/v0.34.7...v0.35.0) (2026-07-12)
+
+
+### Features
+
+* force account selection on google oauth ([442c0aa](https://github.com/CSKU-Lab/main-server/commit/442c0aa644c1782160bd70229e7ed8eaeeab9005))
+* include test case group name in submission detail ([a5c7b86](https://github.com/CSKU-Lab/main-server/commit/a5c7b8663fde37958353abd9ddb94f93a1742d3e))
+* let course creators manage public materials ([090c421](https://github.com/CSKU-Lab/main-server/commit/090c421db35e96cef4d483eb6126dcf00591cf73))
+
 ## [0.34.7](https://github.com/CSKU-Lab/main-server/compare/v0.34.6...v0.34.7) (2026-07-08)
 
 
