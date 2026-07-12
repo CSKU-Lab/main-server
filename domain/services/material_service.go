@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/CSKU-Lab/main-server/constants"
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
 	"github.com/CSKU-Lab/main-server/domain/models"
 	"github.com/CSKU-Lab/main-server/domain/registrables"
@@ -209,6 +210,44 @@ func (s *materialService) canViewMaterial(ctx context.Context, material *reposit
 	for _, creator := range creators {
 		if creator.ID == user.ID {
 			return nil
+		}
+	}
+
+	return cserrors.New(&cserrors.Option{
+		HttpStatus: http.StatusForbidden,
+		Message:    "No Permission",
+	})
+}
+
+// canManageMaterial authorizes modify/delete on a material.
+//   - Material creator can manage their own material (any visibility).
+//   - Admin can manage any material.
+//   - Course creator can manage PUBLIC materials in their course, but not
+//     private ones (private stays restricted to the material creator).
+func (s *materialService) canManageMaterial(ctx context.Context, mat *repositories.Material, userID string) error {
+	if mat.CreatedBy == userID {
+		return nil
+	}
+
+	userData, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+	for _, role := range userData.Roles {
+		if role == string(models.ADMIN) {
+			return nil
+		}
+	}
+
+	if mat.Visibility == string(constants.PublicVisibility) {
+		creators, err := s.uowCourseCreators(ctx, mat.CourseID)
+		if err != nil {
+			return err
+		}
+		for _, creator := range creators {
+			if creator.ID == userID {
+				return nil
+			}
 		}
 	}
 
@@ -426,24 +465,8 @@ func (s *materialService) UpdateByID(ctx context.Context, courseID string, ID st
 	if mat.CourseID != courseID {
 		return cserrors.New(&cserrors.Option{HttpStatus: http.StatusNotFound, Message: "Material not found"})
 	}
-	if mat.CreatedBy != userID {
-		userData, err := s.userRepo.GetByID(ctx, userID)
-		if err != nil {
-			return err
-		}
-		isAdmin := false
-		for _, role := range userData.Roles {
-			if role == string(models.ADMIN) {
-				isAdmin = true
-				break
-			}
-		}
-		if !isAdmin {
-			return cserrors.New(&cserrors.Option{
-				HttpStatus: http.StatusForbidden,
-				Message:    "No Permission",
-			})
-		}
+	if err := s.canManageMaterial(ctx, mat, userID); err != nil {
+		return err
 	}
 
 	materialHandler, exists := s.materialRegistry.GetHandler(mat.Type)
@@ -514,24 +537,8 @@ func (s *materialService) DeleteByID(ctx context.Context, courseID string, ID st
 	if mat.CourseID != courseID {
 		return cserrors.New(&cserrors.Option{HttpStatus: http.StatusNotFound, Message: "Material not found"})
 	}
-	if mat.CreatedBy != userID {
-		userData, err := s.userRepo.GetByID(ctx, userID)
-		if err != nil {
-			return err
-		}
-		isAdmin := false
-		for _, role := range userData.Roles {
-			if role == string(models.ADMIN) {
-				isAdmin = true
-				break
-			}
-		}
-		if !isAdmin {
-			return cserrors.New(&cserrors.Option{
-				HttpStatus: http.StatusForbidden,
-				Message:    "No Permission",
-			})
-		}
+	if err := s.canManageMaterial(ctx, mat, userID); err != nil {
+		return err
 	}
 	return s.repo.DeleteByID(ctx, ID)
 }
