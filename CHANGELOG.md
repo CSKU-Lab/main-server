@@ -1,3 +1,10 @@
+# [0.36.0](https://github.com/CSKU-Lab/main-server/compare/v0.35.0...v0.36.0) (2026-07-12)
+
+
+### Features
+
+* aggregate input embed scores + manual grading workflow ([cf547da](https://github.com/CSKU-Lab/main-server/commit/cf547dab288846bffad3ada02537c67ff955ec8c))
+
 # [0.35.0](https://github.com/CSKU-Lab/main-server/compare/v0.34.7...v0.35.0) (2026-07-12)
 
 
