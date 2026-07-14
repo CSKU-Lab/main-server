@@ -202,6 +202,20 @@ func NewCMSMaterialRoutes(router fiber.Router, materialService services.Material
 		return c.SendStatus(http.StatusNoContent)
 	})
 
+	// Regrade all auto-mode input submissions for a document material against
+	// its current node config - instructors and admins only
+	materialRouter.Post("/:id/input-submissions/regrade", middlewares.RBACMiddleware([]models.Role{
+		models.ADMIN,
+		models.INSTRUCTOR,
+	}), middlewares.Permission(permService).ForCourse("courseID").CanModify(), func(c fiber.Ctx) error {
+		id := c.Params("id")
+		result, err := inputSubmissionService.RegradeMaterial(c.RequestCtx(), id)
+		if err != nil {
+			return err
+		}
+		return c.JSON(result)
+	})
+
 	// Upload asset - instructors and admins only
 	materialRouter.Post("/:id/assets", middlewares.RBACMiddleware([]models.Role{
 		models.ADMIN,

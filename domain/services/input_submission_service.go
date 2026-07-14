@@ -53,12 +53,24 @@ type InputSubmissionResult struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+// RegradeResult summarizes a document material regrade pass.
+type RegradeResult struct {
+	// Regraded is the number of auto-mode submissions re-evaluated.
+	Regraded int `json:"regraded"`
+	// Skipped is the number of submissions left untouched (manual mode or the
+	// node no longer exists in the document).
+	Skipped int `json:"skipped"`
+}
+
 type InputSubmissionService interface {
 	SubmitInputAnswer(ctx context.Context, input *SubmitInputAnswerInput) (*SubmitInputAnswerResult, error)
 	GetMyLatestResult(ctx context.Context, userID, nodeID, documentMaterialID, labID string) (*InputResult, error)
 	ListByMaterial(ctx context.Context, documentMaterialID string) ([]InputSubmissionResult, error)
 	// GradeManualInput sets an instructor-assigned score on a manual-mode submission.
 	GradeManualInput(ctx context.Context, input *GradeInputInput) error
+	// RegradeMaterial re-evaluates auto-mode input submissions against the
+	// document's current node config, without students resubmitting.
+	RegradeMaterial(ctx context.Context, documentMaterialID string) (*RegradeResult, error)
 }
 
 type inputSubmissionService struct {
@@ -121,34 +133,7 @@ func (s *inputSubmissionService) SubmitInputAnswer(ctx context.Context, input *S
 		return nil, cserrors.New(&cserrors.Option{HttpStatus: http.StatusNotFound, Message: "input field not found"})
 	}
 
-	mode, _ := node.Attrs["mode"].(string)
-	if mode == "" {
-		// Legacy inputEmbed nodes predate the "mode" attr and were always
-		// regex-graded. Fall back to regex to preserve their behavior; new
-		// nodes always serialize an explicit mode.
-		mode = "regex"
-	}
-	pattern, _ := node.Attrs["pattern"].(string)
-	caseInsensitive, _ := node.Attrs["caseInsensitive"].(bool)
-	scoreF, _ := node.Attrs["score"].(float64)
-	nodeScore := int(scoreF)
-
-	var passed, graded bool
-	score := 0
-	switch mode {
-	case "manual":
-		// No auto-grade: stored as pending until an instructor grades it.
-		graded = false
-	case "regex":
-		passed = s.matchValue(pattern, input.Value, caseInsensitive)
-		graded = true
-	default: // "exact": literal comparison (regex metachars are not special)
-		passed = exactMatch(pattern, input.Value)
-		graded = true
-	}
-	if passed {
-		score = nodeScore
-	}
+	_, passed, graded, score := s.evalInputNode(node, input.Value)
 
 	if err := s.repo.Create(ctx, &repositories.CreateInputSubmissionPayload{
 		UserID:             input.UserID,
@@ -165,6 +150,82 @@ func (s *inputSubmissionService) SubmitInputAnswer(ctx context.Context, input *S
 	}
 
 	return &SubmitInputAnswerResult{Passed: passed, Score: score, Graded: graded}, nil
+}
+
+// evalInputNode grades a submitted value against an input embed node's current
+// config. It returns the resolved mode so callers can special-case manual
+// grading (which carries no auto score). An empty mode resolves to "regex" to
+// preserve legacy nodes that predate the mode attr.
+func (s *inputSubmissionService) evalInputNode(node *inputTiptapNode, value string) (mode string, passed, graded bool, score int) {
+	mode, _ = node.Attrs["mode"].(string)
+	if mode == "" {
+		mode = "regex"
+	}
+	pattern, _ := node.Attrs["pattern"].(string)
+	caseInsensitive, _ := node.Attrs["caseInsensitive"].(bool)
+	scoreF, _ := node.Attrs["score"].(float64)
+	nodeScore := int(scoreF)
+
+	switch mode {
+	case "manual":
+		// No auto-grade: stays pending until an instructor grades it.
+		graded = false
+	case "regex":
+		passed = s.matchValue(pattern, value, caseInsensitive)
+		graded = true
+	default: // "exact": literal comparison (regex metachars are not special)
+		passed = exactMatch(pattern, value)
+		graded = true
+	}
+	if passed {
+		score = nodeScore
+	}
+	return mode, passed, graded, score
+}
+
+// RegradeMaterial re-evaluates the latest input submissions of a document
+// material against the document's current node config, without students
+// resubmitting. Manual-mode submissions keep their instructor grade; nodes that
+// no longer exist in the document are skipped.
+func (s *inputSubmissionService) RegradeMaterial(ctx context.Context, documentMaterialID string) (*RegradeResult, error) {
+	doc, err := s.docRepo.GetByID(ctx, documentMaterialID)
+	if err != nil {
+		return nil, err
+	}
+	if doc.Content == nil {
+		return &RegradeResult{}, nil
+	}
+
+	var root inputTiptapNode
+	if err := json.Unmarshal([]byte(*doc.Content), &root); err != nil {
+		return nil, cserrors.New(&cserrors.Option{HttpStatus: http.StatusBadRequest, Message: "invalid document content"})
+	}
+
+	subs, err := s.repo.ListByMaterial(ctx, documentMaterialID)
+	if err != nil {
+		return nil, err
+	}
+
+	res := &RegradeResult{}
+	for i := range subs {
+		sub := &subs[i]
+		node := findInputEmbed(root.Content, sub.NodeID)
+		if node == nil {
+			res.Skipped++
+			continue
+		}
+		mode, passed, _, score := s.evalInputNode(node, sub.Value)
+		if mode == "manual" {
+			// Preserve the instructor-assigned grade.
+			res.Skipped++
+			continue
+		}
+		if err := s.repo.Grade(ctx, sub.ID, score, passed); err != nil {
+			return nil, err
+		}
+		res.Regraded++
+	}
+	return res, nil
 }
 
 // GradeManualInput sets an instructor-assigned score on a submission, clamping
