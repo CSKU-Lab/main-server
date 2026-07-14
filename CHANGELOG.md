@@ -1,3 +1,10 @@
+# [0.37.0](https://github.com/CSKU-Lab/main-server/compare/v0.36.2...v0.37.0) (2026-07-14)
+
+
+### Features
+
+* **input-embed:** regrade document material submissions ([4659509](https://github.com/CSKU-Lab/main-server/commit/4659509f95775053a8cc87a6a55166d6b2665073))
+
 ## [0.36.2](https://github.com/CSKU-Lab/main-server/compare/v0.36.1...v0.36.2) (2026-07-14)
 
 
