@@ -1,3 +1,10 @@
+## [0.36.2](https://github.com/CSKU-Lab/main-server/compare/v0.36.1...v0.36.2) (2026-07-14)
+
+
+### Bug Fixes
+
+* **input-embed:** grade legacy nodes as regex ([9172743](https://github.com/CSKU-Lab/main-server/commit/91727430182bf593b73affc4a3597c30a647b0c1))
+
 ## [0.36.1](https://github.com/CSKU-Lab/main-server/compare/v0.36.0...v0.36.1) (2026-07-14)
 
 
