@@ -1,3 +1,10 @@
+## [0.37.1](https://github.com/CSKU-Lab/main-server/compare/v0.37.0...v0.37.1) (2026-07-14)
+
+
+### Bug Fixes
+
+* count input embeds in document detail page status ([727bfff](https://github.com/CSKU-Lab/main-server/commit/727bfff4696e7a6303f68db1fcdcec2a54658fb5))
+
 # [0.37.0](https://github.com/CSKU-Lab/main-server/compare/v0.36.2...v0.37.0) (2026-07-14)
 
 
