@@ -123,7 +123,10 @@ func (s *inputSubmissionService) SubmitInputAnswer(ctx context.Context, input *S
 
 	mode, _ := node.Attrs["mode"].(string)
 	if mode == "" {
-		mode = "exact"
+		// Legacy inputEmbed nodes predate the "mode" attr and were always
+		// regex-graded. Fall back to regex to preserve their behavior; new
+		// nodes always serialize an explicit mode.
+		mode = "regex"
 	}
 	pattern, _ := node.Attrs["pattern"].(string)
 	caseInsensitive, _ := node.Attrs["caseInsensitive"].(bool)
