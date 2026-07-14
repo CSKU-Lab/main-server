@@ -109,7 +109,7 @@ func initializeApp(ctx context.Context, cfg *configs.Config, db *sqlx.DB, logger
 	sidebarService := services.NewSidebarService(courseRepository, sectionStudentRepository, labSectionRepository, labMaterialRepository, submissionService)
 	gradebookExportService := services.NewGradebookExportService(submissionService)
 	typingExportService := services.NewTypingExportService(submissionService, labSectionRepository, labMaterialRepository, typingMaterialRepository)
-	materialService := services.NewMaterialService(materialRepository, submissionRepository, readMaterialTagRepository, uoWRepository, user, material, queue)
+	materialService := services.NewMaterialService(materialRepository, submissionRepository, readMaterialTagRepository, uoWRepository, user, material, submissionService, queue)
 	searchRepository := providers.NewSearchRepository(db)
 	searchService := services.NewSearchService(searchRepository)
 	service := permission.NewService(user, courseRepository, courseCreatorRepository, sectionRepository, sectionInstructorRepository, sectionStudentRepository, submissionRepository)

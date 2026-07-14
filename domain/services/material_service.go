@@ -37,11 +37,12 @@ type materialService struct {
 	readMaterialTagRepo repositories.ReadMaterialTagRepository
 	userRepo            repositories.User
 	materialRegistry    registries.Material
+	submissionService   SubmissionService
 	allowedFilterFields map[string]bool
 	q                   queue.Queue
 }
 
-func NewMaterialService(repo repositories.MaterialRepository, submissionRepo repositories.SubmissionRepository, readMaterialTagRepo repositories.ReadMaterialTagRepository, uowRepo repositories.UoWRepository, userRepo repositories.User, materialRegistry registries.Material, q queue.Queue) MaterialService {
+func NewMaterialService(repo repositories.MaterialRepository, submissionRepo repositories.SubmissionRepository, readMaterialTagRepo repositories.ReadMaterialTagRepository, uowRepo repositories.UoWRepository, userRepo repositories.User, materialRegistry registries.Material, submissionService SubmissionService, q queue.Queue) MaterialService {
 	return &materialService{
 		repo:                repo,
 		submissionRepo:      submissionRepo,
@@ -49,6 +50,7 @@ func NewMaterialService(repo repositories.MaterialRepository, submissionRepo rep
 		readMaterialTagRepo: readMaterialTagRepo,
 		userRepo:            userRepo,
 		materialRegistry:    materialRegistry,
+		submissionService:   submissionService,
 		allowedFilterFields: map[string]bool{
 			"name": true,
 			"type": true,
@@ -577,13 +579,16 @@ func (s *materialService) GetMaterialWithLatestSubmissionStatus(ctx context.Cont
 	}
 
 	// Document materials have no submission of their own — students submit the
-	// embedded code blocks individually. Derive the document status by
-	// aggregating the latest submission of each embedded code material.
+	// embedded code blocks AND input embeds individually. Derive the document
+	// status from the same source the lab grid uses (docEmbedScores), so the
+	// detail page and the grid never disagree. The old code-only aggregation
+	// ignored input embeds and reported "No Submission" for input-only docs.
 	if material.Type == "document" {
-		if doc, ok := payload.(*registrables.DocumentMaterialResponse); ok {
-			embedIDs := registrables.ExtractEmbeddedCodeMaterialIDs(doc.Content)
-			status = s.aggregateEmbeddedSubmissionStatus(ctx, userID, embedIDs, labID, sectionID)
+		docStatus, err := s.submissionService.GetDocumentAggregateStatus(ctx, userID, materialID, sectionID, labID)
+		if err != nil {
+			return nil, err
 		}
+		status = docStatus
 	}
 
 	// Filter payload to only include allowed fields based on material type
@@ -598,56 +603,6 @@ func (s *materialService) GetMaterialWithLatestSubmissionStatus(ctx context.Cont
 	}, nil
 }
 
-// aggregateEmbeddedSubmissionStatus rolls the latest submission status of every
-// embedded code material into a single status for the parent document. With a
-// four-plus-one state model the precedence is:
-//
-//	any child still grading        -> running   (Grading)
-//	every child has passed         -> passed    (Passed)
-//	any child failed               -> failed    (Failed)
-//	some — but not all — submitted  -> partial   (Partial)
-//	no child submitted             -> ""         (No Submission)
-//
-// Returns "" when the document has no embedded code blocks.
-func (s *materialService) aggregateEmbeddedSubmissionStatus(ctx context.Context, userID string, embedIDs []string, labID string, sectionID string) string {
-	if len(embedIDs) == 0 {
-		return ""
-	}
-
-	anyPending := false
-	anyFailed := false
-	submitted := 0
-	passed := 0
-
-	for _, id := range embedIDs {
-		subs, err := s.submissionRepo.GetPagination(ctx, userID, id, labID, sectionID, 1, 1, "desc")
-		if err != nil || len(subs) == 0 {
-			continue
-		}
-		submitted++
-		switch subs[0].Status {
-		case models.QUEUED, models.RUNNING:
-			anyPending = true
-		case models.PASSED:
-			passed++
-		case models.FAILED:
-			anyFailed = true
-		}
-	}
-
-	switch {
-	case anyPending:
-		return string(models.RUNNING)
-	case passed == len(embedIDs):
-		return string(models.PASSED)
-	case anyFailed:
-		return string(models.FAILED)
-	case submitted > 0:
-		return string(models.PARTIAL)
-	default:
-		return ""
-	}
-}
 
 // sanitizeStudentFiles strips grader-only information from files before they
 // are sent to a student.

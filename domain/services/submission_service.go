@@ -35,6 +35,7 @@ type SubmissionService interface {
 	GetStudentSubmissionsByMaterialSectionLab(ctx context.Context, materialID string, sectionID string, labID string, studentID string, page int, pageSize int, sortBy, sortOrder string) ([]models.StudentSubmission, int, error)
 	UpdateManualScore(ctx context.Context, submissionID string, manualScore int) error
 	GetMaterialStudentStatus(ctx context.Context, userID, materialID, labID, sectionID string) string
+	GetDocumentAggregateStatus(ctx context.Context, userID, materialID, sectionID, labID string) (string, error)
 	RegradeByMaterial(ctx context.Context, sectionID, labID, materialID string) error
 	DeleteSubmission(ctx context.Context, submissionID string) error
 }
@@ -721,6 +722,23 @@ func (s *submissionService) GetMaterialStudentStatus(ctx context.Context, userID
 		return "passed"
 	}
 	return "not_passed"
+}
+
+// GetDocumentAggregateStatus returns a document material's status for a single
+// user, derived from its embedded code + input submissions — the same source of
+// truth the lab grid uses (docEmbedScores). Returns "" (No Submission) when the
+// user has submitted nothing. Fixes the doc detail page reporting "No Submission"
+// while the grid shows a real status, because the old doc-page path counted only
+// code embeds and ignored input embeds.
+func (s *submissionService) GetDocumentAggregateStatus(ctx context.Context, userID, materialID, sectionID, labID string) (string, error) {
+	_, statusByUser, _, err := s.docEmbedScores(ctx, materialID, sectionID, labID)
+	if err != nil {
+		return "", err
+	}
+	if statusByUser == nil {
+		return "", nil
+	}
+	return string(statusByUser[userID]), nil
 }
 
 func (s *submissionService) CountCompletedStudentsByLabAndSection(ctx context.Context, labID string, sectionID string) (int, error) {

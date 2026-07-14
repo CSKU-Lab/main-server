@@ -375,7 +375,7 @@ func (s *TestSuite) initTestApp() {
 
 	gradebookExportService := services.NewGradebookExportService(submissionService)
 
-	materialService := services.NewMaterialService(materialRepo, submissionRepo, readMaterialTagRepo, uowRepo, userRepo, materialRegistry)
+	materialService := services.NewMaterialService(materialRepo, submissionRepo, readMaterialTagRepo, uowRepo, userRepo, materialRegistry, submissionService, nil)
 
 	// Create Fiber app
 	app := fiber.New(fiber.Config{
