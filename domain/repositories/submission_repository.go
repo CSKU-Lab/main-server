@@ -26,7 +26,6 @@ type SubmissionRepository interface {
 	Count(ctx context.Context, userID string, materialID string, labID string, sectionID string) (int, error)
 	CountByMaterialSectionLabAndStudentID(ctx context.Context, materialID string, sectionID string, labID string, studentID string) (int, error)
 
-	CountCompletedStudentsByLabAndSection(ctx context.Context, labID string, sectionID string) (int, error)
 	Delete(ctx context.Context, id string) error
 	// GetLatestScoresByMaterialsForSection returns the latest submission (by order)
 	// per (user_id, material_id) for each given material in the section/lab.

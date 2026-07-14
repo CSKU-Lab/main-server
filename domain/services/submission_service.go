@@ -724,7 +724,36 @@ func (s *submissionService) GetMaterialStudentStatus(ctx context.Context, userID
 }
 
 func (s *submissionService) CountCompletedStudentsByLabAndSection(ctx context.Context, labID string, sectionID string) (int, error) {
-	return s.repo.CountCompletedStudentsByLabAndSection(ctx, labID, sectionID)
+	// A student "completes" a lab when every material's status is PASSED. This
+	// must be derived per-material rather than counting passed `submissions`
+	// rows: document materials have no submission row of their own — their
+	// status comes from embedded code + input submissions — so a pure-SQL count
+	// over the submissions table never reaches the full material count for any
+	// lab containing a document, reporting 0 completed. Reuse the same per-student
+	// status the CMS grid renders.
+	status, err := s.GetLabStudentStatus(ctx, sectionID, labID)
+	if err != nil {
+		return 0, err
+	}
+	if len(status.MaterialCols) == 0 {
+		return 0, nil
+	}
+
+	completed := 0
+	for _, row := range status.StudentRows {
+		allPassed := true
+		for _, col := range status.MaterialCols {
+			st, ok := row.MaterialStatuses[col.MaterialID]
+			if !ok || st.Status != models.PASSED {
+				allPassed = false
+				break
+			}
+		}
+		if allPassed {
+			completed++
+		}
+	}
+	return completed, nil
 }
 
 func (s *submissionService) UpdateManualScore(ctx context.Context, submissionID string, manualScore int) error {

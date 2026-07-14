@@ -264,29 +264,6 @@ func (s *submissionRepository) GetLatestOfStudentIDInSectionID(ctx context.Conte
 	return result, nil
 }
 
-func (s *submissionRepository) CountCompletedStudentsByLabAndSection(ctx context.Context, labID string, sectionID string) (int, error) {
-	query := `
-		SELECT COUNT(DISTINCT user_id)
-		FROM (
-			SELECT s.user_id
-			FROM submissions s
-			JOIN lab_materials lm ON s.material_id = lm.material_id
-			WHERE lm.lab_id = $1 
-			  AND s.section_id = $2 
-			  AND s.status = 'passed'
-			GROUP BY s.user_id
-			HAVING COUNT(DISTINCT s.material_id) = (
-				SELECT COUNT(*) 
-				FROM lab_materials 
-				WHERE lab_id = $1
-			)
-		) completed_students
-	`
-	var count int
-	err := s.db.GetContext(ctx, &count, query, labID, sectionID)
-	return count, err
-}
-
 func (s *submissionRepository) GetLatestByMaterialSectionAndLabID(ctx context.Context, materialID string, sectionID string, labID string) ([]models.RawSubmission, error) {
 	query := `
 		SELECT DISTINCT ON (s.user_id) 
