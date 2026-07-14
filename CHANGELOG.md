@@ -1,3 +1,10 @@
+## [0.36.1](https://github.com/CSKU-Lab/main-server/compare/v0.36.0...v0.36.1) (2026-07-14)
+
+
+### Bug Fixes
+
+* **cms:** count document materials in lab completion ([17a3962](https://github.com/CSKU-Lab/main-server/commit/17a3962b2ee882630a96920ddcd0c16bc86ab81d))
+
 # [0.36.0](https://github.com/CSKU-Lab/main-server/compare/v0.35.0...v0.36.0) (2026-07-12)
 
 
