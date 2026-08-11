@@ -1,3 +1,10 @@
+## [0.37.2](https://github.com/CSKU-Lab/main-server/compare/v0.37.1...v0.37.2) (2026-08-11)
+
+
+### Bug Fixes
+
+* enforce lab readonly and disabled access ([b8275ac](https://github.com/CSKU-Lab/main-server/commit/b8275ac9108e70fc1dc46e4d4c55ad4bab42d37a))
+
 ## [0.37.1](https://github.com/CSKU-Lab/main-server/compare/v0.37.0...v0.37.1) (2026-07-14)
 
 
