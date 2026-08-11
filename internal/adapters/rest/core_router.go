@@ -102,6 +102,7 @@ func NewCoreRouter(r *CoreRouter) {
 	routes.NewCoreInputRoutes(
 		coreRouter,
 		r.InputSubmissionService,
+		r.LabSectionService,
 	)
 
 	routes.NewCoreSearchRoutes(

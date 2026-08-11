@@ -304,7 +304,7 @@ func (ls *sqlxLabSectionRepository) GetVisibleBySectionID(ctx context.Context, s
 		  WHERE ls.section_id = $1
 		    AND ls.is_deleted = false
 		    AND l.is_deleted = false
-		    AND ls.status != 'hidden'
+		    AND ls.status NOT IN ('hidden', 'disabled')
 		  ORDER BY ls.position ASC`
 
 	dbLabs := []labSchema{}

@@ -60,6 +60,9 @@ func NewCoreLabRoute(router fiber.Router, sectionService services.SectionService
 		if err != nil {
 			return err
 		}
+		if err := requireLabAccess(c.RequestCtx(), labSectionService, labID, secStudent.SectionID, false); err != nil {
+			return err
+		}
 
 		pageQuery := c.Query("page", "1")
 		pageSizeQuery := c.Query("page_size", "10")

@@ -59,9 +59,8 @@ func NewCoreTypingRoute(
 		}
 
 		if req.SectionID != nil {
-			_, err := labSectionService.GetByLabAndSectionID(c.RequestCtx(), req.LabID, *req.SectionID)
-			if err != nil {
-				return cserrors.New(&cserrors.Option{HttpStatus: http.StatusForbidden, Message: "Not enrolled in this section"})
+			if err := requireLabAccess(c.RequestCtx(), labSectionService, req.LabID, *req.SectionID, true); err != nil {
+				return err
 			}
 		} else {
 			enrolled, err := enrollmentService.IsEnrolled(c.RequestCtx(), *req.CourseID, user.ID)

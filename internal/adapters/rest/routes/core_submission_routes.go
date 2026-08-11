@@ -30,6 +30,11 @@ func NewCoreSubmissionRoutes(router fiber.Router, service services.SubmissionSer
 		return c.Next()
 	}, middlewares.Permission(permService).ForSection("section_id").FromLocals().CanCreateSubmission(), func(c fiber.Ctx) error {
 		payload := c.Locals("body").(*requests.Submission)
+		if payload.SectionID != nil {
+			if err := requireLabAccess(c.RequestCtx(), labSectionService, payload.LabID, *payload.SectionID, true); err != nil {
+				return err
+			}
+		}
 
 		id, err := service.Create(c.Context(), payload, c.Body())
 		if err != nil {
@@ -47,7 +52,6 @@ func NewCoreSubmissionRoutes(router fiber.Router, service services.SubmissionSer
 		if err != nil {
 			return err
 		}
-
 		return c.JSON(submission)
 	})
 	type submission struct {
@@ -62,7 +66,6 @@ func NewCoreSubmissionRoutes(router fiber.Router, service services.SubmissionSer
 		c.Set("Transfer-Encoding", "chunked")
 
 		id := c.Params("id")
-
 		ctx, cancel := context.WithCancel(context.Background())
 
 		c.Status(fiber.StatusOK).RequestCtx().SetBodyStreamWriter(func(w *bufio.Writer) {
@@ -123,6 +126,11 @@ func NewCoreSubmissionRoutes(router fiber.Router, service services.SubmissionSer
 
 		if sortOrder != "asc" && sortOrder != "desc" {
 			sortOrder = "desc"
+		}
+		if sectionID != "" && labID != "" {
+			if err := requireLabAccess(c.RequestCtx(), labSectionService, labID, sectionID, false); err != nil {
+				return err
+			}
 		}
 
 		submissions, count, err := service.GetUserSubmissions(c.RequestCtx(), user.ID, materialID, labID, sectionID, page, pageSize, sortOrder)

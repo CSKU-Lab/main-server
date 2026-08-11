@@ -17,7 +17,7 @@ type submitInputRequest struct {
 	Value              string  `json:"value"`
 }
 
-func NewCoreInputRoutes(router fiber.Router, service services.InputSubmissionService) {
+func NewCoreInputRoutes(router fiber.Router, service services.InputSubmissionService, labSectionService services.LabSectionService) {
 	inputRouter := router.Group("/input-submissions")
 
 	inputRouter.Post("/", func(c fiber.Ctx) error {
@@ -29,6 +29,11 @@ func NewCoreInputRoutes(router fiber.Router, service services.InputSubmissionSer
 		}
 		if req.NodeID == "" || req.DocumentMaterialID == "" || req.LabID == "" {
 			return cserrors.New(&cserrors.Option{HttpStatus: http.StatusBadRequest, Message: "node_id, document_material_id and lab_id are required"})
+		}
+		if req.SectionID != nil {
+			if err := requireLabAccess(c.RequestCtx(), labSectionService, req.LabID, *req.SectionID, true); err != nil {
+				return err
+			}
 		}
 
 		result, err := service.SubmitInputAnswer(c.RequestCtx(), &services.SubmitInputAnswerInput{
