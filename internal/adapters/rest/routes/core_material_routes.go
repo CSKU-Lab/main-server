@@ -40,6 +40,7 @@ func NewCoreMaterialSubmissionRoutes(
 		if err != nil {
 			return err
 		}
+		result.LabStatus = labSec.EffectiveStatus()
 
 		return c.JSON(result)
 	})

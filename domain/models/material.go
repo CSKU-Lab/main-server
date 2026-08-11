@@ -31,6 +31,7 @@ type MaterialWithSubmissionStatus struct {
 	Name        string `json:"name"`
 	Type        string `json:"type"`
 	Status      string `json:"status"`
+	LabStatus   string `json:"lab_status"`
 	ManualScore int    `json:"manual_score"`
 	Payload     any    `json:"payload"`
 }
