@@ -1,3 +1,10 @@
+## [0.37.3](https://github.com/CSKU-Lab/main-server/compare/v0.37.2...v0.37.3) (2026-08-11)
+
+
+### Bug Fixes
+
+* expose lab status with material details ([13aeeb8](https://github.com/CSKU-Lab/main-server/commit/13aeeb8ce1225d5fbd2658f12bbd4fe0140c5c0d))
+
 ## [0.37.2](https://github.com/CSKU-Lab/main-server/compare/v0.37.1...v0.37.2) (2026-08-11)
 
 
