@@ -35,6 +35,9 @@ func NewCoreMaterialSubmissionRoutes(
 		if err := requireMaterialView(labSec); err != nil {
 			return err
 		}
+		if err := requireLabAccess(c.RequestCtx(), labSectionService, labID, sectionID, false); err != nil {
+			return err
+		}
 
 		result, err := materialService.GetMaterialWithLatestSubmissionStatus(c.RequestCtx(), user.ID, materialID, labSec.LabID, labSec.SectionID)
 		if err != nil {
@@ -75,6 +78,9 @@ func NewCoreMaterialSubmissionRoutes(
 			return err
 		}
 		if err := requireMaterialView(labSec); err != nil {
+			return err
+		}
+		if err := requireLabAccess(c.RequestCtx(), labSectionService, labID, sectionID, false); err != nil {
 			return err
 		}
 

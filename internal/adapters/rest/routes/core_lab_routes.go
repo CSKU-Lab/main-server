@@ -35,6 +35,9 @@ func NewCoreLabRoute(router fiber.Router, sectionService services.SectionService
 		if err != nil {
 			return err
 		}
+		if err := requireLabAccess(c.RequestCtx(), labSectionService, labID, secStudent.SectionID, false); err != nil {
+			return err
+		}
 		lab, err := labService.GetByID(c.RequestCtx(), labSection.LabID)
 		if err != nil {
 			return err

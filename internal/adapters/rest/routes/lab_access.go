@@ -19,6 +19,11 @@ func requireLabAccess(ctx context.Context, labSectionService services.LabSection
 	}
 
 	switch labSection.EffectiveStatus() {
+	case "hidden":
+		return cserrors.New(&cserrors.Option{
+			HttpStatus: http.StatusNotFound,
+			Message:    "Lab not found",
+		})
 	case "disabled":
 		return cserrors.New(&cserrors.Option{
 			HttpStatus: http.StatusForbidden,
@@ -38,11 +43,12 @@ func requireLabAccess(ctx context.Context, labSectionService services.LabSection
 	return nil
 }
 
-// requireMaterialView conceals materials belonging to disabled labs. This
+// requireMaterialView conceals materials belonging to hidden or disabled labs. This
 // intentionally returns 404 so a direct student URL renders the normal
 // not-found state instead of an authorization error.
 func requireMaterialView(labSection *models.LabSection) error {
-	if labSection.EffectiveStatus() != "disabled" {
+	status := labSection.EffectiveStatus()
+	if status != "hidden" && status != "disabled" {
 		return nil
 	}
 

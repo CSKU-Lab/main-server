@@ -56,6 +56,9 @@ func NewCoreSectionRoute(router fiber.Router, sectionService services.SectionSer
 		if err != nil {
 			return err
 		}
+		if err := requireLabAccess(c.RequestCtx(), labSectionService, labID, secStudent.SectionID, false); err != nil {
+			return err
+		}
 
 		lab, err := labService.GetByID(c.RequestCtx(), labSec.LabID)
 		if err != nil {
@@ -152,7 +155,7 @@ func NewCoreSectionRoute(router fiber.Router, sectionService services.SectionSer
 		type labSectionResponse struct {
 			ID                 string     `json:"id"`
 			Name               string     `json:"name"`
-			ReadonlyAt           *time.Time `json:"readonly_at,omitempty"`
+			ReadonlyAt         *time.Time `json:"readonly_at,omitempty"`
 			Status             string     `json:"status,omitempty"`
 			TotalMaterials     int        `json:"total_materials"`
 			CompletedMaterials int        `json:"completed_materials"`
