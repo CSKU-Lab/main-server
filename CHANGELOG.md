@@ -1,3 +1,10 @@
+## [0.37.4](https://github.com/CSKU-Lab/main-server/compare/v0.37.3...v0.37.4) (2026-08-12)
+
+
+### Bug Fixes
+
+* hidden lab student access permission ([2743bc3](https://github.com/CSKU-Lab/main-server/commit/2743bc3ec97619750d28e4f375e34751e809d4a0))
+
 ## [0.37.3](https://github.com/CSKU-Lab/main-server/compare/v0.37.2...v0.37.3) (2026-08-11)
 
 
