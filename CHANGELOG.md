@@ -1,3 +1,10 @@
+## [0.37.5](https://github.com/CSKU-Lab/main-server/compare/v0.37.4...v0.37.5) (2026-08-15)
+
+
+### Bug Fixes
+
+* **cms:** include submission IDs in submissions ([b2e7c34](https://github.com/CSKU-Lab/main-server/commit/b2e7c34be42691185dd33767b704cc58925f3a34))
+
 ## [0.37.4](https://github.com/CSKU-Lab/main-server/compare/v0.37.3...v0.37.4) (2026-08-12)
 
 
