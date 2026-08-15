@@ -1023,6 +1023,7 @@ func (s *submissionService) GetSectionLabMaterialSubmissions(ctx context.Context
 			result[i] = models.CMSSectionStudentSubmission{
 				Student: student,
 				StudentSubmission: &models.StudentSubmission{
+					ID:          sub.ID,
 					Order:       sub.Order,
 					AutoScore:   autoScore,
 					ManualScore: sub.ManualScore,
