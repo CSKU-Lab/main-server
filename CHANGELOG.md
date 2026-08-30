@@ -1,3 +1,10 @@
+# [0.38.0](https://github.com/CSKU-Lab/main-server/compare/v0.37.5...v0.38.0) (2026-08-30)
+
+
+### Features
+
+* **main:** enforce resource visibility ([09ddc81](https://github.com/CSKU-Lab/main-server/commit/09ddc8169f9033992fa1a61d529f46f180e1b9e6))
+
 ## [0.37.5](https://github.com/CSKU-Lab/main-server/compare/v0.37.4...v0.37.5) (2026-08-15)
 
 
