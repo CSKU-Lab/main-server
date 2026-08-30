@@ -173,13 +173,13 @@ func (s *sectionService) SetDefaultLabs(ctx context.Context, sectionID string, c
 			}
 
 			err = u.LabSection().Create(ctx, repositories.CreateLabSectionParams{
-				LabID:     defaultLab.LabID,
-				SectionID: sectionID,
-				Position:  defaultLab.Position,
-				ID:        labSecID.String(),
-				Status:    "hidden",
-				OpenedAt:  nil,
-				ReadonlyAt:  nil,
+				LabID:      defaultLab.LabID,
+				SectionID:  sectionID,
+				Position:   defaultLab.Position,
+				ID:         labSecID.String(),
+				Status:     "hidden",
+				OpenedAt:   nil,
+				ReadonlyAt: nil,
 			})
 			if err != nil {
 				return err
@@ -274,11 +274,6 @@ func (s *sectionService) Create(ctx context.Context, req *requests.CreateSection
 		return "", err
 	}
 
-	if semester, err := s.semesterRepo.GetByID(ctx, req.SemesterID); err == nil {
-		tag := semester.Name
-		publishOGEvent(s.q, ogImageEvent{Type: "section", ID: ID.String(), Title: req.Name, Tag: &tag})
-	}
-
 	return ID.String(), nil
 }
 
@@ -369,11 +364,6 @@ func (s *sectionService) UpdateByID(ctx context.Context, ID string, req *request
 	})
 	if err != nil {
 		return err
-	}
-
-	if section, err := s.GetByID(ctx, ID); err == nil {
-		tag := section.Semester.Name
-		publishOGEvent(s.q, ogImageEvent{Type: "section", ID: ID, Title: section.Name, Tag: &tag})
 	}
 
 	return nil

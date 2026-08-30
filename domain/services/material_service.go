@@ -102,9 +102,6 @@ func (s *materialService) Create(ctx context.Context, courseID string, createdBy
 		return "", err
 	}
 
-	tag := "Lab Material"
-	publishOGEvent(s.q, ogImageEvent{Type: "material", ID: matID, Title: req.Name, Tag: &tag})
-
 	return matID, nil
 }
 
@@ -521,13 +518,6 @@ func (s *materialService) UpdateByID(ctx context.Context, courseID string, ID st
 		}
 	}
 
-	name := mat.Name
-	if req.Name != "" {
-		name = req.Name
-	}
-	tag := "Lab Material"
-	publishOGEvent(s.q, ogImageEvent{Type: "material", ID: ID, Title: name, Tag: &tag})
-
 	return nil
 }
 
@@ -602,7 +592,6 @@ func (s *materialService) GetMaterialWithLatestSubmissionStatus(ctx context.Cont
 		Payload:     filteredPayload,
 	}, nil
 }
-
 
 // sanitizeStudentFiles strips grader-only information from files before they
 // are sent to a student.

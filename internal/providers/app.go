@@ -85,15 +85,6 @@ func NewFiberApp(
 
 	rest.NewAuthRouter(api, cfg, userService, refreshTokenService, authLogService)
 
-	rest.NewInternalRouter(&rest.InternalRouter{
-		Router:          api,
-		InternalToken:   cfg.InternalToken,
-		CourseService:   courseService,
-		SectionService:  sectionService,
-		MaterialService: materialService,
-		Queue:           q,
-	})
-
 	protectedApi := api.Group("/", middlewares.ProtectedRouteMiddleware(cfg.JWTSecret, userActivityService))
 
 	rest.NewPlaygroundRouter(protectedApi, playgroundHandler)
