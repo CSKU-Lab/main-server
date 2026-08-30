@@ -665,6 +665,12 @@ func (s *materialService) filterPayloadForUser(materialType string, payload any)
 					Files: sanitizeStudentFiles(runner.Files),
 				}
 			}
+			visibleResourceFiles := make([]registrables.File, 0, len(codePayload.ResourceFiles))
+			for _, file := range codePayload.ResourceFiles {
+				if !file.Hidden {
+					visibleResourceFiles = append(visibleResourceFiles, file)
+				}
+			}
 
 			return struct {
 				Description    *string             `json:"description"`
@@ -675,7 +681,7 @@ func (s *materialService) filterPayloadForUser(materialType string, payload any)
 				Description:    codePayload.Description,
 				AllowedRunners: filteredRunners,
 				Limits:         codePayload.Limits,
-				ResourceFiles:  sanitizeStudentFiles(codePayload.ResourceFiles),
+				ResourceFiles:  sanitizeStudentFiles(visibleResourceFiles),
 			}
 		}
 	}

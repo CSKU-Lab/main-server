@@ -44,6 +44,7 @@ type File struct {
 	Name     string        `json:"name"`
 	Content  string        `json:"content"`
 	Segments []FileSegment `json:"segments,omitempty"`
+	Hidden   bool          `json:"hidden,omitempty"`
 }
 
 type Limits struct {
@@ -487,6 +488,7 @@ func fileToPB(f File) *taskPB.File {
 		Name:     f.Name,
 		Content:  f.Content,
 		Segments: pbSegments,
+		Hidden:   f.Hidden,
 	}
 }
 
@@ -503,5 +505,6 @@ func pbToFile(f *taskPB.File) File {
 		Name:     f.GetName(),
 		Content:  f.GetContent(),
 		Segments: segments,
+		Hidden:   f.GetHidden(),
 	}
 }

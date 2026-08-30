@@ -326,6 +326,7 @@ type File struct {
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	Content       string                 `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`
 	Segments      []*Segment             `protobuf:"bytes,3,rep,name=segments,proto3" json:"segments,omitempty"`
+	Hidden        bool                   `protobuf:"varint,4,opt,name=hidden,proto3" json:"hidden,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -379,6 +380,13 @@ func (x *File) GetSegments() []*Segment {
 		return x.Segments
 	}
 	return nil
+}
+
+func (x *File) GetHidden() bool {
+	if x != nil {
+		return x.Hidden
+	}
+	return false
 }
 
 type Solution struct {
@@ -1016,11 +1024,12 @@ const file_task_v1_messages_proto_rawDesc = "" +
 	"test_cases\x18\x05 \x03(\v2\x11.task.v1.TestCaseR\ttestCases\"7\n" +
 	"\aSegment\x12\x18\n" +
 	"\acontent\x18\x01 \x01(\tR\acontent\x12\x12\n" +
-	"\x04type\x18\x02 \x01(\tR\x04type\"b\n" +
+	"\x04type\x18\x02 \x01(\tR\x04type\"z\n" +
 	"\x04File\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
 	"\acontent\x18\x02 \x01(\tR\acontent\x12,\n" +
-	"\bsegments\x18\x03 \x03(\v2\x10.task.v1.SegmentR\bsegments\"L\n" +
+	"\bsegments\x18\x03 \x03(\v2\x10.task.v1.SegmentR\bsegments\x12\x16\n" +
+	"\x06hidden\x18\x04 \x01(\bR\x06hidden\"L\n" +
 	"\bSolution\x12\x1b\n" +
 	"\trunner_id\x18\x01 \x01(\tR\brunnerId\x12#\n" +
 	"\x05files\x18\x02 \x03(\v2\r.task.v1.FileR\x05files\"Q\n" +

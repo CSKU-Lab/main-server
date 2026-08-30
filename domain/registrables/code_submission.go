@@ -111,11 +111,11 @@ func stripHiddenSegmentText(files models.SubmissionFiles, task *taskPB.TaskRespo
 const defaultCompareScriptIDKey = "default_compare_script_id"
 
 type CodeSubmission struct {
-	repo            repositories.CodeSubmissionRepository
-	codeMatRepo     repositories.CodeMaterialRepository
-	submissionRepo  repositories.SubmissionRepository
-	taskGRPCClient  taskPB.TaskServiceClient
-	settingsRepo    repositories.SystemSettingsRepository
+	repo           repositories.CodeSubmissionRepository
+	codeMatRepo    repositories.CodeMaterialRepository
+	submissionRepo repositories.SubmissionRepository
+	taskGRPCClient taskPB.TaskServiceClient
+	settingsRepo   repositories.SystemSettingsRepository
 }
 
 func NewCodeSubmission(repo repositories.CodeSubmissionRepository, codeMatRepo repositories.CodeMaterialRepository, submissionRepo repositories.SubmissionRepository, taskGRPCClient taskPB.TaskServiceClient, settingsRepo repositories.SystemSettingsRepository) *CodeSubmission {
@@ -267,7 +267,21 @@ func (c *CodeSubmission) Create(ctx context.Context, uowRepo repositories.UoWIns
 // Backward compat: if a task file has no segments, editable_segments[0].content
 // is used as the full content.
 func assembleGraderFiles(submitted []submittedFile, runnerID string, task *taskPB.TaskResponse) (models.SubmissionFiles, error) {
-	return assembleFiles(submitted, runnerID, task, true /* includeHidden */, false /* includeExclude */)
+	files, err := assembleFiles(submitted, runnerID, task, true /* includeHidden */, false /* includeExclude */)
+	if err != nil {
+		return nil, err
+	}
+
+	// Resource files are never trusted from the browser. Append the task-owned
+	// copies here so both visible and hidden resources are available during
+	// formal grading.
+	for _, resource := range task.GetResourceFiles() {
+		files = append(files, models.SubmissionFile{
+			Name:    resource.GetName(),
+			Content: resource.GetContent(),
+		})
+	}
+	return files, nil
 }
 
 // assembleStudentFiles builds the student-facing view of a submission: editable
