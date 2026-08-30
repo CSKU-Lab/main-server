@@ -8,9 +8,9 @@ import (
 	"syscall"
 	"time"
 
-	cskuotel "github.com/CSKU-Lab/otel"
 	"github.com/CSKU-Lab/main-server/configs"
 	"github.com/CSKU-Lab/main-server/internal/logging"
+	cskuotel "github.com/CSKU-Lab/otel"
 )
 
 func main() {
@@ -27,17 +27,19 @@ func main() {
 		}
 	}()
 
-	otelShutdown, err := cskuotel.Init(context.Background())
-	if err != nil {
-		logger.Warnw("tracing unavailable", "error", err)
-	} else {
-		defer func() {
-			shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			defer cancel()
-			if err := otelShutdown(shutdownCtx); err != nil {
-				logger.Warnw("tracer shutdown error", "error", err)
-			}
-		}()
+	if os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT") != "" {
+		otelShutdown, err := cskuotel.Init(context.Background())
+		if err != nil {
+			logger.Warnw("tracing unavailable", "error", err)
+		} else {
+			defer func() {
+				shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				defer cancel()
+				if err := otelShutdown(shutdownCtx); err != nil {
+					logger.Warnw("tracer shutdown error", "error", err)
+				}
+			}()
+		}
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
