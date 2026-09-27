@@ -1,3 +1,10 @@
+## [0.38.1](https://github.com/CSKU-Lab/main-server/compare/v0.38.0...v0.38.1) (2026-09-27)
+
+
+### Bug Fixes
+
+* rank typing submissions by mode ([9fffa57](https://github.com/CSKU-Lab/main-server/commit/9fffa5744e18e1a93cc89d3f4f713d266550e441))
+
 # [0.38.0](https://github.com/CSKU-Lab/main-server/compare/v0.37.5...v0.38.0) (2026-08-30)
 
 
