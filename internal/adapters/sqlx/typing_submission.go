@@ -52,8 +52,13 @@ func (r *typingSubmissionRepo) GetBestByUserID(ctx context.Context, userID, mate
 		SELECT ts.submission_id, ts.raw_wpm, ts.adjusted_wpm, ts.error_rate, ts.duration
 		FROM typing_submissions ts
 		JOIN submissions s ON s.id = ts.submission_id
+		JOIN typing_materials tm ON tm.material_id = s.material_id
 		WHERE s.user_id = $1 AND s.material_id = $2 AND s.lab_id = $3 AND s.section_id = $4
-		ORDER BY ts.adjusted_wpm DESC
+		ORDER BY
+			CASE WHEN tm.typing_type = 'exam' THEN s.auto_score END DESC NULLS LAST,
+			ts.adjusted_wpm DESC,
+			ts.error_rate ASC,
+			s.created_at DESC
 		LIMIT 1
 	`, userID, materialID, labID, sectionID)
 	if err != nil {
@@ -101,31 +106,39 @@ func (r *typingSubmissionRepo) GetByIDs(ctx context.Context, submissionIDs []str
 func (r *typingSubmissionRepo) GetBestByMaterial(ctx context.Context, materialID, labID, sectionID string) ([]models.RawSubmission, error) {
 	rows := []submission{}
 	err := r.db.SelectContext(ctx, &rows, `
-		SELECT
-			s.id,
-			s.user_id,
-			s.lab_id,
-			s.section_id,
-			s.course_id,
-			s.material_id,
-			s.status,
-			s.submission_order,
-			s.created_at,
-			s.updated_at,
-			s.ip_address,
-			s.manual_score,
-			s.auto_score
-		FROM submissions s
-		JOIN typing_submissions ts ON s.id = ts.submission_id
-		WHERE s.material_id = $1 AND s.lab_id = $2 AND s.section_id = $3
-		AND (s.user_id, ts.adjusted_wpm) IN (
-			SELECT s2.user_id, MAX(ts2.adjusted_wpm)
-			FROM submissions s2
-			JOIN typing_submissions ts2 ON s2.id = ts2.submission_id
-			WHERE s2.material_id = $1 AND s2.lab_id = $2 AND s2.section_id = $3
-			GROUP BY s2.user_id
+		WITH ranked AS (
+			SELECT
+				s.id,
+				s.user_id,
+				s.lab_id,
+				s.section_id,
+				s.course_id,
+				s.material_id,
+				s.status,
+				s.submission_order,
+				s.created_at,
+				s.updated_at,
+				s.ip_address,
+				s.manual_score,
+				s.auto_score,
+				ROW_NUMBER() OVER (
+					PARTITION BY s.user_id
+					ORDER BY
+						CASE WHEN tm.typing_type = 'exam' THEN s.auto_score END DESC NULLS LAST,
+						ts.adjusted_wpm DESC,
+						ts.error_rate ASC,
+						s.created_at DESC
+				) AS rank
+			FROM submissions s
+			JOIN typing_submissions ts ON s.id = ts.submission_id
+			JOIN typing_materials tm ON tm.material_id = s.material_id
+			WHERE s.material_id = $1 AND s.lab_id = $2 AND s.section_id = $3
 		)
-		ORDER BY ts.adjusted_wpm DESC
+		SELECT id, user_id, lab_id, section_id, course_id, material_id, status,
+			submission_order, created_at, updated_at, ip_address, manual_score, auto_score
+		FROM ranked
+		WHERE rank = 1
+		ORDER BY auto_score DESC NULLS LAST, created_at DESC
 	`, materialID, labID, sectionID)
 	if err != nil {
 		return nil, err
