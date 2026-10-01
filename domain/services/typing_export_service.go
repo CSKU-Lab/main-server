@@ -108,7 +108,7 @@ func (s *typingExportService) ExportXLSX(ctx context.Context, sectionID string) 
 					}
 					row.wpm = math.Round(typingSub.AdjustedWPM)
 					row.accuracy = math.Round((100-typingSub.ErrorRate)*10) / 10
-					row.score = sub.AutoScore
+					row.score = float64(sub.AutoScore) / 100.0
 					row.submittedAt = sub.CreatedAt.In(time.FixedZone("UTC+7", 7*60*60)).Format("2006-01-02 15:04:05")
 				}
 

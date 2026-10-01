@@ -16,7 +16,8 @@ import (
 )
 
 const (
-	maxRawWPM = 300.0
+	maxRawWPM        = 300.0
+	typingScoreScale = 100.0
 )
 
 type TypingSubmission struct {
@@ -203,7 +204,9 @@ func (t *TypingSubmission) Create(ctx context.Context, uow repositories.UoWInsta
 
 	autoScore := 0
 	if mat.TypingType == "exam" {
-		autoScore = int(math.Round(evaluateTypingScore(adjWPM, errorRate)))
+		// Submission scores are persisted as integers. Store typing scores in
+		// hundredths so the two decimal places calculated above are preserved.
+		autoScore = int(math.Round(evaluateTypingScore(adjWPM, errorRate) * typingScoreScale))
 	}
 
 	return uow.Submission().Update(ctx, &repositories.UpdateSubmissionRequest{
