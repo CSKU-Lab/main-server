@@ -1,3 +1,10 @@
+## [0.38.2](https://github.com/CSKU-Lab/main-server/compare/v0.38.1...v0.38.2) (2026-10-01)
+
+
+### Bug Fixes
+
+* respect scheduled lab visibility ([5f6de8a](https://github.com/CSKU-Lab/main-server/commit/5f6de8a780aeaa0f01a786b2e32a0c0f9242d3d4))
+
 ## [0.38.1](https://github.com/CSKU-Lab/main-server/compare/v0.38.0...v0.38.1) (2026-09-27)
 
 
