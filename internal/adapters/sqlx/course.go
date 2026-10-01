@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/CSKU-Lab/main-server/domain/cserrors"
 	"github.com/CSKU-Lab/main-server/domain/models"
@@ -22,12 +23,13 @@ func NewCourseRepository(db instance) repositories.CourseRepository {
 }
 
 type course struct {
-	ID            string  `db:"id"`
-	Name          string  `db:"name"`
-	Description   *string `db:"description"`
-	Banner        *string `db:"banner"`
-	Visibility    string  `db:"visibility"`
-	TotalStudents int     `db:"total_students"`
+	ID            string    `db:"id"`
+	Name          string    `db:"name"`
+	Description   *string   `db:"description"`
+	Banner        *string   `db:"banner"`
+	Visibility    string    `db:"visibility"`
+	TotalStudents int       `db:"total_students"`
+	CreatedAt     time.Time `db:"created_at"`
 }
 
 type updateCourse struct {
@@ -241,33 +243,42 @@ func (r *sqlxCourseRepository) GetPaginationForStudent(ctx context.Context, stud
 	}
 
 	query := fmt.Sprintf(`
-		SELECT
-			CASE WHEN visibility = 'public'
-				THEN courses.id
-				ELSE (
-					SELECT s.id FROM section_students ss
-					JOIN sections s ON ss.section_id = s.id
-					WHERE s.course_id = courses.id AND ss.student_id = $2 AND s.is_deleted = false
-					LIMIT 1
+		-- Public courses remain one card each; private courses get one card per
+		-- section so that each section-specific link is available to the student.
+		SELECT id, name, description, banner, visibility, total_students, created_at
+		FROM (
+			SELECT c.id, c.name, c.description, c.banner, c.visibility,
+				c.is_archived,
+				c.created_at,
+				(SELECT COUNT(*) FROM course_enrollments WHERE course_id = c.id) AS total_students
+			FROM courses c
+			WHERE c.visibility = 'public'
+				AND c.deleted_at IS NULL
+				AND (
+					c.id IN (SELECT course_id FROM course_enrollments WHERE student_id = $2)
+					OR c.id IN (
+						SELECT DISTINCT s.course_id FROM section_students ss
+						JOIN sections s ON ss.section_id = s.id
+						WHERE ss.student_id = $2 AND s.is_deleted = false
+					)
 				)
-			END AS id,
-			name, description, banner, visibility,
-			CASE WHEN visibility = 'public'
-				THEN (SELECT COUNT(*) FROM course_enrollments WHERE course_id = courses.id)
-				ELSE (SELECT COUNT(DISTINCT ss.student_id) FROM section_students ss JOIN sections s ON ss.section_id = s.id WHERE s.course_id = courses.id AND s.is_deleted = false)
-			END AS total_students
-		FROM courses
+
+			UNION ALL
+
+			SELECT s.id, c.name, c.description, s.banner, c.visibility,
+				c.is_archived,
+				s.created_at,
+				(SELECT COUNT(DISTINCT ss_all.student_id)
+				 FROM section_students ss_all
+				 JOIN sections s_all ON ss_all.section_id = s_all.id
+				 WHERE s_all.course_id = c.id AND s_all.is_deleted = false) AS total_students
+			FROM courses c
+			JOIN sections s ON s.course_id = c.id AND s.is_deleted = false
+			JOIN section_students ss ON ss.section_id = s.id AND ss.student_id = $2
+			WHERE c.visibility = 'private' AND c.deleted_at IS NULL
+		) enrolled_courses
 		WHERE LOWER(name) ILIKE $1
-		AND deleted_at IS NULL
 		%s
-		AND (
-			id IN (SELECT course_id FROM course_enrollments WHERE student_id = $2)
-			OR id IN (
-				SELECT DISTINCT s.course_id FROM section_students ss
-				JOIN sections s ON ss.section_id = s.id
-				WHERE ss.student_id = $2 AND s.is_deleted = false
-			)
-		)
 		ORDER BY %s %s
 		OFFSET $3
 		LIMIT $4
@@ -308,18 +319,29 @@ func (r *sqlxCourseRepository) CountForStudent(ctx context.Context, studentID st
 	}
 
 	query := fmt.Sprintf(`
-		SELECT COUNT(*) FROM courses
+		SELECT COUNT(*)
+		FROM (
+			SELECT c.id, c.name, c.is_archived
+			FROM courses c
+			WHERE c.visibility = 'public'
+				AND c.deleted_at IS NULL
+				AND (
+					c.id IN (SELECT course_id FROM course_enrollments WHERE student_id = $2)
+					OR c.id IN (
+						SELECT DISTINCT s.course_id FROM section_students ss
+						JOIN sections s ON ss.section_id = s.id
+						WHERE ss.student_id = $2 AND s.is_deleted = false
+					)
+				)
+			UNION ALL
+			SELECT s.id, c.name, c.is_archived
+			FROM courses c
+			JOIN sections s ON s.course_id = c.id AND s.is_deleted = false
+			JOIN section_students ss ON ss.section_id = s.id AND ss.student_id = $2
+			WHERE c.visibility = 'private' AND c.deleted_at IS NULL
+		) enrolled_courses
 		WHERE LOWER(name) ILIKE $1
-		AND deleted_at IS NULL
 		%s
-		AND (
-			id IN (SELECT course_id FROM course_enrollments WHERE student_id = $2)
-			OR id IN (
-				SELECT DISTINCT s.course_id FROM section_students ss
-				JOIN sections s ON ss.section_id = s.id
-				WHERE ss.student_id = $2 AND s.is_deleted = false
-			)
-		)
 	`, archiveCondition)
 
 	var count int
