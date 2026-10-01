@@ -1,3 +1,10 @@
+# [0.39.0](https://github.com/CSKU-Lab/main-server/compare/v0.38.2...v0.39.0) (2026-10-01)
+
+
+### Features
+
+* preserve decimal typing scores ([c155aa0](https://github.com/CSKU-Lab/main-server/commit/c155aa0a51e6cf7f9d4ba77500b13ba5dc13425a))
+
 ## [0.38.2](https://github.com/CSKU-Lab/main-server/compare/v0.38.1...v0.38.2) (2026-10-01)
 
 
