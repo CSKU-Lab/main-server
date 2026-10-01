@@ -84,6 +84,7 @@ func NewCMSCourseRoutes(router fiber.Router, courseService services.CourseServic
 				}
 			}
 		}
+		canOpenCMS := isAdmin || isInstructor
 
 		isCourseCreator := false
 		if isInstructor {
@@ -113,6 +114,13 @@ func NewCMSCourseRoutes(router fiber.Router, courseService services.CourseServic
 					}
 				}
 				sections = filtered
+			}
+
+			if canOpenCMS {
+				for i := range sections {
+					path := "/cms/courses/" + courseID + "/sections/" + sections[i].ID
+					sections[i].CMSPath = &path
+				}
 			}
 
 			if len(sections) == 0 {

@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"fmt"
 	"math"
 	"net/http"
 	"strconv"
@@ -33,6 +34,7 @@ type myCourseResponse struct {
 	Instructors   []myCourseInstructor `json:"instructors"`
 	SectionName   *string              `json:"section_name,omitempty"`
 	Semester      *myCourseSemester    `json:"semester,omitempty"`
+	CMSPath       *string              `json:"cms_path,omitempty"`
 }
 
 func NewCoreCourseRoute(
@@ -133,6 +135,13 @@ func NewCoreCourseRoute(
 		}
 
 		data := make([]myCourseResponse, 0, len(courses))
+		canOpenCMS := false
+		for _, role := range user.Roles {
+			if role == models.INSTRUCTOR || role == models.ADMIN {
+				canOpenCMS = true
+				break
+			}
+		}
 		for _, course := range courses {
 			resp := myCourseResponse{
 				ID:            course.ID,
@@ -145,6 +154,10 @@ func NewCoreCourseRoute(
 			}
 
 			if course.Visibility == "public" {
+				if canOpenCMS {
+					path := fmt.Sprintf("/cms/courses/%s", course.ID)
+					resp.CMSPath = &path
+				}
 				for _, cr := range course.Creators {
 					resp.Instructors = append(resp.Instructors, myCourseInstructor{
 						ID:           cr.ID,
@@ -163,6 +176,10 @@ func NewCoreCourseRoute(
 				resp.Semester = &myCourseSemester{
 					Name: section.Semester.Name,
 					Type: string(section.Semester.Type),
+				}
+				if canOpenCMS {
+					path := fmt.Sprintf("/cms/courses/%s/sections/%s", section.CourseID, section.ID)
+					resp.CMSPath = &path
 				}
 				for _, inst := range section.Instructors {
 					resp.Instructors = append(resp.Instructors, myCourseInstructor{
