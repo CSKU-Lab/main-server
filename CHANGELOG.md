@@ -1,3 +1,15 @@
+# [0.40.0](https://github.com/CSKU-Lab/main-server/compare/v0.39.0...v0.40.0) (2026-10-01)
+
+
+### Features
+
+* expose CMS paths to admins ([ca68ad2](https://github.com/CSKU-Lab/main-server/commit/ca68ad291642f4c3ddc17321c5afca2f37f2bbb6))
+
+
+### Performance Improvements
+
+* **sidebar:** avoid eager nested data loading ([421b895](https://github.com/CSKU-Lab/main-server/commit/421b895c66d358d16de02cacf8f8a82e42a64414))
+
 # [0.39.0](https://github.com/CSKU-Lab/main-server/compare/v0.38.2...v0.39.0) (2026-10-01)
 
 
