@@ -59,34 +59,6 @@ func (sb *sidebarService) GetSidebar(
 			SubItems:   []*models.SidebarLab{},
 		}
 
-		labs, err := sb.labSectionRepo.GetVisibleBySectionID(ctx, section.ID)
-		if err != nil {
-			return nil, err
-		}
-
-		for _, lab := range labs {
-			labItem := &models.SidebarLab{
-				ID:       lab.ID,
-				Name:     lab.DisplayName,
-				SubItems: []*models.SidebarMaterial{},
-			}
-
-			mats, err := sb.labMaterialRepo.GetByLabID(ctx, lab.ID)
-			if err != nil {
-				return nil, err
-			}
-
-			for _, mat := range mats {
-				labItem.SubItems = append(labItem.SubItems, &models.SidebarMaterial{
-					ID:     mat.MaterialID,
-					Name:   mat.MaterialData.Name,
-					Status: sb.submissionService.GetMaterialStudentStatus(ctx, userID, mat.MaterialID, lab.ID, section.ID),
-				})
-			}
-
-			sectionItem.SubItems = append(sectionItem.SubItems, labItem)
-		}
-
 		sidebars = append(sidebars, sectionItem)
 	}
 
