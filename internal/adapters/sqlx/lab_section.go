@@ -16,15 +16,15 @@ import (
 )
 
 type labSectionSchema struct {
-	ID        string     `db:"id"`
-	LabID     string     `db:"lab_id"`
-	SectionID string     `db:"section_id"`
-	Position  int        `db:"position"`
-	Status    string     `db:"status"`
-	OpenedAt  *time.Time `db:"opened_at"`
-	ReadonlyAt  *time.Time `db:"readonly_at"`
-	CreatedAt time.Time  `db:"created_at"`
-	UpdatedAt time.Time  `db:"updated_at"`
+	ID         string     `db:"id"`
+	LabID      string     `db:"lab_id"`
+	SectionID  string     `db:"section_id"`
+	Position   int        `db:"position"`
+	Status     string     `db:"status"`
+	OpenedAt   *time.Time `db:"opened_at"`
+	ReadonlyAt *time.Time `db:"readonly_at"`
+	CreatedAt  time.Time  `db:"created_at"`
+	UpdatedAt  time.Time  `db:"updated_at"`
 }
 
 type sqlxLabSectionRepository struct {
@@ -118,7 +118,7 @@ func (ls *sqlxLabSectionRepository) GetMaxPosition(ctx context.Context, sectionI
 }
 
 func (ls *sqlxLabSectionRepository) GetPagination(ctx context.Context, page int, limit int, sortBy string, sortOrder string, filters []sanitize.Filter) ([]models.LabSection, error) {
-	filterWhereClause, filterArgs := buildFilterWhereClause(filters, 1)
+	filterWhereClause, filterArgs := buildLabSectionFilterWhereClause(filters, 1)
 
 	baseQuery := `SELECT ls.id, ls.lab_id, ls.section_id, ls.position, ls.status, ls.opened_at, ls.readonly_at, ls.created_at, ls.updated_at
 		FROM lab_sections ls
@@ -141,15 +141,15 @@ func (ls *sqlxLabSectionRepository) GetPagination(ctx context.Context, page int,
 	labSections := make([]models.LabSection, 0, len(labSectionsSchema))
 	for _, labSection := range labSectionsSchema {
 		labSections = append(labSections, models.LabSection{
-			ID:        labSection.ID,
-			LabID:     labSection.LabID,
-			SectionID: labSection.SectionID,
-			Position:  labSection.Position,
-			Status:    labSection.Status,
-			OpenedAt:  labSection.OpenedAt,
-			ReadonlyAt:  labSection.ReadonlyAt,
-			CreatedAt: labSection.CreatedAt,
-			UpdatedAt: labSection.UpdatedAt,
+			ID:         labSection.ID,
+			LabID:      labSection.LabID,
+			SectionID:  labSection.SectionID,
+			Position:   labSection.Position,
+			Status:     labSection.Status,
+			OpenedAt:   labSection.OpenedAt,
+			ReadonlyAt: labSection.ReadonlyAt,
+			CreatedAt:  labSection.CreatedAt,
+			UpdatedAt:  labSection.UpdatedAt,
 		})
 	}
 	return labSections, nil
@@ -257,7 +257,7 @@ func (ls *sqlxLabSectionRepository) DeleteByID(ctx context.Context, id string) e
 }
 
 func (ls *sqlxLabSectionRepository) Count(ctx context.Context, filters []sanitize.Filter) (int, error) {
-	filterWhereClause, filterArgs := buildFilterWhereClause(filters, 1)
+	filterWhereClause, filterArgs := buildLabSectionFilterWhereClause(filters, 1)
 
 	baseQuery := `SELECT COUNT(*) FROM lab_sections ls JOIN labs l ON ls.lab_id = l.id WHERE ls.is_deleted = false`
 
@@ -269,6 +269,28 @@ func (ls *sqlxLabSectionRepository) Count(ctx context.Context, filters []sanitiz
 	}
 
 	return count, nil
+}
+
+// buildLabSectionFilterWhereClause keeps scheduled labs hidden until their
+// opening time, while allowing them to become visible without requiring a
+// database status update when the schedule begins.
+func buildLabSectionFilterWhereClause(filters []sanitize.Filter, startingArgIndex int) (string, []any) {
+	filtered := make([]sanitize.Filter, 0, len(filters))
+	showScheduledHidden := false
+	for _, filter := range filters {
+		if filter.Field == "status" && filter.Operator == "is_not" && filter.Value == "hidden" {
+			showScheduledHidden = true
+			continue
+		}
+		filtered = append(filtered, filter)
+	}
+
+	whereClause, args := buildFilterWhereClause(filtered, startingArgIndex)
+	if showScheduledHidden {
+		whereClause += " AND (ls.status != 'hidden' OR (ls.status = 'hidden' AND ls.opened_at IS NOT NULL AND ls.opened_at <= NOW()))"
+	}
+
+	return whereClause, args
 }
 
 func (ls *sqlxLabSectionRepository) GetBySectionID(ctx context.Context, sectionID string) ([]models.Lab, error) {
@@ -304,7 +326,8 @@ func (ls *sqlxLabSectionRepository) GetVisibleBySectionID(ctx context.Context, s
 		  WHERE ls.section_id = $1
 		    AND ls.is_deleted = false
 		    AND l.is_deleted = false
-		    AND ls.status NOT IN ('hidden', 'disabled')
+		    AND (ls.status NOT IN ('hidden', 'disabled')
+		         OR (ls.status = 'hidden' AND ls.opened_at IS NOT NULL AND ls.opened_at <= NOW()))
 		  ORDER BY ls.position ASC`
 
 	dbLabs := []labSchema{}
@@ -338,15 +361,15 @@ func (ls *sqlxLabSectionRepository) GetByID(ctx context.Context, labID string, s
 	}
 
 	return &models.LabSection{
-		ID:        labSectionSchema.ID,
-		LabID:     labSectionSchema.LabID,
-		SectionID: labSectionSchema.SectionID,
-		Position:  labSectionSchema.Position,
-		Status:    labSectionSchema.Status,
-		OpenedAt:  labSectionSchema.OpenedAt,
-		ReadonlyAt:  labSectionSchema.ReadonlyAt,
-		CreatedAt: labSectionSchema.CreatedAt,
-		UpdatedAt: labSectionSchema.UpdatedAt,
+		ID:         labSectionSchema.ID,
+		LabID:      labSectionSchema.LabID,
+		SectionID:  labSectionSchema.SectionID,
+		Position:   labSectionSchema.Position,
+		Status:     labSectionSchema.Status,
+		OpenedAt:   labSectionSchema.OpenedAt,
+		ReadonlyAt: labSectionSchema.ReadonlyAt,
+		CreatedAt:  labSectionSchema.CreatedAt,
+		UpdatedAt:  labSectionSchema.UpdatedAt,
 	}, nil
 }
 
@@ -370,15 +393,15 @@ func (ls *sqlxLabSectionRepository) GetByLabID(
 	labSections := make([]models.LabSection, 0, len(labSectionsSchema))
 	for _, ls := range labSectionsSchema {
 		labSections = append(labSections, models.LabSection{
-			ID:        ls.ID,
-			LabID:     ls.LabID,
-			SectionID: ls.SectionID,
-			Position:  ls.Position,
-			Status:    ls.Status,
-			OpenedAt:  ls.OpenedAt,
-			ReadonlyAt:  ls.ReadonlyAt,
-			CreatedAt: ls.CreatedAt,
-			UpdatedAt: ls.UpdatedAt,
+			ID:         ls.ID,
+			LabID:      ls.LabID,
+			SectionID:  ls.SectionID,
+			Position:   ls.Position,
+			Status:     ls.Status,
+			OpenedAt:   ls.OpenedAt,
+			ReadonlyAt: ls.ReadonlyAt,
+			CreatedAt:  ls.CreatedAt,
+			UpdatedAt:  ls.UpdatedAt,
 		})
 	}
 
