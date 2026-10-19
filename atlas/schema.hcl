@@ -975,6 +975,24 @@ table "submissions" {
   index "idx_submissions_created_at" {
     columns = [column.created_at]
   }
+  index "idx_submissions_section_lab_user_material" {
+    on {
+      column = column.section_id
+    }
+    on {
+      column = column.lab_id
+    }
+    on {
+      column = column.user_id
+    }
+    on {
+      column = column.material_id
+    }
+    on {
+      column = column.submission_order
+      desc   = true
+    }
+  }
 }
 
 table "code_submissions" {
@@ -1179,6 +1197,9 @@ table "input_submissions" {
     columns     = [column.document_material_id]
     ref_columns = [table.materials.column.id]
     on_delete   = CASCADE
+  }
+  index "idx_input_submissions_section_lab_document" {
+    columns = [column.section_id, column.lab_id, column.document_material_id]
   }
 }
 

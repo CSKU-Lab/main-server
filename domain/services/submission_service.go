@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -338,6 +337,28 @@ func (s *submissionService) GetLabStudentStatus(ctx context.Context, sectionID, 
 		}
 	}
 
+	// Fetch latest submission of every student for the remaining materials in
+	// one query instead of one query per (student, material) pair.
+	submissionMaterialIDs := make([]string, 0, len(materials))
+	for _, mat := range materials {
+		if _, ok := docEmbedStatusMaps[mat.MaterialID]; !ok {
+			submissionMaterialIDs = append(submissionMaterialIDs, mat.MaterialID)
+		}
+	}
+
+	latestSubmissions, err := s.repo.GetLatestScoresByMaterialsForSection(ctx, submissionMaterialIDs, sectionID, labID)
+	if err != nil {
+		return nil, err
+	}
+
+	latestByUser := make(map[string]map[string]models.RawSubmission) // userID → matID → submission
+	for _, sub := range latestSubmissions {
+		if latestByUser[sub.UserID] == nil {
+			latestByUser[sub.UserID] = make(map[string]models.RawSubmission)
+		}
+		latestByUser[sub.UserID][sub.MaterialID] = sub
+	}
+
 	for _, student := range students {
 		studentRow := models.StudentLabStatus{
 			Student: &models.Student{
@@ -373,15 +394,11 @@ func (s *submissionService) GetLabStudentStatus(ctx context.Context, sectionID, 
 				continue
 			}
 
-			submission, err := s.repo.GetLatestOfStudentIDInSectionID(ctx, sectionID, labID, mat.MaterialID, student.ID)
-			if err != nil {
-				if errors.Is(err, sql.ErrNoRows) {
-					studentRow.MaterialStatuses[mat.MaterialID] = models.MaterialStatus{
-						Status:      models.NOT_SUBMITTED,
-						SubmittedAt: nil,
-					}
-				} else {
-					return nil, err
+			submission, ok := latestByUser[student.ID][mat.MaterialID]
+			if !ok {
+				studentRow.MaterialStatuses[mat.MaterialID] = models.MaterialStatus{
+					Status:      models.NOT_SUBMITTED,
+					SubmittedAt: nil,
 				}
 			} else {
 				studentRow.MaterialStatuses[mat.MaterialID] = models.MaterialStatus{
