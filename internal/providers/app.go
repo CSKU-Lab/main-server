@@ -72,6 +72,7 @@ func NewFiberApp(
 		},
 	})
 
+	app.Use(middlewares.MetricsMiddleware())
 	app.Use(middlewares.OtelMiddleware())
 	app.Use(middlewares.RequestLoggerMiddleware(logger))
 

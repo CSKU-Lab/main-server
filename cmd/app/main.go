@@ -48,6 +48,10 @@ func main() {
 	mode := flag.String("mode", "all", "api | worker | all")
 	flag.Parse()
 
+	if config.MetricsPort != "" {
+		go startMetricsServer(ctx, config.MetricsPort, db, logger)
+	}
+
 	if *mode == "worker" || *mode == "all" {
 		go startSubmissionWorker(ctx, logger, db, config)
 	}

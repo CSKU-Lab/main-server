@@ -11,6 +11,7 @@ type Config struct {
 	ApiURL             string
 	DatabaseURL        string
 	Port               string
+	MetricsPort        string
 	GoogleClientID     string
 	GoogleClientSecret string
 	JWTSecret          string
@@ -44,6 +45,7 @@ func NewConfig() *Config {
 		ApiURL:             os.Getenv("API_URL"),
 		DatabaseURL:        os.Getenv("DATABASE_URL"),
 		Port:               os.Getenv("PORT"),
+		MetricsPort:        os.Getenv("METRICS_PORT"),
 		GoogleClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
 		GoogleClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
 		JWTSecret:          os.Getenv("JWT_SECRET"),
