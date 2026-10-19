@@ -1,3 +1,10 @@
+## [0.40.1](https://github.com/CSKU-Lab/main-server/compare/v0.40.0...v0.40.1) (2026-10-19)
+
+
+### Performance Improvements
+
+* **lab-status:** batch latest submissions query and add indexes ([855788e](https://github.com/CSKU-Lab/main-server/commit/855788e2d8ca20e5108f0af474602828a5aa289d))
+
 # [0.40.0](https://github.com/CSKU-Lab/main-server/compare/v0.39.0...v0.40.0) (2026-10-01)
 
 
