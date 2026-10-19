@@ -1,3 +1,10 @@
+## [0.41.1](https://github.com/CSKU-Lab/main-server/compare/v0.41.0...v0.41.1) (2026-10-19)
+
+
+### Bug Fixes
+
+* **deps:** keep go directive at 1.25 for CI toolchain ([ab0ea3d](https://github.com/CSKU-Lab/main-server/commit/ab0ea3db42b82d84da27a02d37ca12649ff02ac2))
+
 # [0.41.0](https://github.com/CSKU-Lab/main-server/compare/v0.40.2...v0.41.0) (2026-10-19)
 
 
