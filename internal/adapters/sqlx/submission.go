@@ -87,6 +87,40 @@ type submission struct {
 	AutoScore   int    `db:"auto_score"`
 }
 
+func (s *submissionRepository) GetByIDs(ctx context.Context, ids []string) ([]repositories.Submission, error) {
+	if len(ids) == 0 {
+		return []repositories.Submission{}, nil
+	}
+
+	query := `SELECT id, user_id, lab_id, section_id, course_id, material_id, status, submission_order, auto_score, created_at
+              FROM submissions
+              WHERE id = ANY($1)`
+
+	rows := []submission{}
+	err := s.db.SelectContext(ctx, &rows, query, pq.Array(ids))
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]repositories.Submission, len(rows))
+	for i, submission := range rows {
+		result[i] = repositories.Submission{
+			ID:         submission.ID,
+			UserID:     submission.UserID,
+			LabID:      submission.LabID,
+			SectionID:  submission.SectionID,
+			CourseID:   submission.CourseID,
+			MaterialID: submission.MaterialID,
+			Status:     submission.Status,
+			Order:      submission.Order,
+			AutoScore:  submission.AutoScore,
+			CreatedAt:  submission.CreatedAt,
+		}
+	}
+
+	return result, nil
+}
+
 func (s *submissionRepository) Get(ctx context.Context, id string) (*repositories.Submission, error) {
 	query := `SELECT id, user_id, lab_id, section_id, course_id, material_id, status, submission_order, auto_score, created_at
               FROM submissions

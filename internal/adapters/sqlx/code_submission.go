@@ -83,7 +83,7 @@ func (c *codeSubmissionRepository) GetByIDs(ctx context.Context, submissionIDs [
 		return []*models.CodeSubmission{}, nil
 	}
 
-	query := `SELECT submission_id, files, status, avg_wall_time, avg_memory, test_case_groups FROM code_submissions WHERE submission_id IN (?)`
+	query := `SELECT submission_id, files, student_files, status, avg_wall_time, avg_memory, test_case_groups, runner_id FROM code_submissions WHERE submission_id IN (?)`
 
 	query, args, err := sqlx.In(query, submissionIDs)
 	if err != nil {
@@ -107,6 +107,8 @@ func (c *codeSubmissionRepository) GetByIDs(ctx context.Context, submissionIDs [
 			AvgWallTime:    submission.AvgWallTime,
 			AvgMemory:      submission.AvgMemory,
 			TestCaseGroups: submission.TestCaseGroups,
+			StudentFiles:   submission.StudentFiles,
+			RunnerID:       submission.RunnerID,
 		}
 	}
 

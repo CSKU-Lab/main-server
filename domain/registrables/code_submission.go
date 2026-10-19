@@ -2,6 +2,7 @@ package registrables
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"strings"
 
@@ -428,6 +429,69 @@ func (c *CodeSubmission) Get(ctx context.Context, submissionID string, viewBy st
 		return nil, err
 	}
 
+	return buildCodeSubmissionPayload(codeSubmission, task, viewBy), nil
+}
+
+// GetByIDs batch-loads submissions and code submissions, and fetches each
+// distinct code material and task once, instead of once per submission.
+func (c *CodeSubmission) GetByIDs(ctx context.Context, submissionIDs []string, viewBy string) (map[string]any, error) {
+	submissions := make(map[string]any, len(submissionIDs))
+	if len(submissionIDs) == 0 {
+		return submissions, nil
+	}
+
+	rawSubmissions, err := c.submissionRepo.GetByIDs(ctx, submissionIDs)
+	if err != nil {
+		return nil, err
+	}
+	materialIDBySubmission := make(map[string]string, len(rawSubmissions))
+	for _, sub := range rawSubmissions {
+		materialIDBySubmission[sub.ID] = sub.MaterialID
+	}
+
+	codeSubmissions, err := c.repo.GetByIDs(ctx, submissionIDs)
+	if err != nil {
+		return nil, err
+	}
+	codeSubmissionByID := make(map[string]*models.CodeSubmission, len(codeSubmissions))
+	for _, cs := range codeSubmissions {
+		codeSubmissionByID[cs.SubmissionID] = cs
+	}
+
+	taskByMaterial := make(map[string]*taskPB.TaskResponse)
+	for _, subID := range submissionIDs {
+		materialID, ok := materialIDBySubmission[subID]
+		if !ok {
+			return nil, sql.ErrNoRows
+		}
+		codeSubmission, ok := codeSubmissionByID[subID]
+		if !ok {
+			return nil, sql.ErrNoRows
+		}
+
+		task, ok := taskByMaterial[materialID]
+		if !ok {
+			codeMat, err := c.codeMatRepo.GetByID(ctx, materialID)
+			if err != nil {
+				return nil, err
+			}
+
+			task, err = c.taskGRPCClient.GetTask(ctx, &taskPB.GetTaskRequest{
+				Id: codeMat.TaskID,
+			})
+			if err != nil {
+				return nil, err
+			}
+			taskByMaterial[materialID] = task
+		}
+
+		submissions[subID] = buildCodeSubmissionPayload(codeSubmission, task, viewBy)
+	}
+
+	return submissions, nil
+}
+
+func buildCodeSubmissionPayload(codeSubmission *models.CodeSubmission, task *taskPB.TaskResponse, viewBy string) any {
 	testCaseGroups := codeSubmission.TestCaseGroups
 	if len(task.GetTestCaseGroups()) > 0 {
 		testCaseGroups = reorderTestCaseGroups(codeSubmission.TestCaseGroups, task.GetTestCaseGroups())
@@ -442,119 +506,42 @@ func (c *CodeSubmission) Get(ctx context.Context, submissionID string, viewBy st
 		TestCaseGroups: testCaseGroups,
 	}
 
-	if viewBy != "instructor" {
-		// Students must not see hidden grader code. Serve the stored student-facing
-		// files (hidden dropped). For submissions saved before StudentFiles existed,
-		// fail closed: strip any known hidden text from the full files rather than
-		// risk leaking it.
-		studentFiles := codeSubmission.StudentFiles
-		if len(studentFiles) == 0 {
-			studentFiles = stripHiddenSegmentText(codeSubmission.Files, task)
-		}
-
-		visibility := testCaseVisibilityByID(task)
-
-		coreGroups := make([]coreTestCaseGroupResult, 0, len(testCaseGroups))
-		for _, tg := range testCaseGroups {
-			cg := coreTestCaseGroupResult{
-				ID:      tg.ID,
-				Name:    tg.Name,
-				Results: make([]models.TestCaseResult, 0, len(tg.Results)),
-			}
-			for _, tc := range tg.Results {
-				cg.Results = append(cg.Results, visibility.studentTestCaseResult(tc))
-			}
-			coreGroups = append(coreGroups, cg)
-		}
-		return &coreCodeSubmission{
-			SubmissionID:   cleanedCodeSubmission.SubmissionID,
-			Files:          studentFiles,
-			RunnerID:       codeSubmission.RunnerID,
-			Status:         cleanedCodeSubmission.Status,
-			AvgWallTime:    cleanedCodeSubmission.AvgWallTime,
-			AvgMemory:      cleanedCodeSubmission.AvgMemory,
-			TestCaseGroups: coreGroups,
-		}, nil
+	if viewBy == "instructor" {
+		return cleanedCodeSubmission
 	}
 
-	return cleanedCodeSubmission, nil
-}
-
-func (c *CodeSubmission) GetByIDs(ctx context.Context, submissionIDs []string, viewBy string) (map[string]any, error) {
-	submissions := make(map[string]any, len(submissionIDs))
-	for _, subID := range submissionIDs {
-		submission, err := c.submissionRepo.Get(ctx, subID)
-		if err != nil {
-			return nil, err
-		}
-
-		codeMat, err := c.codeMatRepo.GetByID(ctx, submission.MaterialID)
-		if err != nil {
-			return nil, err
-		}
-
-		codeSubmission, err := c.repo.Get(ctx, subID)
-		if err != nil {
-			return nil, err
-		}
-
-		task, err := c.taskGRPCClient.GetTask(ctx, &taskPB.GetTaskRequest{
-			Id: codeMat.TaskID,
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		testCaseGroups := codeSubmission.TestCaseGroups
-		if len(task.GetTestCaseGroups()) > 0 {
-			testCaseGroups = reorderTestCaseGroups(codeSubmission.TestCaseGroups, task.GetTestCaseGroups())
-		}
-
-		cleanedCodeSubmission := &models.CodeSubmission{
-			SubmissionID:   codeSubmission.SubmissionID,
-			Files:          codeSubmission.Files,
-			Status:         codeSubmission.Status,
-			AvgWallTime:    codeSubmission.AvgWallTime,
-			AvgMemory:      codeSubmission.AvgMemory,
-			TestCaseGroups: testCaseGroups,
-		}
-
-		if viewBy != "instructor" {
-			// Students must not see hidden grader code — serve student-facing files.
-			// Pre-StudentFiles submissions: fail closed by stripping known hidden text.
-			studentFiles := codeSubmission.StudentFiles
-			if len(studentFiles) == 0 {
-				studentFiles = stripHiddenSegmentText(codeSubmission.Files, task)
-			}
-
-			visibility := testCaseVisibilityByID(task)
-
-			coreGroups := make([]coreTestCaseGroupResult, 0, len(testCaseGroups))
-			for _, tg := range testCaseGroups {
-				cg := coreTestCaseGroupResult{
-					ID:      tg.ID,
-					Name:    tg.Name,
-					Results: make([]models.TestCaseResult, 0, len(tg.Results)),
-				}
-				for _, tc := range tg.Results {
-					cg.Results = append(cg.Results, visibility.studentTestCaseResult(tc))
-				}
-				coreGroups = append(coreGroups, cg)
-			}
-			submissions[subID] = &coreCodeSubmission{
-				SubmissionID:   cleanedCodeSubmission.SubmissionID,
-				Files:          studentFiles,
-				Status:         cleanedCodeSubmission.Status,
-				AvgWallTime:    cleanedCodeSubmission.AvgWallTime,
-				AvgMemory:      cleanedCodeSubmission.AvgMemory,
-				TestCaseGroups: coreGroups,
-			}
-		} else {
-			submissions[subID] = cleanedCodeSubmission
-		}
+	// Students must not see hidden grader code. Serve the stored student-facing
+	// files (hidden dropped). For submissions saved before StudentFiles existed,
+	// fail closed: strip any known hidden text from the full files rather than
+	// risk leaking it.
+	studentFiles := codeSubmission.StudentFiles
+	if len(studentFiles) == 0 {
+		studentFiles = stripHiddenSegmentText(codeSubmission.Files, task)
 	}
 
-	return submissions, nil
+	visibility := testCaseVisibilityByID(task)
+
+	coreGroups := make([]coreTestCaseGroupResult, 0, len(testCaseGroups))
+	for _, tg := range testCaseGroups {
+		cg := coreTestCaseGroupResult{
+			ID:      tg.ID,
+			Name:    tg.Name,
+			Results: make([]models.TestCaseResult, 0, len(tg.Results)),
+		}
+		for _, tc := range tg.Results {
+			cg.Results = append(cg.Results, visibility.studentTestCaseResult(tc))
+		}
+		coreGroups = append(coreGroups, cg)
+	}
+	return &coreCodeSubmission{
+		SubmissionID:   cleanedCodeSubmission.SubmissionID,
+		Files:          studentFiles,
+		RunnerID:       codeSubmission.RunnerID,
+		Status:         cleanedCodeSubmission.Status,
+		AvgWallTime:    cleanedCodeSubmission.AvgWallTime,
+		AvgMemory:      cleanedCodeSubmission.AvgMemory,
+		TestCaseGroups: coreGroups,
+	}
 }
 
 func (c *CodeSubmission) GetOverviewStats(payload any) any {

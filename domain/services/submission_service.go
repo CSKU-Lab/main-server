@@ -1000,6 +1000,22 @@ func (s *submissionService) GetSectionLabMaterialSubmissions(ctx context.Context
 		embedAutoScores, embedStatusByUser, embedPerUser, _ = s.docEmbedScores(ctx, materialID, sectionID, labID)
 	}
 
+	// Load every student's submission payload in one batch. Document payloads
+	// are replaced by per-embed scores below, so they are not loaded at all.
+	var payloads map[string]any
+	if mat.Type != "document" {
+		submissionIDs := make([]string, 0, len(submissionMap))
+		for _, student := range students {
+			if sub, ok := submissionMap[student.ID]; ok {
+				submissionIDs = append(submissionIDs, sub.ID)
+			}
+		}
+		payloads, err = handler.GetByIDs(ctx, submissionIDs, "instructor")
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	result := make([]models.CMSSectionStudentSubmission, len(students))
 	for i, student := range students {
 		sub, hasSubmission := submissionMap[student.ID]
@@ -1018,10 +1034,7 @@ func (s *submissionService) GetSectionLabMaterialSubmissions(ctx context.Context
 		}
 
 		if hasSubmission {
-			payload, err := handler.Get(ctx, sub.ID, "instructor")
-			if err != nil {
-				return nil, err
-			}
+			payload := payloads[sub.ID]
 			if mat.Type == "document" {
 				payload = docPayload
 			}
