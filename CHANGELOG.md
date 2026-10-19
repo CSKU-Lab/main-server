@@ -1,3 +1,10 @@
+# [0.41.0](https://github.com/CSKU-Lab/main-server/compare/v0.40.2...v0.41.0) (2026-10-19)
+
+
+### Features
+
+* **metrics:** expose HTTP latency and runtime metrics for Prometheus ([2b62095](https://github.com/CSKU-Lab/main-server/commit/2b62095a92a348658cd06d87b417fcc4e8ea98cc))
+
 ## [0.40.2](https://github.com/CSKU-Lab/main-server/compare/v0.40.1...v0.40.2) (2026-10-19)
 
 
