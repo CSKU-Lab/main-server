@@ -1,3 +1,10 @@
+## [0.40.2](https://github.com/CSKU-Lab/main-server/compare/v0.40.1...v0.40.2) (2026-10-19)
+
+
+### Performance Improvements
+
+* **submissions:** batch submission payload loading ([0f20418](https://github.com/CSKU-Lab/main-server/commit/0f2041860636bef8cd40e7250ff8e231b7b04466))
+
 ## [0.40.1](https://github.com/CSKU-Lab/main-server/compare/v0.40.0...v0.40.1) (2026-10-19)
 
 
